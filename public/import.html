@@ -35,7 +35,10 @@
             <span>Excel file (.xlsx)</span>
             <input id="file" type="file" accept=".xlsx" required />
           </label>
-          <button id="btn" type="submit" class="btn">Import</button>
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap">
+            <button id="btn" type="submit" class="btn">Import</button>
+            <button id="downloadTemplate" type="button" class="btn">Download Excel template</button>
+          </div>
         </form>
 
         <div style="margin-top: 1rem" class="muted">

@@ -4,6 +4,91 @@ function pretty(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
+function downloadBlob({ blob, filename }) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function downloadTemplateXlsx() {
+  // Lazy-load SheetJS in the browser (no bundler needed).
+  const XLSX = await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");
+
+  const required = [
+    "city",
+    "state",
+    "pharmacy_name",
+    "drug_name",
+    "strength",
+    "form",
+    "pack_size",
+    "price_inr",
+  ];
+  const optional = [
+    "chain",
+    "generic_name",
+    "address_line",
+    "pincode",
+    "lat",
+    "lng",
+    "mrp_inr",
+    "price_type",
+    "in_stock",
+  ];
+
+  const headers = [...required, ...optional];
+  const exampleRow = {
+    city: "Mumbai",
+    state: "Maharashtra",
+    pharmacy_name: "Apollo Pharmacy — Bandra",
+    drug_name: "Metformin 500 mg",
+    strength: "500 mg",
+    form: "tablet",
+    pack_size: 10,
+    price_inr: 45,
+    chain: "Apollo",
+    generic_name: "Metformin hydrochloride",
+    address_line: "Linking Rd, Bandra West",
+    pincode: "400050",
+    lat: 19.0596,
+    lng: 72.8295,
+    mrp_inr: 120,
+    price_type: "retail",
+    in_stock: "true",
+  };
+
+  const aoa = [
+    headers,
+    headers.map((h) => (exampleRow[h] == null ? "" : exampleRow[h])),
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "prices");
+
+  const arr = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([arr], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  downloadBlob({ blob, filename: "medlens-price-import-template.xlsx" });
+}
+
+$("#downloadTemplate").addEventListener("click", async () => {
+  $("#out").textContent = "";
+  try {
+    await downloadTemplateXlsx();
+  } catch (e) {
+    $("#out").textContent =
+      "Failed to generate template. If your network blocks cdn.jsdelivr.net, download SheetJS locally.\n\n" +
+      String(e?.message || e);
+  }
+});
+
 $("#form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const file = $("#file").files?.[0];
