@@ -2,6 +2,7 @@
   "name": "medlens",
   "version": "1.0.0",
   "description": "India prescription medicine price comparison (MedLens)",
+  "author": "Prabhudatta Choudhury",
   "type": "module",
   "main": "server/index.js",
   "scripts": {

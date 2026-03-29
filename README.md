@@ -101,6 +101,10 @@ All partner endpoints require header `x-api-key: <key>`.
 - `GET /api/compare?medicineId=1&city=mumbai` — ranked prices for that city  
 - `GET /api/carts/:id` — cart + extracted items  
 
+## Author
+
+Prabhudatta Choudhury
+
 ## Screenshots
 
 <img width="1440" height="1102" alt="image" src="https://github.com/user-attachments/assets/d3117eb5-9096-478f-8534-aece1a28c85f" />
