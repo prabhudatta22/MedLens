@@ -1,0 +1,25 @@
+{
+  "name": "medlens",
+  "version": "1.0.0",
+  "description": "India prescription medicine price comparison (MedLens)",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "dev:local": "node server/scripts/dev-local.js",
+    "db:migrate": "node server/db/migrate.js",
+    "db:seed": "node server/db/seed.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.2",
+    "pg": "^8.13.1",
+    "xlsx": "^0.18.5",
+    "tesseract.js": "^5.1.1"
+  }
+}

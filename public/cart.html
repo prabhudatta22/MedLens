@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — cart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="header">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">◇</span>
+        <div>
+          <h1>MedLens</h1>
+          <p class="tagline">Prescription cart (OCR)</p>
+        </div>
+      </div>
+      <p class="disclaimer">
+        OCR is best-effort. Always verify medicine name/strength with your pharmacist/doctor.
+      </p>
+    </header>
+
+    <main class="layout" style="grid-template-columns: 1fr">
+      <section class="panel">
+        <h2>Cart</h2>
+        <div id="meta" class="muted">Loading…</div>
+        <div id="controls" class="hidden" style="margin-top: 0.85rem">
+          <label class="field" style="margin: 0">
+            <span>Compare prices in</span>
+            <select id="city"></select>
+          </label>
+        </div>
+        <div id="itemsWrap" class="table-wrap hidden" style="margin-top: 1rem">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Medicine</th>
+                <th>Qty</th>
+                <th>Match</th>
+                <th>Best price</th>
+                <th>Best pharmacy</th>
+                <th>Spread</th>
+              </tr>
+            </thead>
+            <tbody id="items"></tbody>
+          </table>
+        </div>
+        <p id="empty" class="muted hidden">No items could be extracted confidently from this prescription.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a class="muted" href="/" style="color: inherit">Back to search</a>
+    </footer>
+
+    <script type="module" src="/cart.js"></script>
+  </body>
+</html>
+

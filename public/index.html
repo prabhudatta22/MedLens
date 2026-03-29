@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — compare medicine prices (India)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="header">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">◇</span>
+        <div>
+          <h1>MedLens</h1>
+          <p class="tagline">Transparent prescription prices near you — India</p>
+        </div>
+      </div>
+      <p class="disclaimer">
+        Demo data for illustration. Always confirm price and availability at the pharmacy. Not medical advice.
+      </p>
+    </header>
+
+    <main class="layout">
+      <section class="panel search-panel" aria-labelledby="search-title">
+        <h2 id="search-title">Find a medicine</h2>
+        <label class="field">
+          <span>Search</span>
+          <input
+            id="q"
+            type="search"
+            placeholder="e.g. Metformin, Atorvastatin, Telma"
+            autocomplete="off"
+          />
+        </label>
+        <label class="field">
+          <span>City</span>
+          <select id="city"></select>
+        </label>
+        <ul id="results" class="results" role="listbox" aria-label="Medicine matches"></ul>
+      </section>
+
+      <section class="panel compare-panel" aria-labelledby="compare-title">
+        <div class="compare-head">
+          <h2 id="compare-title">Compare nearby pharmacies</h2>
+          <div id="selection" class="selection muted">Select a medicine to see prices.</div>
+        </div>
+        <div id="stats" class="stats hidden"></div>
+        <div id="table-wrap" class="table-wrap hidden">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Pharmacy</th>
+                <th>Price (INR)</th>
+                <th>MRP</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody id="offers"></tbody>
+          </table>
+        </div>
+        <p id="empty" class="muted hidden">No prices for this medicine in the selected city yet.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>PostgreSQL via <code>DATABASE_URL</code></span>
+      <span class="dot">·</span>
+      <span>Geography: India (INR)</span>
+    </footer>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
