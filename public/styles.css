@@ -298,3 +298,24 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.btn-sm {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.header-nav a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.header-nav a:hover {
+  text-decoration: underline;
+}

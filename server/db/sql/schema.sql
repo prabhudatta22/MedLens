@@ -113,3 +113,50 @@ CREATE TABLE IF NOT EXISTS sale_items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items (sale_id);
+
+-- Users: phone OTP auth (India/mobile-first)
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  phone_e164 TEXT NOT NULL UNIQUE, -- e.g. +919876543210
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_login_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS otp_codes (
+  id SERIAL PRIMARY KEY,
+  phone_e164 TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  purpose TEXT NOT NULL DEFAULT 'login' CHECK (purpose IN ('login')),
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ip TEXT,
+  user_agent TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_otp_phone_created ON otp_codes (phone_e164, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY, -- random token
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id, created_at DESC);
+
+-- Purchase reminders (refill / buy-again) for logged-in users
+CREATE TABLE IF NOT EXISTS purchase_reminders (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  medicine_id INTEGER REFERENCES medicines (id) ON DELETE SET NULL,
+  medicine_label TEXT NOT NULL,
+  remind_at TIMESTAMPTZ NOT NULL,
+  repeat_interval_days INTEGER CHECK (repeat_interval_days IS NULL OR (repeat_interval_days >= 1 AND repeat_interval_days <= 730)),
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_purchase_reminders_user_next ON purchase_reminders (user_id, remind_at);

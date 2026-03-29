@@ -22,6 +22,11 @@
           <p class="tagline">Transparent prescription prices near you — India</p>
         </div>
       </div>
+      <nav class="header-nav" aria-label="Account">
+        <a href="/login.html">Login</a>
+        <span class="dot">·</span>
+        <a href="/reminders.html">Reminders</a>
+      </nav>
       <p class="disclaimer">
         Demo data for illustration. Always confirm price and availability at the pharmacy. Not medical advice.
       </p>
@@ -50,6 +55,9 @@
         <div class="compare-head">
           <h2 id="compare-title">Compare nearby pharmacies</h2>
           <div id="selection" class="selection muted">Select a medicine to see prices.</div>
+          <p id="reminderHint" class="muted hidden" style="margin-top: 0.5rem">
+            <a id="reminderLink" href="/reminders.html">Set a purchase reminder</a> for this medicine.
+          </p>
         </div>
         <div id="stats" class="stats hidden"></div>
         <div id="table-wrap" class="table-wrap hidden">
@@ -73,6 +81,8 @@
       <span>PostgreSQL via <code>DATABASE_URL</code></span>
       <span class="dot">·</span>
       <span>Geography: India (INR)</span>
+      <span class="dot">·</span>
+      <a href="/reminders.html" class="muted" style="color: inherit">Purchase reminders</a>
     </footer>
 
     <script type="module" src="/app.js"></script>

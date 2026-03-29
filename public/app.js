@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 let cities = [];
 let selectedMedicine = null;
+let loggedIn = false;
 
 async function loadCities() {
   const res = await fetch("/api/cities");
@@ -81,6 +82,7 @@ function selectMedicine(id, list) {
   $("selection").innerHTML = `Showing <strong>${escapeHtml(selectedMedicine.display_name)}</strong> (${escapeHtml(
     selectedMedicine.strength
   )}).`;
+  updateReminderHint();
   loadCompare();
 }
 
@@ -140,4 +142,31 @@ function fmt(n) {
   return Number(n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-loadCities().catch(console.error);
+async function refreshAuth() {
+  try {
+    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
+    const data = await res.json();
+    loggedIn = Boolean(data.user);
+  } catch {
+    loggedIn = false;
+  }
+}
+
+function updateReminderHint() {
+  const el = $("reminderHint");
+  const link = $("reminderLink");
+  if (!el || !link) return;
+  if (!selectedMedicine || !loggedIn) {
+    el.classList.add("hidden");
+    return;
+  }
+  el.classList.remove("hidden");
+  const label = encodeURIComponent(selectedMedicine.display_name);
+  const mid = selectedMedicine.id;
+  link.href = `/reminders.html?medicine_id=${mid}&medicine_label=${label}`;
+}
+
+loadCities()
+  .then(() => refreshAuth())
+  .then(() => updateReminderHint())
+  .catch(console.error);

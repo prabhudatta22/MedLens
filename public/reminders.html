@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — purchase reminders</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="header">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">◇</span>
+        <div>
+          <h1>MedLens</h1>
+          <p class="tagline">Purchase reminders</p>
+        </div>
+      </div>
+      <nav class="header-nav" aria-label="Account">
+        <a href="/">Search</a>
+        <span class="dot">·</span>
+        <a href="/login.html">Login</a>
+      </nav>
+      <p class="disclaimer">
+        Get reminded when to buy or refill a medicine. Notifications are in-app for now; SMS/WhatsApp can be added later.
+      </p>
+    </header>
+
+    <main class="layout" style="grid-template-columns: 1fr; max-width: 720px">
+      <section id="gate" class="panel hidden">
+        <p class="muted">
+          <a href="/login.html">Log in</a> with your mobile number to manage purchase reminders.
+        </p>
+      </section>
+
+      <section id="main" class="panel hidden">
+        <h2 id="welcome">Your reminders</h2>
+        <p id="userLine" class="muted"></p>
+
+        <form id="addForm" style="margin-top: 1rem">
+          <h3 style="font-size: 1rem; margin: 0 0 0.75rem">Add reminder</h3>
+          <label class="field">
+            <span>Medicine name</span>
+            <input id="medicine_label" type="text" required maxlength="200" placeholder="e.g. Metformin 500 mg" />
+          </label>
+          <input type="hidden" id="medicine_id" />
+          <label class="field">
+            <span>Remind me on</span>
+            <input id="remind_at" type="datetime-local" required />
+          </label>
+          <label class="field">
+            <span>Repeat every (days, optional)</span>
+            <input id="repeat_days" type="number" min="1" max="730" placeholder="e.g. 30 for monthly refill" />
+          </label>
+          <label class="field">
+            <span>Notes (optional)</span>
+            <input id="notes" type="text" maxlength="500" placeholder="e.g. after breakfast" />
+          </label>
+          <button type="submit" class="btn">Save reminder</button>
+        </form>
+
+        <div id="listWrap" class="table-wrap" style="margin-top: 1.25rem">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Medicine</th>
+                <th>Remind date</th>
+                <th>Repeat</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="list"></tbody>
+          </table>
+        </div>
+        <p id="empty" class="muted hidden" style="margin-top: 1rem">No reminders yet. Add one above.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span class="muted">API: <code>/api/reminders</code></span>
+    </footer>
+
+    <script type="module" src="/reminders.js"></script>
+  </body>
+</html>

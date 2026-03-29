@@ -93,6 +93,33 @@ All partner endpoints require header `x-api-key: <key>`.
 - `GET /api/partner/sales/summary?from=YYYY-MM-DD&to=YYYY-MM-DD`
 - `GET /api/partner/sales/recent`
 
+## User login (mobile OTP)
+
+Open `APP_BASE_URL/login.html`.
+
+### API
+
+- `POST /api/auth/request-otp` `{ phone }`
+- `POST /api/auth/verify-otp` `{ phone, code }` (sets `sid` cookie)
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+
+### Dev note
+
+If `NODE_ENV` is not `production`, the API returns the OTP as `dev_otp` to make local testing easy. In production, plug in an SMS provider and never return OTPs in responses.
+
+## Purchase reminders (refill / buy again)
+
+Open `APP_BASE_URL/reminders.html` while logged in. You can set a **next reminder date**, optional **repeat interval** (e.g. every 30 days), and notes. **Bought** moves the next reminder forward by the repeat interval (or 30 days if unset).
+
+### API (requires `sid` session cookie)
+
+- `GET /api/reminders`
+- `POST /api/reminders` `{ medicine_label, remind_at, medicine_id?, repeat_interval_days?, notes? }`
+- `PATCH /api/reminders/:id`
+- `DELETE /api/reminders/:id`
+- `POST /api/reminders/:id/bought` — schedule next reminder after a purchase/refill
+
 ## API
 
 - `GET /api/health` — app + DB check  
@@ -100,6 +127,7 @@ All partner endpoints require header `x-api-key: <key>`.
 - `GET /api/medicines/search?q=metformin` — medicine search  
 - `GET /api/compare?medicineId=1&city=mumbai` — ranked prices for that city  
 - `GET /api/carts/:id` — cart + extracted items  
+- `GET/POST/PATCH/DELETE /api/reminders` — purchase reminders (logged-in users)  
 
 ## Author
 
