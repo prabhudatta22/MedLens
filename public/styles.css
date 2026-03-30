@@ -102,6 +102,54 @@ body {
   }
 }
 
+.layout-full {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem 2.5rem;
+}
+
+.online-compare-panel {
+  margin-top: 0.25rem;
+}
+
+.online-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.online-disclaimer {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0.75rem 0 0;
+}
+
+.online-disclaimer a {
+  color: var(--accent);
+}
+
+.online-checkout {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.online-checkout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.online-compare-panel input[type="radio"] {
+  accent-color: var(--accent);
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);

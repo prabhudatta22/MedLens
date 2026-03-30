@@ -8,6 +8,7 @@ import importRoutes from "./routes/import.js";
 import partnerRoutes from "./routes/partner.js";
 import authRoutes from "./routes/auth.js";
 import remindersRoutes from "./routes/reminders.js";
+import onlineCompareRoutes from "./routes/onlineCompare.js";
 import cookieParser from "cookie-parser";
 import { attachUser } from "./auth/middleware.js";
 
@@ -24,6 +25,7 @@ app.use(express.static(publicDir));
 app.use("/api", api);
 app.use("/api/auth", authRoutes);
 app.use("/api/reminders", remindersRoutes);
+app.use("/api/online", onlineCompareRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/webhook/whatsapp", whatsapp);

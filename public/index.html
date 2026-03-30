@@ -77,6 +77,46 @@
       </section>
     </main>
 
+    <div class="layout-full">
+      <section class="panel online-compare-panel hidden" id="online-section" aria-labelledby="online-title">
+        <div class="online-head">
+          <h2 id="online-title">Compare online pharmacies (parallel)</h2>
+          <p id="online-status" class="muted"></p>
+        </div>
+        <p class="muted online-disclaimer">
+          Live rows use your <strong>partner JSON APIs</strong> (<code>README</code> / <code>.env.example</code>). Unconfigured retailers show an error (no fake price). Optional demo:
+          <code>ONLINE_USE_ILLUSTRATIVE_FALLBACK=true</code>. Always confirm on the retailer before you pay. Deeplinks:
+          <a href="https://www.medplusmart.com/" target="_blank" rel="noopener noreferrer">MedPlus</a>,
+          <a href="https://www.apollopharmacy.in/" target="_blank" rel="noopener noreferrer">Apollo</a>,
+          <a href="https://www.netmeds.com/" target="_blank" rel="noopener noreferrer">Netmeds</a>,
+          <a href="https://www.1mg.com/" target="_blank" rel="noopener noreferrer">1mg</a>,
+          <a href="https://www.medkart.in/" target="_blank" rel="noopener noreferrer">Medkart</a>.
+        </p>
+        <div id="online-stats" class="stats hidden"></div>
+        <div class="table-wrap hidden" id="online-table-wrap">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Select</th>
+                <th>Retailer</th>
+                <th>Est. price</th>
+                <th>Est. MRP</th>
+                <th>Open</th>
+              </tr>
+            </thead>
+            <tbody id="online-rows"></tbody>
+          </table>
+        </div>
+        <div class="online-checkout hidden" id="online-checkout">
+          <p class="muted" id="online-selected-label"></p>
+          <div class="online-checkout-actions">
+            <button type="button" class="btn" id="online-open-btn">Continue on selected site</button>
+            <span class="muted" style="font-size: 0.85rem">Opens the retailer search in a new tab.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <footer class="footer">
       <span>PostgreSQL via <code>DATABASE_URL</code></span>
       <span class="dot">·</span>

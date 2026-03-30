@@ -108,6 +108,48 @@ Open `APP_BASE_URL/login.html`.
 
 If `NODE_ENV` is not `production`, the API returns the OTP as `dev_otp` to make local testing easy. In production, plug in an SMS provider and never return OTPs in responses.
 
+## Online pharmacy comparison (parallel)
+
+The home page calls `GET /api/online/compare`, which requests **MedPlus Mart**, **Apollo Pharmacy**, **Netmeds**, **Tata 1mg**, and **Medkart** **in parallel**.
+
+### Sanctioned partner APIs (real prices)
+
+These brands do **not** publish a single anonymous public JSON API for third-party price aggregation. **MedLens integrates each retailer only through HTTP endpoints you obtain under contract** (base URL, path, auth header, JSON shape).
+
+Implementation:
+
+- `server/integrations/partners/partnerEnv.js` — env → HTTP config per retailer  
+- `server/integrations/partners/fetchPartnerSearch.js` — authenticated `GET`/`POST` + JSON parse  
+- `server/integrations/partners/parseOfferJson.js` — best-effort extraction of `price` / `mrp`-like fields from partner JSON (extend per contract if needed)
+
+**Environment variables** (see `.env.example`): for each prefix `MEDPLUS`, `APOLLO`, `NETMEDS`, `ONE_MG`, `MEDKART`:
+
+- `{PREFIX}_PARTNER_API_BASE` — required to enable live calls for that retailer  
+- `{PREFIX}_PARTNER_BEARER_TOKEN` **or** `{PREFIX}_PARTNER_API_KEY` (+ optional `{PREFIX}_PARTNER_API_KEY_HEADER`)  
+- Optional: `{PREFIX}_PARTNER_SEARCH_PATH`, `{PREFIX}_PARTNER_SEARCH_METHOD`, `{PREFIX}_PARTNER_QUERY_PARAM`, `{PREFIX}_PARTNER_POST_BODY_TEMPLATE`, `{PREFIX}_PARTNER_EXTRA_HEADERS_JSON`
+
+**Tata 1mg** publishes merchant integration docs (search, SKU, orders) on **Onedoc** — start here: [TATA 1mg merchant API docs](https://onedoc.1mg.com/public_docs/docs/merchant/1.0.0). You will receive base URLs, auth (e.g. JWT/Bearer), and response schemas from their onboarding team.
+
+**Other retailers**: obtain equivalent **B2B / affiliate / catalog API** documentation from MedPlus, Apollo, Netmeds, and Medkart business teams and map the same env vars to those endpoints.
+
+### Dev-only illustrative fallback
+
+If no partner env is set, that row returns `data_mode: "unconfigured"` (no fabricated price). For local UI demos only:
+
+```bash
+ONLINE_USE_ILLUSTRATIVE_FALLBACK=true
+```
+
+### Checkout
+
+Pick a retailer, then **Continue on selected site** — opens the retailer’s **consumer search** URL (deeplink) so the user completes purchase on their site.
+
+Retailer sites: [MedPlus Mart](https://www.medplusmart.com/), [Apollo Pharmacy](https://www.apollopharmacy.in/), [Netmeds](https://www.netmeds.com/), [1mg](https://www.1mg.com/), [Medkart](https://www.medkart.in/).
+
+### API
+
+- `GET /api/online/compare?medicineId=1` or `GET /api/online/compare?q=metformin`
+
 ## Purchase reminders (refill / buy again)
 
 Open `APP_BASE_URL/reminders.html` while logged in. You can set a **next reminder date**, optional **repeat interval** (e.g. every 30 days), and notes. **Bought** moves the next reminder forward by the repeat interval (or 30 days if unset).
