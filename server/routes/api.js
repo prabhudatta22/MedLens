@@ -3,6 +3,11 @@ import { pool } from "../db/pool.js";
 
 const router = Router();
 
+const asyncHandler =
+  (fn) =>
+  (req, res, next) =>
+    Promise.resolve(fn(req, res, next)).catch(next);
+
 router.get("/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -12,14 +17,19 @@ router.get("/health", async (_req, res) => {
   }
 });
 
-router.get("/cities", async (_req, res) => {
+router.get(
+  "/cities",
+  asyncHandler(async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT id, name, state, slug FROM cities ORDER BY name`
   );
   res.json({ cities: rows });
-});
+  })
+);
 
-router.get("/medicines/search", async (req, res) => {
+router.get(
+  "/medicines/search",
+  asyncHandler(async (req, res) => {
   const q = (req.query.q || "").toString().trim().slice(0, 120);
   if (!q) {
     return res.json({ medicines: [] });
@@ -34,9 +44,74 @@ router.get("/medicines/search", async (req, res) => {
     [like]
   );
   res.json({ medicines: rows });
-});
+  })
+);
 
-router.get("/compare", async (req, res) => {
+// ---- Diagnostics / labs (demo) ----
+router.get(
+  "/labs/categories",
+  asyncHandler(async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT category FROM lab_tests ORDER BY category`
+  );
+  res.json({ categories: rows.map((r) => r.category) });
+  })
+);
+
+/**
+ * GET /api/labs/search?q=cbc&city=mumbai&category=PATHOLOGY
+ * Returns lab tests + price for that city (demo data).
+ */
+router.get(
+  "/labs/search",
+  asyncHandler(async (req, res) => {
+  const q = (req.query.q || "").toString().trim().slice(0, 120);
+  const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+  const category = (req.query.category || "").toString().trim().toUpperCase();
+  if (!citySlug) {
+    return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
+  }
+  if (!q || q.length < 2) {
+    return res.json({ query: q, city: citySlug, items: [] });
+  }
+
+  const like = `%${q.toLowerCase()}%`;
+  const params = [like, citySlug];
+  let catSql = "";
+  if (category === "PATHOLOGY" || category === "RADIOLOGY") {
+    params.push(category);
+    catSql = " AND t.category = $3";
+  }
+
+  const { rows } = await pool.query(
+    `SELECT
+      t.id,
+      t.heading,
+      t.sub_heading,
+      t.category,
+      t.icon_url,
+      t.slug,
+      t.report_tat_hours,
+      t.home_collection,
+      p.lab_name,
+      p.price_inr,
+      p.mrp_inr
+     FROM lab_tests t
+     JOIN cities c ON c.slug = $2
+     JOIN lab_test_prices p ON p.test_id = t.id AND p.city_id = c.id
+     WHERE t.search_vector LIKE $1${catSql}
+     ORDER BY p.price_inr ASC NULLS LAST
+     LIMIT 60`,
+    params
+  );
+
+  res.json({ query: q, city: citySlug, items: rows });
+  })
+);
+
+router.get(
+  "/compare",
+  asyncHandler(async (req, res) => {
   const medicineId = Number(req.query.medicineId);
   const citySlug = (req.query.city || "").toString().trim().toLowerCase();
   if (!Number.isFinite(medicineId) || medicineId < 1) {
@@ -91,7 +166,8 @@ router.get("/compare", async (req, res) => {
     stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
     offers: rows,
   });
-});
+  })
+);
 
 /** Realtime local match: pharmacies in city whose stocked medicine name/generic contains q */
 router.get("/compare/search", async (req, res) => {
@@ -287,6 +363,20 @@ router.get("/carts/:id/compare", async (req, res) => {
   });
 
   res.json({ cartId, city: citySlug, items });
+});
+
+router.use((err, _req, res, _next) => {
+  // Avoid crashing the process on DB/network errors from async routes.
+  const msg = err?.message || "internal error";
+  const status =
+    String(msg).includes("ECONNREFUSED") || String(msg).includes("DATABASE_URL")
+      ? 503
+      : 500;
+  console.error(err);
+  res.status(status).json({
+    error: status === 503 ? "Database unavailable" : "Server error",
+    detail: msg,
+  });
 });
 
 export default router;

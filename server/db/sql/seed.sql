@@ -1,6 +1,16 @@
 -- Demo data for India (INR). Replace with real feeds in production.
 
-TRUNCATE sale_items, sales, partner_pharmacies, pharmacy_prices, medicines, pharmacies, cities RESTART IDENTITY CASCADE;
+TRUNCATE
+  sale_items,
+  sales,
+  partner_pharmacies,
+  lab_test_prices,
+  lab_tests,
+  pharmacy_prices,
+  medicines,
+  pharmacies,
+  cities
+RESTART IDENTITY CASCADE;
 
 INSERT INTO cities (name, state, slug) VALUES
   ('Mumbai', 'Maharashtra', 'mumbai'),
@@ -89,3 +99,29 @@ INSERT INTO sale_items (sale_id, medicine_id, quantity, unit_sell_inr, unit_cost
   (3, 5, 1, 125.00, 80.00),
   (4, 4, 2, 60.00, 35.00),
   (5, 3, 1, 185.00, 130.00);
+
+-- Diagnostics / labs (demo)
+INSERT INTO lab_tests (heading, sub_heading, category, icon_url, slug, report_tat_hours, home_collection) VALUES
+  ('CBC (Complete Blood Count)', 'Contains 21 tests', 'PATHOLOGY', 'https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png', '/labs/test/1717', 7, true),
+  ('Thyroid Profile Total (T3, T4 & TSH)', 'Contains 3 tests', 'PATHOLOGY', 'https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png', '/labs/test/thyroid-profile', 7, true),
+  ('Lipid Profile', 'Contains 8 tests', 'PATHOLOGY', 'https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png', '/labs/test/lipid-profile', 7, true),
+  ('Comprehensive Gold Full Body Checkup', 'Contains 86 tests · Smart Report', 'PATHOLOGY', 'https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp', '/labs/package/gold-full-body', 18, true),
+  ('Senior Citizen Health Checkup', 'Contains 83 tests · Smart Report', 'PATHOLOGY', 'https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp', '/labs/package/senior-citizen', 18, true);
+
+-- Prices vary by city (illustrative). City IDs: 1 Mumbai, 2 Bengaluru, 3 New Delhi
+INSERT INTO lab_test_prices (city_id, lab_name, test_id, price_inr, mrp_inr) VALUES
+  (1, 'Tata 1mg Labs', 1, 299.00, 350.00),
+  (1, 'Tata 1mg Labs', 2, 490.00, 550.00),
+  (1, 'Tata 1mg Labs', 3, 399.00, 450.00),
+  (1, 'Tata 1mg Labs', 4, 2249.00, 4498.00),
+  (1, 'Tata 1mg Labs', 5, 1999.00, 3998.00),
+  (2, 'Tata 1mg Labs', 1, 319.00, 350.00),
+  (2, 'Tata 1mg Labs', 2, 470.00, 550.00),
+  (2, 'Tata 1mg Labs', 3, 389.00, 450.00),
+  (2, 'Tata 1mg Labs', 4, 2299.00, 4498.00),
+  (2, 'Tata 1mg Labs', 5, 2099.00, 3998.00),
+  (3, 'Tata 1mg Labs', 1, 289.00, 350.00),
+  (3, 'Tata 1mg Labs', 2, 499.00, 550.00),
+  (3, 'Tata 1mg Labs', 3, 419.00, 450.00),
+  (3, 'Tata 1mg Labs', 4, 2199.00, 4498.00),
+  (3, 'Tata 1mg Labs', 5, 1899.00, 3998.00);

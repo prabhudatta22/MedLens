@@ -160,3 +160,32 @@ CREATE TABLE IF NOT EXISTS purchase_reminders (
 );
 
 CREATE INDEX IF NOT EXISTS idx_purchase_reminders_user_next ON purchase_reminders (user_id, remind_at);
+
+-- Diagnostics / lab tests (demo dataset; extend with partner integrations)
+CREATE TABLE IF NOT EXISTS lab_tests (
+  id SERIAL PRIMARY KEY,
+  heading TEXT NOT NULL, -- e.g. "CBC (Complete Blood Count)"
+  sub_heading TEXT,      -- e.g. "Contains 21 tests"
+  category TEXT NOT NULL DEFAULT 'PATHOLOGY' CHECK (category IN ('PATHOLOGY', 'RADIOLOGY')),
+  icon_url TEXT,
+  slug TEXT,             -- optional deep link path
+  report_tat_hours INTEGER, -- typical report ETA (hours)
+  home_collection BOOLEAN NOT NULL DEFAULT true,
+  search_vector TEXT GENERATED ALWAYS AS (lower(coalesce(heading, '') || ' ' || coalesce(sub_heading, ''))) STORED
+);
+
+CREATE INDEX IF NOT EXISTS idx_lab_tests_search ON lab_tests USING gin (search_vector gin_trgm_ops);
+
+CREATE TABLE IF NOT EXISTS lab_test_prices (
+  id SERIAL PRIMARY KEY,
+  city_id INTEGER NOT NULL REFERENCES cities (id) ON DELETE CASCADE,
+  lab_name TEXT NOT NULL DEFAULT 'Tata 1mg Labs',
+  test_id INTEGER NOT NULL REFERENCES lab_tests (id) ON DELETE CASCADE,
+  price_inr NUMERIC(12, 2) NOT NULL CHECK (price_inr >= 0),
+  mrp_inr NUMERIC(12, 2),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (city_id, lab_name, test_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_lab_prices_city ON lab_test_prices (city_id);
+CREATE INDEX IF NOT EXISTS idx_lab_prices_test ON lab_test_prices (test_id);

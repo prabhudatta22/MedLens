@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — diagnostics (lab tests)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/" style="text-decoration: none; color: inherit">
+          <img class="brand-mark" src="/brand-mark.png" alt="MedLens" width="150" height="150" />
+          <div>
+            <h1>MedLens</h1>
+            <p class="tagline">Diagnostics · lab tests & packages</p>
+          </div>
+        </a>
+
+        <nav class="header-nav" aria-label="Account">
+          <a href="/checkout.html" id="navCart" class="nav-pill"
+            >Cart <span id="cartBadge" class="cart-badge hidden">0</span></a
+          >
+          <a href="/" class="nav-link">Medicines</a>
+          <a href="/labs.html" class="nav-link active">Diagnostics</a>
+          <a href="/login.html" class="nav-link">Login</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero" style="margin-top: 0">
+        <div class="hero-inner" style="grid-template-columns: 1fr">
+          <div class="hero-copy" style="padding-bottom: 0">
+            <p class="hero-kicker">Home collection · doctor-verified reports</p>
+            <h2 class="hero-title">Book lab tests with transparent pricing</h2>
+            <p class="hero-subtitle">
+              This is a demo diagnostics section inspired by modern lab marketplaces (category browsing, discounts, and quick booking).
+            </p>
+           
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top: 1rem">
+        <div class="labs-toolbar">
+          <label class="field field-hero" style="flex: 1; margin: 0">
+            <span>Find tests & packages</span>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">⌕</span>
+              <input id="labQ" type="search" placeholder="e.g. CBC, Thyroid, Full body" autocomplete="off" />
+            </div>
+          </label>
+          <label class="field field-hero" style="width: 260px; margin: 0">
+            <span>City</span>
+            <select id="labCity" aria-label="City"></select>
+          </label>
+        </div>
+
+        <div class="labs-cats" id="labCats" aria-label="Categories"></div>
+        <p id="labStatus" class="muted" style="margin: 0.75rem 0 0; min-height: 1.25rem"></p>
+      </section>
+
+      <section class="layout" style="margin-top: 1rem">
+        <section class="panel" style="grid-column: 1 / -1">
+          <div class="section-head" style="margin-bottom: 0.5rem">
+            <div>
+              <h2 style="margin-bottom: 0.25rem">Online retailers</h2>
+              <p class="muted section-sub">Open provider sites to book tests. (UI-only card; API integrations can be added later.)</p>
+            </div>
+          </div>
+          <div class="provider-row" aria-label="Diagnostic providers">
+              <img class="retailer-logo" src="https://www.vijayadiagnostic.com/favicon.ico" alt="Vijaya Diagnostics" loading="lazy" referrerpolicy="no-referrer" />
+              <img class="retailer-logo" src="https://luciddiagnostics.com/favicon.ico" alt="Lucid Diagnostics" loading="lazy" referrerpolicy="no-referrer" />
+              <img class="retailer-logo" src="https://www.orangehealth.in/favicon.ico" alt="Orange Health" loading="lazy" referrerpolicy="no-referrer" />
+              <img class="retailer-logo" src="https://www.1mg.com/favicon.ico" alt="Tata 1mg" loading="lazy" referrerpolicy="no-referrer" />
+            </a>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head" style="margin-bottom: 0.5rem">
+            <div>
+              <h2 style="margin-bottom: 0.25rem">Results</h2>
+              <p class="muted section-sub">Prices shown are demo rows from Postgres (seeded), filtered by city.</p>
+            </div>
+          </div>
+          <div id="labGrid" class="labs-grid"></div>
+          <p id="labEmpty" class="muted hidden" style="margin-top: 0.85rem">No tests found. Try a different search.</p>
+        </section>
+
+        <section class="panel">
+          <div class="section-head" style="margin-bottom: 0.5rem">
+            <div>
+              <h2 style="margin-bottom: 0.25rem">Most booked (demo)</h2>
+              <p class="muted section-sub">A few starter packages you can search for quickly.</p>
+            </div>
+          </div>
+          <div class="quick-chips" aria-label="Popular">
+            <button type="button" class="chip" data-q="CBC">CBC</button>
+            <button type="button" class="chip" data-q="Thyroid">Thyroid</button>
+            <button type="button" class="chip" data-q="Lipid">Lipid</button>
+            <button type="button" class="chip" data-q="Full Body">Full body</button>
+            <button type="button" class="chip" data-q="Senior">Senior</button>
+          </div>
+          <p class="muted" style="margin: 0.85rem 0 0">
+            In production, you’d integrate contracted lab/catalog APIs, add slots, patient profiles, and cart checkout.
+          </p>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <span class="muted">Demo diagnostics via <code>lab_tests</code> + <code>lab_test_prices</code></span>
+        </div>
+        <div class="footer-right">
+          <a href="/" class="muted">Back to medicines</a>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="/labs.js"></script>
+    <script>
+      document.querySelectorAll(".chip[data-q]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const q = btn.getAttribute("data-q") || "";
+          const input = document.getElementById("labQ");
+          if (!input) return;
+          input.value = q;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.focus();
+        });
+      });
+    </script>
+  </body>
+</html>
+
