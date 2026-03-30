@@ -35,6 +35,24 @@ There is no widely documented product called **“Radiant DB”** as a standalon
 
 4. Open **http://localhost:3000** — type a medicine name; the app queries each configured online retailer in parallel and shows matching **demo** pharmacy rows for the selected city.
 
+## Flutter mobile app
+
+Flutter UI lives in `apps/flutter/medlens_app`.
+
+Run it:
+
+```bash
+cd apps/flutter/medlens_app
+flutter create .
+flutter pub get
+flutter run
+```
+
+- **Backend**: keep `npm run dev` running (default `http://localhost:3000`).
+- **Android emulator** uses `http://10.0.2.2:3000` for localhost (default in app Settings).
+- **iOS simulator** can use `http://localhost:3000`.
+- **Physical device** should use your laptop LAN IP (e.g. `http://192.168.1.10:3000`).
+
 ## Browser location (Google address)
 
 The home page can use **the browser’s geolocation** (with your permission) and **Google Geocoding** on the server to fill in a full formatted address, locality, state, PIN, and coordinates. The **city dropdown** is then auto-selected when Google’s locality matches a **seeded demo city** (Mumbai, Bengaluru, New Delhi); you can always override manually.
