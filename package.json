@@ -9,6 +9,9 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "dev:local": "node server/scripts/dev-local.js",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d db",
     "db:migrate": "node server/db/migrate.js",
     "db:seed": "node server/db/seed.js"
   },

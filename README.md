@@ -10,10 +10,12 @@ There is no widely documented product called **“Radiant DB”** as a standalon
 
 ## Quick start
 
-1. **PostgreSQL** — local option:
+1. **PostgreSQL (Docker)**
+
+Install Docker Desktop, then start Postgres via Compose:
 
    ```bash
-   docker compose up -d
+   npm run db:up
    ```
 
 2. **Environment**
@@ -34,6 +36,19 @@ There is no widely documented product called **“Radiant DB”** as a standalon
    ```
 
 4. Open **http://localhost:3000** — type a medicine name; the app queries each configured online retailer in parallel and shows matching **demo** pharmacy rows for the selected city.
+
+### DB troubleshooting
+
+- **Reset local DB** (drops Docker volume data):
+
+```bash
+npm run db:reset
+npm run db:migrate
+npm run db:seed
+```
+
+- **Connection is “refused”**: wait ~3–10 seconds after `db:up`, or check `docker ps` to confirm Postgres is running on `localhost:5432`.
+- **Wrong credentials**: ensure `.env` has `DATABASE_URL=postgresql://medlens:medlens@localhost:5432/medlens`.
 
 ## Flutter mobile app
 
