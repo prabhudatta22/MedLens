@@ -1,0 +1,91 @@
+export const STORAGE_KEY = "medlens_multi_checkout_v1";
+
+function safeParse(raw) {
+  try {
+    const j = JSON.parse(raw);
+    return Array.isArray(j?.items) ? j.items : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getCartItems() {
+  if (typeof localStorage === "undefined") return [];
+  return safeParse(localStorage.getItem(STORAGE_KEY));
+}
+
+function saveItems(items) {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ items, updated_at: Date.now() })
+  );
+}
+
+export function cartLineCount() {
+  return getCartItems().reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+}
+
+function sameCartLine(i, line) {
+  if (i.source !== line.source) return false;
+  if (line.source === "local") {
+    return (
+      Number(i.medicineId) === Number(line.medicineId) &&
+      Number(i.pharmacyId) === Number(line.pharmacyId)
+    );
+  }
+  if (String(i.onlineProviderId) !== String(line.onlineProviderId)) return false;
+  const midI = Number(i.medicineId);
+  const midL = Number(line.medicineId);
+  if (midI > 0 && midL > 0 && midI === midL) return true;
+  if (midI > 0 || midL > 0) return false;
+  const qI = String(i.searchQuery || "").toLowerCase();
+  const qL = String(line.searchQuery || "").toLowerCase();
+  const labI = String(i.medicineLabel || "").toLowerCase();
+  const labL = String(line.medicineLabel || "").toLowerCase();
+  return qL.length > 0 && qI === qL && labI === labL;
+}
+
+/**
+ * @param {object} line — must include source, medicineId, unitPriceInr, checkoutUrl, plus local/online fields
+ */
+export function addCartLine(line) {
+  const items = getCartItems();
+  const qty = Math.max(1, Number(line.quantity) || 1);
+  const same = items.find((i) => sameCartLine(i, line));
+  if (same) {
+    same.quantity = (Number(same.quantity) || 1) + qty;
+  } else {
+    items.push({
+      lineId: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      quantity: qty,
+      ...line,
+    });
+  }
+  saveItems(items);
+}
+
+export function setLineQuantity(lineId, quantity) {
+  const q = Math.max(1, Math.floor(Number(quantity) || 1));
+  const items = getCartItems().map((i) =>
+    i.lineId === lineId ? { ...i, quantity: q } : i
+  );
+  saveItems(items);
+}
+
+export function removeLine(lineId) {
+  saveItems(getCartItems().filter((i) => i.lineId !== lineId));
+}
+
+export function clearCart() {
+  saveItems([]);
+}
+
+export function bucketKey(line) {
+  if (line.source === "local") return `local:${line.pharmacyId}`;
+  return `online:${line.onlineProviderId}`;
+}
+
+export function bucketTitle(line) {
+  if (line.source === "local") return line.pharmacyName || `Pharmacy #${line.pharmacyId}`;
+  return line.onlineLabel || line.onlineProviderId || "Online";
+}

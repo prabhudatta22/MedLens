@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — multi-pharmacy checkout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="header">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">◇</span>
+        <div>
+          <h1>MedLens</h1>
+          <p class="tagline">Multi-pharmacy checkout</p>
+        </div>
+      </div>
+      <nav class="header-nav" aria-label="Account">
+        <a href="/">Search</a>
+      </nav>
+      <p class="disclaimer">
+        MedLens does not process payment. Open each pharmacy or retailer to complete purchase. Prices are from when you added the line.
+      </p>
+    </header>
+
+    <main class="layout-full">
+      <section class="panel" id="empty-state">
+        <p class="muted">Your cart is empty. <a href="/">Add items</a> from local or online price rows.</p>
+      </section>
+
+      <div id="cart-main" class="hidden">
+        <section class="panel">
+          <div class="online-head">
+            <h2>Your cart by pharmacy / retailer</h2>
+            <button type="button" class="btn btn-sm" id="clearBtn">Clear cart</button>
+          </div>
+          <p class="muted" style="margin-top: 0.5rem">
+            <strong>Open all checkouts</strong> opens one tab per destination (staggered). Browsers may block more than a few pop-ups — use per-row
+            <strong>Open</strong> if needed.
+          </p>
+          <div class="stats" id="grandStats" style="margin-top: 1rem"></div>
+          <div class="online-checkout-actions" style="margin-top: 0.75rem">
+            <button type="button" class="btn" id="openAllBtn">Open all checkouts (staggered)</button>
+          </div>
+        </section>
+        <div id="buckets"></div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <a href="/" class="muted" style="color: inherit">Back to search</a>
+    </footer>
+
+    <script type="module" src="/checkout.js"></script>
+  </body>
+</html>

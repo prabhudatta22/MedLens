@@ -23,6 +23,8 @@
         </div>
       </div>
       <nav class="header-nav" aria-label="Account">
+        <a href="/checkout.html" id="navCart">Cart <span id="cartBadge" class="cart-badge hidden">0</span></a>
+        <span class="dot">·</span>
         <a href="/login.html">Login</a>
         <span class="dot">·</span>
         <a href="/reminders.html">Reminders</a>
@@ -32,65 +34,47 @@
       </p>
     </header>
 
-    <main class="layout">
+    <main class="layout layout-single">
       <section class="panel search-panel" aria-labelledby="search-title">
-        <h2 id="search-title">Find a medicine</h2>
+        <h2 id="search-title">Search medicines (live)</h2>
+        <p class="muted" style="margin: 0 0 0.75rem; font-size: 0.9rem">
+          Each keystroke (after a short pause) queries <strong>MedPlus, Apollo, Netmeds, 1mg, and Medkart</strong> in parallel via your configured partner APIs, and matches
+          <strong>nearby demo pharmacies</strong> in the selected city. Add any row to the cart.
+        </p>
         <label class="field">
-          <span>Search</span>
+          <span>Medicine name</span>
           <input
             id="q"
             type="search"
-            placeholder="e.g. Metformin, Atorvastatin, Telma"
+            placeholder="e.g. Metformin, Atorvastatin, Paracetamol"
             autocomplete="off"
           />
         </label>
         <label class="field">
-          <span>City</span>
-          <select id="city"></select>
+          <span>Location (Google + demo city)</span>
+          <div class="location-toolbar">
+            <button type="button" class="btn btn-sm" id="useLocationBtn">
+              Use my location
+            </button>
+            <span class="muted location-toolbar-hint" style="font-size: 0.85rem">
+              Uses browser location, then Google for full address. Demo pharmacy prices use the matched city below.
+            </span>
+          </div>
+          <select id="city" aria-label="City for local demo pharmacy prices"></select>
+          <p id="locationHint" class="muted" style="margin: 0.35rem 0 0; font-size: 0.85rem" aria-live="polite"></p>
+          <div id="locationDetail" class="location-detail hidden" aria-live="polite"></div>
         </label>
-        <ul id="results" class="results" role="listbox" aria-label="Medicine matches"></ul>
+        <p id="search-status" class="muted search-status" aria-live="polite"></p>
       </section>
 
-      <section class="panel compare-panel" aria-labelledby="compare-title">
-        <div class="compare-head">
-          <h2 id="compare-title">Compare nearby pharmacies</h2>
-          <div id="selection" class="selection muted">Select a medicine to see prices.</div>
-          <p id="reminderHint" class="muted hidden" style="margin-top: 0.5rem">
-            <a id="reminderLink" href="/reminders.html">Set a purchase reminder</a> for this medicine.
-          </p>
-        </div>
-        <div id="stats" class="stats hidden"></div>
-        <div id="table-wrap" class="table-wrap hidden">
-          <table class="price-table">
-            <thead>
-              <tr>
-                <th>Pharmacy</th>
-                <th>Price (INR)</th>
-                <th>MRP</th>
-                <th>Location</th>
-              </tr>
-            </thead>
-            <tbody id="offers"></tbody>
-          </table>
-        </div>
-        <p id="empty" class="muted hidden">No prices for this medicine in the selected city yet.</p>
-      </section>
-    </main>
-
-    <div class="layout-full">
-      <section class="panel online-compare-panel hidden" id="online-section" aria-labelledby="online-title">
+      <section class="panel online-compare-panel" id="online-section" aria-labelledby="online-title">
         <div class="online-head">
-          <h2 id="online-title">Compare online pharmacies (parallel)</h2>
+          <h2 id="online-title">Online retailers (parallel)</h2>
           <p id="online-status" class="muted"></p>
         </div>
         <p class="muted online-disclaimer">
           Live rows use your <strong>partner JSON APIs</strong> (<code>README</code> / <code>.env.example</code>). Unconfigured retailers show an error (no fake price). Optional demo:
-          <code>ONLINE_USE_ILLUSTRATIVE_FALLBACK=true</code>. Always confirm on the retailer before you pay. Deeplinks:
-          <a href="https://www.medplusmart.com/" target="_blank" rel="noopener noreferrer">MedPlus</a>,
-          <a href="https://www.apollopharmacy.in/" target="_blank" rel="noopener noreferrer">Apollo</a>,
-          <a href="https://www.netmeds.com/" target="_blank" rel="noopener noreferrer">Netmeds</a>,
-          <a href="https://www.1mg.com/" target="_blank" rel="noopener noreferrer">1mg</a>,
-          <a href="https://www.medkart.in/" target="_blank" rel="noopener noreferrer">Medkart</a>.
+          <code>ONLINE_USE_ILLUSTRATIVE_FALLBACK=true</code>. Always confirm on the retailer before you pay.
         </p>
         <div id="online-stats" class="stats hidden"></div>
         <div class="table-wrap hidden" id="online-table-wrap">
@@ -99,9 +83,11 @@
               <tr>
                 <th>Select</th>
                 <th>Retailer</th>
+                <th>Product / match</th>
                 <th>Est. price</th>
                 <th>Est. MRP</th>
                 <th>Open</th>
+                <th>Cart</th>
               </tr>
             </thead>
             <tbody id="online-rows"></tbody>
@@ -115,12 +101,41 @@
           </div>
         </div>
       </section>
-    </div>
+
+      <section class="panel compare-panel" aria-labelledby="compare-title">
+        <div class="compare-head">
+          <h2 id="compare-title">Nearby pharmacies (demo database)</h2>
+          <div id="selection" class="selection muted">Type a medicine name to search local listings.</div>
+          <p id="reminderHint" class="muted hidden" style="margin-top: 0.5rem">
+            <a id="reminderLink" href="/reminders.html">Set a purchase reminder</a> for this medicine.
+          </p>
+        </div>
+        <div id="stats" class="stats hidden"></div>
+        <div id="table-wrap" class="table-wrap hidden">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Pharmacy</th>
+                <th>Medicine</th>
+                <th>Price (INR)</th>
+                <th>MRP</th>
+                <th>Location</th>
+                <th>Cart</th>
+              </tr>
+            </thead>
+            <tbody id="offers"></tbody>
+          </table>
+        </div>
+        <p id="empty" class="muted hidden">No demo pharmacy rows match that name in the selected city.</p>
+      </section>
+    </main>
 
     <footer class="footer">
       <span>PostgreSQL via <code>DATABASE_URL</code></span>
       <span class="dot">·</span>
       <span>Geography: India (INR)</span>
+      <span class="dot">·</span>
+      <a href="/checkout.html" class="muted" style="color: inherit">Multi checkout</a>
       <span class="dot">·</span>
       <a href="/reminders.html" class="muted" style="color: inherit">Purchase reminders</a>
     </footer>

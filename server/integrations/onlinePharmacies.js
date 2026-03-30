@@ -5,6 +5,21 @@ import {
   envPrefixForProvider,
 } from "./partners/partnerEnv.js";
 import { fetchPartnerSearchJson, offerFromPartnerJson } from "./partners/fetchPartnerSearch.js";
+import {
+  fetchMedplusCatalogSearch,
+  offerFromMedplusCatalog,
+  medplusCatalogConfigured,
+} from "./medplusCatalog.js";
+import {
+  fetchApolloCatalogSearch,
+  offerFromApolloCatalog,
+  apolloCatalogConfigured,
+} from "./apolloCatalog.js";
+import {
+  fetchNetmedsCatalogSearch,
+  offerFromNetmedsCatalog,
+  netmedsCatalogConfigured,
+} from "./netmedsCatalog.js";
 
 /**
  * Online retailer cards + parallel quotes.
@@ -72,13 +87,23 @@ export function illustrativeQuoteInr(query, providerId, index) {
 
 function unconfiguredResponse(provider, q) {
   const prefix = envPrefixForProvider(provider.id) || "PARTNER";
+  let hint = `Set ${prefix}_PARTNER_API_BASE (and ${prefix}_PARTNER_BEARER_TOKEN or ${prefix}_PARTNER_API_KEY). Docs: README.md#partner-api-configuration`;
+  if (provider.id === "medplusmart") {
+    hint += ` Or set MEDPLUS_CATALOG_TOKEN_ID (see README).`;
+  }
+  if (provider.id === "apollopharmacy") {
+    hint += ` Or set APOLLO_CATALOG_AUTHORIZATION (+ optional APOLLO_CATALOG_PINCODE).`;
+  }
+  if (provider.id === "netmeds") {
+    hint += ` Or set NETMEDS_CATALOG_BEARER (+ optional NETMEDS_CATALOG_LOCATION_JSON).`;
+  }
   return {
     ok: false,
     provider_id: provider.id,
     label: provider.label,
     website: provider.home,
     search_url: provider.buildSearchUrl(q),
-    error: `No sanctioned API configured. Set ${prefix}_PARTNER_API_BASE (and ${prefix}_PARTNER_BEARER_TOKEN or ${prefix}_PARTNER_API_KEY). Docs: README.md#partner-api-configuration`,
+    error: `No sanctioned API configured. ${hint}`,
     data_mode: "unconfigured",
   };
 }
@@ -144,6 +169,93 @@ export async function quoteProvider(provider, query) {
         search_url,
         error: e.message || "partner request failed",
         data_mode: "partner_api_error",
+      };
+    }
+  }
+
+  if (provider.id === "medplusmart" && medplusCatalogConfigured()) {
+    try {
+      const json = await fetchMedplusCatalogSearch(q);
+      const offer = offerFromMedplusCatalog(json, q);
+      return {
+        ok: true,
+        provider_id: provider.id,
+        label: provider.label,
+        website: provider.home,
+        search_url,
+        price_inr: offer.price_inr,
+        mrp_inr: offer.mrp_inr,
+        product_title: offer.title,
+        currency: "INR",
+        data_mode: "medplus_catalog",
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        provider_id: provider.id,
+        label: provider.label,
+        website: provider.home,
+        search_url,
+        error: e.message || "MedPlus catalog request failed",
+        data_mode: "medplus_catalog_error",
+      };
+    }
+  }
+
+  if (provider.id === "apollopharmacy" && apolloCatalogConfigured()) {
+    try {
+      const json = await fetchApolloCatalogSearch(q);
+      const offer = offerFromApolloCatalog(json, q);
+      return {
+        ok: true,
+        provider_id: provider.id,
+        label: provider.label,
+        website: provider.home,
+        search_url,
+        price_inr: offer.price_inr,
+        mrp_inr: offer.mrp_inr,
+        product_title: offer.title,
+        currency: "INR",
+        data_mode: "apollo_catalog",
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        provider_id: provider.id,
+        label: provider.label,
+        website: provider.home,
+        search_url,
+        error: e.message || "Apollo catalog request failed",
+        data_mode: "apollo_catalog_error",
+      };
+    }
+  }
+
+  if (provider.id === "netmeds" && netmedsCatalogConfigured()) {
+    try {
+      const json = await fetchNetmedsCatalogSearch(q);
+      const offer = offerFromNetmedsCatalog(json, q);
+      return {
+        ok: true,
+        provider_id: provider.id,
+        label: provider.label,
+        website: provider.home,
+        search_url,
+        price_inr: offer.price_inr,
+        mrp_inr: offer.mrp_inr,
+        product_title: offer.title,
+        currency: "INR",
+        data_mode: "netmeds_catalog",
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        provider_id: provider.id,
+        label: provider.label,
+        website: provider.home,
+        search_url,
+        error: e.message || "Netmeds catalog request failed",
+        data_mode: "netmeds_catalog_error",
       };
     }
   }

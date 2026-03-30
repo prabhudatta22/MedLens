@@ -63,6 +63,7 @@ router.get("/compare", async (req, res) => {
        p.lng,
        c.name AS city_name,
        c.state,
+       m.id AS medicine_id,
        m.display_name,
        m.strength,
        m.form,
@@ -86,6 +87,75 @@ router.get("/compare", async (req, res) => {
 
   res.json({
     medicineId,
+    city: citySlug,
+    stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
+    offers: rows,
+  });
+});
+
+/** Realtime local match: pharmacies in city whose stocked medicine name/generic contains q */
+router.get("/compare/search", async (req, res) => {
+  const q = (req.query.q || "").toString().trim().slice(0, 120);
+  const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+  if (!citySlug) {
+    return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
+  }
+  if (!q || q.length < 2) {
+    return res.json({
+      query: q,
+      city: citySlug,
+      stats: { min_inr: null, max_inr: null, spread_percent: null },
+      offers: [],
+    });
+  }
+  const like = `%${q.toLowerCase()}%`;
+  const { rows } = await pool.query(
+    `SELECT
+       pp.id AS price_id,
+       pp.price_inr,
+       pp.mrp_inr,
+       pp.in_stock,
+       pp.price_type,
+       pp.updated_at,
+       p.id AS pharmacy_id,
+       p.name AS pharmacy_name,
+       p.chain,
+       p.address_line,
+       p.pincode,
+       p.lat,
+       p.lng,
+       c.name AS city_name,
+       c.state,
+       m.id AS medicine_id,
+       m.display_name,
+       m.strength,
+       m.form,
+       m.pack_size
+     FROM pharmacy_prices pp
+     JOIN pharmacies p ON p.id = pp.pharmacy_id
+     JOIN cities c ON c.id = p.city_id
+     JOIN medicines m ON m.id = pp.medicine_id
+     WHERE c.slug = $2
+       AND pp.price_type = 'retail'
+       AND (
+         LOWER(m.display_name) LIKE $1
+         OR LOWER(COALESCE(m.generic_name, '')) LIKE $1
+       )
+     ORDER BY pp.price_inr ASC NULLS LAST
+     LIMIT 120`,
+    [like, citySlug]
+  );
+
+  const prices = rows.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
+  const min = prices.length ? Math.min(...prices) : null;
+  const max = prices.length ? Math.max(...prices) : null;
+  let spreadPct = null;
+  if (min != null && max != null && max > 0 && min < max) {
+    spreadPct = Math.round(((max - min) / max) * 1000) / 10;
+  }
+
+  res.json({
+    query: q,
     city: citySlug,
     stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
     offers: rows,

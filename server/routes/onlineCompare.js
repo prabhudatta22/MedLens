@@ -37,7 +37,11 @@ router.get("/compare", async (req, res) => {
       (r) =>
         r.ok &&
         r.price_inr != null &&
-        (r.data_mode === "partner_api" || r.data_mode === "illustrative_fallback")
+        (r.data_mode === "partner_api" ||
+          r.data_mode === "illustrative_fallback" ||
+          r.data_mode === "medplus_catalog" ||
+          r.data_mode === "apollo_catalog" ||
+          r.data_mode === "netmeds_catalog")
     )
     .map((r) => Number(r.price_inr));
   const min = priced.length ? Math.min(...priced) : null;
