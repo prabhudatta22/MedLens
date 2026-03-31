@@ -68,6 +68,13 @@ export const ONLINE_PROVIDERS = [
   },
 ];
 
+function normalizeErr(e) {
+  const msg = String(e?.message || e || "error");
+  if (e?.name === "AbortError") return "timeout";
+  if (/aborted/i.test(msg)) return "timeout";
+  return msg;
+}
+
 function seedNumber(seed) {
   const buf = crypto.createHash("sha256").update(seed).digest();
   return buf.readUInt32BE(0);
@@ -128,148 +135,187 @@ function illustrativeResponse(provider, q) {
  * Quote one provider: real partner HTTP when env is set; else unconfigured (or illustrative fallback).
  */
 export async function quoteProvider(provider, query) {
-  const q = String(query || "").trim();
-  if (!q) {
+  const started = Date.now();
+  try {
+    const q = String(query || "").trim();
+    if (!q) {
+      return {
+        ok: false,
+        provider_id: provider.id,
+        label: provider.label,
+        website: provider.home,
+        search_url: provider.buildSearchUrl(""),
+        error: "empty query",
+        data_mode: "error",
+        fetch_ms: 0,
+      };
+    }
+
+    const cfg = readPartnerHttpConfig(provider.id);
+    const search_url = provider.buildSearchUrl(q);
+
+    if (cfg) {
+      try {
+        const json = await fetchPartnerSearchJson(cfg, q);
+        const offer = offerFromPartnerJson(json, q);
+        return {
+          ok: true,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          price_inr: offer.price_inr,
+          mrp_inr: offer.mrp_inr,
+          product_title: offer.title,
+          currency: "INR",
+          data_mode: "partner_api",
+          fetch_ms: Date.now() - started,
+        };
+      } catch (e) {
+        return {
+          ok: false,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          error: normalizeErr(e) || "partner request failed",
+          data_mode: "partner_api_error",
+          fetch_ms: Date.now() - started,
+        };
+      }
+    }
+
+    if (provider.id === "medplusmart" && medplusCatalogConfigured()) {
+      try {
+        const json = await fetchMedplusCatalogSearch(q);
+        const offer = offerFromMedplusCatalog(json, q);
+        return {
+          ok: true,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          price_inr: offer.price_inr,
+          mrp_inr: offer.mrp_inr,
+          product_title: offer.title,
+          currency: "INR",
+          data_mode: "medplus_catalog",
+          fetch_ms: Date.now() - started,
+        };
+      } catch (e) {
+        return {
+          ok: false,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          error: normalizeErr(e) || "MedPlus catalog request failed",
+          data_mode: "medplus_catalog_error",
+          fetch_ms: Date.now() - started,
+        };
+      }
+    }
+
+    if (provider.id === "apollopharmacy" && apolloCatalogConfigured()) {
+      try {
+        const json = await fetchApolloCatalogSearch(q);
+        const offer = offerFromApolloCatalog(json, q);
+        return {
+          ok: true,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          price_inr: offer.price_inr,
+          mrp_inr: offer.mrp_inr,
+          product_title: offer.title,
+          currency: "INR",
+          data_mode: "apollo_catalog",
+          fetch_ms: Date.now() - started,
+        };
+      } catch (e) {
+        return {
+          ok: false,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          error: normalizeErr(e) || "Apollo catalog request failed",
+          data_mode: "apollo_catalog_error",
+          fetch_ms: Date.now() - started,
+        };
+      }
+    }
+
+    if (provider.id === "netmeds" && netmedsCatalogConfigured()) {
+      try {
+        const json = await fetchNetmedsCatalogSearch(q);
+        const offer = offerFromNetmedsCatalog(json, q);
+        return {
+          ok: true,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          price_inr: offer.price_inr,
+          mrp_inr: offer.mrp_inr,
+          product_title: offer.title,
+          currency: "INR",
+          data_mode: "netmeds_catalog",
+          fetch_ms: Date.now() - started,
+        };
+      } catch (e) {
+        return {
+          ok: false,
+          provider_id: provider.id,
+          label: provider.label,
+          website: provider.home,
+          search_url,
+          error: normalizeErr(e) || "Netmeds catalog request failed",
+          data_mode: "netmeds_catalog_error",
+          fetch_ms: Date.now() - started,
+        };
+      }
+    }
+
+    if (illustrativeFallbackEnabled()) {
+      const out = illustrativeResponse(provider, q);
+      return { ...out, fetch_ms: Date.now() - started };
+    }
+
+    const out = unconfiguredResponse(provider, q);
+    return { ...out, fetch_ms: Date.now() - started };
+  } catch (e) {
     return {
       ok: false,
       provider_id: provider.id,
       label: provider.label,
       website: provider.home,
-      search_url: provider.buildSearchUrl(""),
-      error: "empty query",
+      search_url: provider.buildSearchUrl(String(query || "").trim()),
+      error: normalizeErr(e),
       data_mode: "error",
+      fetch_ms: Date.now() - started,
     };
   }
-
-  const cfg = readPartnerHttpConfig(provider.id);
-  const search_url = provider.buildSearchUrl(q);
-
-  if (cfg) {
-    try {
-      const json = await fetchPartnerSearchJson(cfg, q);
-      const offer = offerFromPartnerJson(json, q);
-      return {
-        ok: true,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        price_inr: offer.price_inr,
-        mrp_inr: offer.mrp_inr,
-        product_title: offer.title,
-        currency: "INR",
-        data_mode: "partner_api",
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        error: e.message || "partner request failed",
-        data_mode: "partner_api_error",
-      };
-    }
-  }
-
-  if (provider.id === "medplusmart" && medplusCatalogConfigured()) {
-    try {
-      const json = await fetchMedplusCatalogSearch(q);
-      const offer = offerFromMedplusCatalog(json, q);
-      return {
-        ok: true,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        price_inr: offer.price_inr,
-        mrp_inr: offer.mrp_inr,
-        product_title: offer.title,
-        currency: "INR",
-        data_mode: "medplus_catalog",
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        error: e.message || "MedPlus catalog request failed",
-        data_mode: "medplus_catalog_error",
-      };
-    }
-  }
-
-  if (provider.id === "apollopharmacy" && apolloCatalogConfigured()) {
-    try {
-      const json = await fetchApolloCatalogSearch(q);
-      const offer = offerFromApolloCatalog(json, q);
-      return {
-        ok: true,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        price_inr: offer.price_inr,
-        mrp_inr: offer.mrp_inr,
-        product_title: offer.title,
-        currency: "INR",
-        data_mode: "apollo_catalog",
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        error: e.message || "Apollo catalog request failed",
-        data_mode: "apollo_catalog_error",
-      };
-    }
-  }
-
-  if (provider.id === "netmeds" && netmedsCatalogConfigured()) {
-    try {
-      const json = await fetchNetmedsCatalogSearch(q);
-      const offer = offerFromNetmedsCatalog(json, q);
-      return {
-        ok: true,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        price_inr: offer.price_inr,
-        mrp_inr: offer.mrp_inr,
-        product_title: offer.title,
-        currency: "INR",
-        data_mode: "netmeds_catalog",
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        provider_id: provider.id,
-        label: provider.label,
-        website: provider.home,
-        search_url,
-        error: e.message || "Netmeds catalog request failed",
-        data_mode: "netmeds_catalog_error",
-      };
-    }
-  }
-
-  if (illustrativeFallbackEnabled()) {
-    return illustrativeResponse(provider, q);
-  }
-
-  return unconfiguredResponse(provider, q);
 }
 
 export async function quoteAllProvidersParallel(query) {
   const started = Date.now();
-  const results = await Promise.all(ONLINE_PROVIDERS.map((p) => quoteProvider(p, query)));
+  const settled = await Promise.allSettled(ONLINE_PROVIDERS.map((p) => quoteProvider(p, query)));
+  const results = settled.map((s, idx) => {
+    if (s.status === "fulfilled") return s.value;
+    const p = ONLINE_PROVIDERS[idx];
+    return {
+      ok: false,
+      provider_id: p.id,
+      label: p.label,
+      website: p.home,
+      search_url: p.buildSearchUrl(String(query || "").trim()),
+      error: normalizeErr(s.reason),
+      data_mode: "error",
+      fetch_ms: null,
+    };
+  });
   const elapsed_ms = Date.now() - started;
   return { results, elapsed_ms };
 }

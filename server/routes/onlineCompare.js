@@ -14,15 +14,20 @@ router.get("/compare", async (req, res) => {
 
   let queryText = qParam;
   if (medicineId != null && Number.isFinite(medicineId) && medicineId >= 1) {
-    const { rows } = await pool.query(
-      `SELECT display_name, strength FROM medicines WHERE id = $1`,
-      [medicineId]
-    );
-    if (rows.length) {
-      const d = String(rows[0].display_name || "").trim();
-      const st = String(rows[0].strength || "").trim();
-      const hasStrength = st && d.toLowerCase().includes(st.toLowerCase());
-      queryText = hasStrength ? d : `${d} ${st}`.trim();
+    try {
+      const { rows } = await pool.query(
+        `SELECT display_name, strength FROM medicines WHERE id = $1`,
+        [medicineId]
+      );
+      if (rows.length) {
+        const d = String(rows[0].display_name || "").trim();
+        const st = String(rows[0].strength || "").trim();
+        const hasStrength = st && d.toLowerCase().includes(st.toLowerCase());
+        queryText = hasStrength ? d : `${d} ${st}`.trim();
+      }
+    } catch {
+      // If DB is down, still allow best-effort online compare using q= (if provided).
+      queryText = qParam;
     }
   }
 
@@ -58,7 +63,7 @@ router.get("/compare", async (req, res) => {
     stats: { min_inr: min, max_inr: max, spread_percent },
     providers: results,
     disclaimer:
-      "Configure each retailer’s sanctioned JSON search/catalog API via env (see README). Unconfigured partners return data_mode=unconfigured (no fake price). Set ONLINE_USE_ILLUSTRATIVE_FALLBACK=true only for local UI demos.",
+      "Online retailer prices are best-effort. Some providers may block server-side requests or be temporarily unavailable. We return partial results per provider with error details when a provider fails.",
   });
 });
 
