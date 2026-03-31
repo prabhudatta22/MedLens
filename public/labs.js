@@ -9,6 +9,12 @@ let cities = [];
 let selectedCategory = "";
 let t = null;
 
+const DEFAULT_METRO_CITIES = [
+  { slug: "mumbai", name: "Mumbai", state: "Maharashtra" },
+  { slug: "bengaluru", name: "Bengaluru", state: "Karnataka" },
+  { slug: "new-delhi", name: "New Delhi", state: "Delhi" },
+];
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -32,9 +38,17 @@ function refreshCartBadge() {
 }
 
 async function loadCities() {
-  const res = await fetch("/api/cities");
-  const data = await res.json();
-  cities = data.cities || [];
+  try {
+    const res = await fetch("/api/cities");
+    const data = await res.json().catch(() => ({}));
+    cities = data.cities || [];
+  } catch {
+    cities = [];
+  }
+
+  if (!Array.isArray(cities) || cities.length === 0) {
+    cities = DEFAULT_METRO_CITIES.slice();
+  }
   const sel = $("labCity");
   sel.innerHTML = cities
     .map((c) => `<option value="${escapeHtml(c.slug)}">${escapeHtml(c.name)}, ${escapeHtml(c.state)}</option>`)

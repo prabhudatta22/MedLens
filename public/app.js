@@ -27,17 +27,37 @@ let liveQuery = "";
 
 const GEO_STORAGE_KEY = "medlens_geo_location_v1";
 
-async function loadCities() {
-  const res = await fetch("/api/cities");
-  const data = await res.json();
-  cities = data.cities || [];
-  const sel = $("city");
-  sel.innerHTML = cities
+const DEFAULT_METRO_CITIES = [
+  { slug: "mumbai", name: "Mumbai", state: "Maharashtra" },
+  { slug: "bengaluru", name: "Bengaluru", state: "Karnataka" },
+  { slug: "new-delhi", name: "New Delhi", state: "Delhi" },
+];
+
+function setCityOptions(sel, list) {
+  if (!sel) return;
+  sel.innerHTML = (list || [])
     .map(
       (c) =>
-        `<option value="${escapeAttr(c.slug)}">${escapeHtml(c.name)}, ${escapeHtml(c.state)}</option>`
+        `<option value="${escapeAttr(c.slug)}">${escapeHtml(c.name)}, ${escapeHtml(c.state || "")}</option>`
     )
     .join("");
+}
+
+async function loadCities() {
+  const sel = $("city");
+  try {
+    const res = await fetch("/api/cities");
+    const data = await res.json().catch(() => ({}));
+    cities = data.cities || [];
+  } catch {
+    cities = [];
+  }
+
+  if (!Array.isArray(cities) || cities.length === 0) {
+    cities = DEFAULT_METRO_CITIES.slice();
+  }
+
+  setCityOptions(sel, cities);
   restoreGeoFromSession();
   if (!loadGeoState()?.google) maybeAutoLocateFromPermission();
 }
@@ -246,6 +266,18 @@ $("q").addEventListener("input", () => {
   searchTimer = setTimeout(runRealtimeSearch, SEARCH_DEBOUNCE_MS);
 });
 
+$("q").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  clearTimeout(searchTimer);
+  runRealtimeSearch();
+});
+
+$("searchBtn")?.addEventListener("click", () => {
+  clearTimeout(searchTimer);
+  runRealtimeSearch();
+});
+
 $("city").addEventListener("change", () => {
   runRealtimeSearch();
 });
@@ -339,7 +371,7 @@ function resetLocalPanel() {
   const tableWrap = $("table-wrap");
   const empty = $("empty");
   const tbody = $("offers");
-  $("selection").textContent = "Type a medicine name to search local listings.";
+  $("selection").textContent = "Type a medicine name to search local listings (pilot data).";
   stats.classList.add("hidden");
   tableWrap.classList.add("hidden");
   empty.classList.add("hidden");
@@ -374,7 +406,7 @@ function renderLocalTable(offers, city, q, errorMsg) {
 
   $("selection").innerHTML = `Local matches for <strong>${escapeHtml(q)}</strong> in <strong>${escapeHtml(
     city
-  )}</strong> (demo data).`;
+  )}</strong> (pilot data).`;
 
   if (errorMsg) {
     stats.classList.add("hidden");
@@ -389,7 +421,7 @@ function renderLocalTable(offers, city, q, errorMsg) {
     stats.classList.add("hidden");
     tableWrap.classList.add("hidden");
     empty.classList.remove("hidden");
-    empty.textContent = `No demo pharmacy rows match “${q}” in ${city}. Try another spelling or city.`;
+    empty.textContent = `No local listings match “${q}” in ${city}. Try another spelling or city.`;
     tbody.innerHTML = "";
     return;
   }

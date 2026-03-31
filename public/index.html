@@ -27,7 +27,14 @@
 
         <nav class="header-nav" aria-label="Account">
           <a href="/checkout.html" id="navCart" class="nav-pill"
-            >Cart <span id="cartBadge" class="cart-badge hidden">0</span></a
+            ><span class="sr-only">Cart</span
+            ><svg class="icon icon-cart" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M7 18c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2Zm10 0c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2ZM6.22 6l.35 2h11.07c.78 0 1.15.96.6 1.52l-3.62 3.62a2 2 0 0 1-1.41.59H9.1a2 2 0 0 1-1.97-1.65L5.21 2.5H3a1 1 0 1 1 0-2h3.04c.48 0 .9.34.98.82L7.1 4h13.9a1 1 0 1 1 0 2H6.22Z"
+              />
+            </svg>
+            <span id="cartBadge" class="cart-badge hidden">0</span></a
           >
           <a href="/" class="nav-link active">Medicines</a>
           <a href="/labs.html" class="nav-link">Diagnostics</a>
@@ -42,9 +49,9 @@
         <div class="hero-inner">
           <div class="hero-copy">
             <p class="hero-kicker">Smart search · transparent pricing</p>
-            <h2 id="search-title" class="hero-title">Search once. Checkout across multiple pharmacies.</h2>
+            <!-- <h2 id="search-title" class="hero-title">Search once. Checkout across multiple pharmacies.</h2> -->
             <p class="hero-subtitle">
-              Type a medicine name and we’ll fetch online retailers in parallel and match local demo pharmacies for your city. Add to cart and open all destinations.
+              Type a medicine name and we’ll fetch best price across online retailers and local pharmacies.
             </p>
           </div>
 
@@ -68,9 +75,14 @@
                   <span>Location</span>
                   <button type="button" class="btn btn-sm btn-ghost" id="useLocationBtn">Use my location</button>
                 </div>
-                <select id="city" aria-label="City for local demo pharmacy prices"></select>
+                <select id="city" aria-label="City for local pharmacy prices"></select>
                 <p id="locationHint" class="muted hint" aria-live="polite"></p>
                 <div id="locationDetail" class="location-detail hidden" aria-live="polite"></div>
+              </div>
+
+              <div class="search-actions" aria-label="Search actions">
+                <button type="button" class="btn btn-primary" id="searchBtn">Compare prices</button>
+                <!-- <span class="muted hint">Tip: press Enter to search.</span> -->
               </div>
 
               <div class="quick-chips" aria-label="Quick searches">
@@ -82,7 +94,7 @@
 
               <p id="search-status" class="muted search-status" aria-live="polite"></p>
               <p class="disclaimer-inline">
-                Demo data for illustration. Always confirm price and availability at the pharmacy. Not medical advice.
+                Prices are shown with their source (online retailers + local listings). Final price and availability can change—please confirm before purchase. Not medical advice.
               </p>
             </div>
           </div>
@@ -146,7 +158,15 @@
                   <th>Price</th>
                   <th>MRP</th>
                   <th>Open</th>
-                  <th>Cart</th>
+                  <th>
+                    <span class="sr-only">Cart</span
+                    ><svg class="icon icon-cart" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M7 18c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2Zm10 0c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2ZM6.22 6l.35 2h11.07c.78 0 1.15.96.6 1.52l-3.62 3.62a2 2 0 0 1-1.41.59H9.1a2 2 0 0 1-1.97-1.65L5.21 2.5H3a1 1 0 1 1 0-2h3.04c.48 0 .9.34.98.82L7.1 4h13.9a1 1 0 1 1 0 2H6.22Z"
+                      />
+                    </svg>
+                  </th>
                 </tr>
               </thead>
               <tbody id="online-rows"></tbody>
@@ -171,8 +191,8 @@
               </p>
             </div>
             <div class="pill-row">
-              <span class="pill">Local</span>
-              <span class="pill pill-muted">Demo DB</span>
+              <!-- <span class="pill">Local</span>
+              <span class="pill pill-muted">Demo DB</span> -->
             </div>
           </div>
           <div id="stats" class="stats hidden"></div>
@@ -185,13 +205,21 @@
                   <th>Price</th>
                   <th>MRP</th>
                   <th>Location</th>
-                  <th>Cart</th>
+                  <th>
+                    <span class="sr-only">Cart</span
+                    ><svg class="icon icon-cart" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M7 18c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2Zm10 0c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2ZM6.22 6l.35 2h11.07c.78 0 1.15.96.6 1.52l-3.62 3.62a2 2 0 0 1-1.41.59H9.1a2 2 0 0 1-1.97-1.65L5.21 2.5H3a1 1 0 1 1 0-2h3.04c.48 0 .9.34.98.82L7.1 4h13.9a1 0 1 1 0 2H6.22Z"
+                      />
+                    </svg>
+                  </th>
                 </tr>
               </thead>
               <tbody id="offers"></tbody>
             </table>
           </div>
-          <p id="empty" class="muted hidden">No demo pharmacy rows match that name in the selected city.</p>
+          <p id="empty" class="muted hidden">No local listings match that name in the selected city.</p>
         </section>
       </section>
     </main>
@@ -199,7 +227,7 @@
     <footer class="footer">
       <div class="footer-inner">
         <div class="footer-left">
-          <span class="muted">PostgreSQL via <code>DATABASE_URL</code></span>
+          <span class="muted">Powered by a secure backend</span>
           <span class="dot">·</span>
           <span class="muted">Geography: India (INR)</span>
         </div>

@@ -12,44 +12,96 @@
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
+  <body class="auth-page">
     <div class="bg-grid"></div>
-    <header class="header">
-      <div class="brand">
-        <span class="logo" aria-hidden="true">◇</span>
-        <div>
-          <h1>MedLens</h1>
-          <p class="tagline">Login with mobile OTP</p>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <a href="/" aria-label="MedLens home">
+            <img class="brand-mark" src="/brand-mark.png" alt="MedLens" width="150" height="150" />
+          </a>
+          <div>
+            <!-- <h1>Login</h1> -->
+            <p class="tagline"></p>
+            <p class="disclaimer-inline">
+              
+            </p>
+          </div>
         </div>
+
+        <nav class="header-nav" aria-label="Primary">
+          <a class="nav-link" href="/">Medicines</a>
+          <a class="nav-link" href="/labs.html">Diagnostics</a>
+        </nav>
       </div>
-      <p class="disclaimer">India numbers only for now. OTP delivery is dev-mode unless you plug in an SMS provider.</p>
     </header>
 
-    <main class="layout" style="grid-template-columns: 1fr; max-width: 640px">
-      <section class="panel">
-        <h2>Request OTP</h2>
-        <label class="field">
-          <span>Mobile number</span>
-          <input id="phone" inputmode="tel" placeholder="e.g. 9876543210" />
-        </label>
-        <button class="btn" id="request">Send OTP</button>
-        <pre id="reqOut" class="muted" style="white-space: pre-wrap; margin-top: 0.8rem"></pre>
-      </section>
+    <main class="auth-shell">
+      <section class="panel auth-card">
+        <div class="auth-step" id="modePanel">
+          <h2>Login as</h2>
+          <label class="field" style="margin-bottom: 0">
+            <span>Account type</span>
+            <select id="loginMode">
+              <option value="user" selected>User</option>
+              <option value="provider">Service Provider</option>
+            </select>
+          </label>
+          <p class="muted hint" style="margin: 0.6rem 0 0">
+            User login uses OTP. Service Provider login uses username & password.
+          </p>
+        </div>
 
-      <section class="panel">
-        <h2>Verify OTP</h2>
-        <label class="field">
-          <span>OTP</span>
-          <input id="code" inputmode="numeric" placeholder="6-digit code" />
-        </label>
-        <button class="btn" id="verify">Verify & login</button>
-        <button class="btn" id="logout" style="margin-left: 0.5rem">Logout</button>
-        <pre id="verOut" class="muted" style="white-space: pre-wrap; margin-top: 0.8rem"></pre>
+        <div class="auth-step is-hidden" id="passwordPanel">
+          <h2>Service Provider login</h2>
+          <label class="field">
+            <span>Username</span>
+            <input id="username" autocomplete="username" placeholder="admin" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="password" type="password" autocomplete="current-password" placeholder="admin" />
+          </label>
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="passwordLogin">Login</button>
+            <!-- <span class="muted hint">Dev-only shortcut</span> -->
+          </div>
+          <pre id="passOut" class="muted auth-out"></pre>
+        </div>
+
+        <div class="auth-step" id="requestPanel">
+          <h2>Request OTP</h2>
+          <label class="field">
+            <span>Mobile number</span>
+            <input id="phone" inputmode="tel" placeholder="e.g. 9876543210" />
+          </label>
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="request">Send OTP</button>
+          </div>
+          <pre id="reqOut" class="muted auth-out"></pre>
+        </div>
+
+        <div class="auth-step is-hidden" id="verifyPanel">
+          <h2>Verify OTP</h2>
+          <label class="field">
+            <span>OTP</span>
+            <input id="code" inputmode="numeric" placeholder="6-digit code" />
+          </label>
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="verify">Verify & login</button>
+            <button class="btn btn-ghost" id="logout">Logout</button>
+          </div>
+          <pre id="verOut" class="muted auth-out"></pre>
+        </div>
       </section>
     </main>
 
     <footer class="footer">
-      <a class="muted" href="/" style="color: inherit">Back to search</a>
+      <div class="footer-inner">
+        <div class="footer-left">
+          <a class="muted" href="/" style="color: inherit">Back to search</a>
+        </div>
+      </div>
     </footer>
 
     <script type="module" src="/login.js"></script>
