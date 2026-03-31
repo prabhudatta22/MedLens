@@ -4,10 +4,9 @@ export async function attachUser(req, _res, next) {
   const sid = req.cookies?.sid;
   if (!sid) return next();
 
-  // Dev-only escape hatch so the demo can be used without a working DB.
-  // Enabled only when NODE_ENV != production and ENABLE_DEV_ADMIN_LOGIN=true.
-  const isProd = process.env.NODE_ENV === "production";
-  const allowDevLogin = !isProd && String(process.env.ENABLE_DEV_ADMIN_LOGIN || "true") === "true";
+  // Escape hatch for admin demo login without a working DB.
+  // Enabled only when ENABLE_DEV_ADMIN_LOGIN=true.
+  const allowDevLogin = String(process.env.ENABLE_DEV_ADMIN_LOGIN || "false") === "true";
   if (allowDevLogin && sid === "dev-admin") {
     req.user = { id: 0, phone_e164: "+910000000000", session_id: sid, dev_admin: true };
     return next();
