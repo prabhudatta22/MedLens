@@ -13,9 +13,9 @@ TRUNCATE
   cities
 RESTART IDENTITY CASCADE;
 
--- Service Provider demo login (username: admin, password: admin)
+-- Service Provider demo login (username: admin, password: Admin)
 INSERT INTO service_provider_users (username, password_hash, active) VALUES
-  ('admin', '$2b$10$20AcibrTjxG1NZPeLdZrr.PzxCMhtj7iW05HQEooToJONPhInDfha', true)
+  ('admin', '$2b$10$XgnD1GSE6UOB8DvhVLCUluBKSsw0X5B9hHWuCx6x/SZbtd74EPtJ6', true)
 ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, active = true;
 
 INSERT INTO cities (name, state, slug) VALUES
