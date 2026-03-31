@@ -44,6 +44,18 @@ async function post(url, body) {
   return { ok: res.ok, status: res.status, json };
 }
 
+async function get(url) {
+  const res = await fetch(url, { method: "GET" });
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    json = { raw: text };
+  }
+  return { ok: res.ok, status: res.status, json };
+}
+
 const modeSel = $("loginMode");
 if (modeSel) {
   modeSel.addEventListener("change", () => setMode(modeSel.value));
@@ -61,10 +73,12 @@ $("#passwordLogin")?.addEventListener("click", async () => {
     $("#passOut").textContent = r.json?.error || `Login failed (${r.status})`;
     return;
   }
-  $("#passOut").textContent = "Logged in successfully. Redirecting…";
-  setTimeout(() => {
-    window.location.href = "/";
-  }, 450);
+  const me = await get("/api/auth/me");
+  if (!me.ok || !me.json?.user) {
+    $("#passOut").textContent = "Login succeeded, but session was not detected. Please refresh and try again.";
+    return;
+  }
+  $("#passOut").innerHTML = `Logged in as <strong>Service Provider</strong>. <a href="/" style="color: inherit">Go to home</a>.`;
 });
 
 $("#request").addEventListener("click", async () => {
