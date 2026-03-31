@@ -106,8 +106,10 @@ router.post("/login", async (req, res) => {
   const password = String(req.body?.password || "").trim();
 
   const isProd = process.env.NODE_ENV === "production";
-  // Allow only when explicitly enabled (even in production).
-  const allowDevLogin = String(process.env.ENABLE_DEV_ADMIN_LOGIN || "false") === "true";
+  // Default ON for localhost/dev unless explicitly disabled.
+  // In production, require explicit ENABLE_DEV_ADMIN_LOGIN=true.
+  const flag = process.env.ENABLE_DEV_ADMIN_LOGIN;
+  const allowDevLogin = flag == null ? !isProd : String(flag) === "true";
   if (!allowDevLogin) return res.status(404).json({ error: "Not found" });
 
   const expectedUser = String(process.env.DEV_ADMIN_USERNAME || "admin").trim();

@@ -61,7 +61,10 @@ $("#passwordLogin")?.addEventListener("click", async () => {
     $("#passOut").textContent = r.json?.error || `Login failed (${r.status})`;
     return;
   }
-  $("#passOut").textContent = "Logged in successfully.";
+  $("#passOut").textContent = "Logged in successfully. Redirecting…";
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 450);
 });
 
 $("#request").addEventListener("click", async () => {
