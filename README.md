@@ -1,5 +1,7 @@
 # MedLens
 
+https://medlens-h4ym.onrender.com/
+
 “Lens” = clarity, transparency — see the real price before you buy.
 
 India-focused prescription medicine **price comparison** demo: Node.js (Express) + **PostgreSQL** (`pg`). Prices are in **INR**; cities and pharmacy names are sample data.
