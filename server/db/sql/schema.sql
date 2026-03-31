@@ -146,6 +146,16 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id, created_at DESC);
 
+-- Service Provider users (username/password). Store only password hashes.
+CREATE TABLE IF NOT EXISTS service_provider_users (
+  id SERIAL PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_login_at TIMESTAMPTZ
+);
+
 -- Purchase reminders (refill / buy-again) for logged-in users
 CREATE TABLE IF NOT EXISTS purchase_reminders (
   id SERIAL PRIMARY KEY,

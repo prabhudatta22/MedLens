@@ -1,19 +1,27 @@
 import { pool } from "../db/pool.js";
+import { getProviderSession } from "./providerSessions.js";
 
 export async function attachUser(req, _res, next) {
   const sid = req.cookies?.sid;
   if (!sid) return next();
 
-  // Escape hatch for admin demo login without a working DB.
-  // Default ON for localhost/dev unless explicitly disabled.
-  const isProd = process.env.NODE_ENV === "production";
-  const flag = process.env.ENABLE_DEV_ADMIN_LOGIN;
-  const allowDevLogin = flag == null ? !isProd : String(flag) === "true";
-  if (allowDevLogin && sid === "dev-admin") {
-    req.user = { id: 0, phone_e164: "+910000000000", session_id: sid, dev_admin: true };
-    return next();
+  // 1) Service Provider sessions (Redis, 5 min TTL)
+  try {
+    const sp = await getProviderSession(sid);
+    if (sp?.kind === "service_provider") {
+      req.user = {
+        id: `sp:${sp.provider_user_id}`,
+        username: sp.username,
+        role: "service_provider",
+        session_id: sid,
+      };
+      return next();
+    }
+  } catch {
+    // ignore redis errors; fall back to DB sessions
   }
 
+  // 2) User sessions (Postgres, OTP flow)
   const { rows } = await pool.query(
     `SELECT s.id AS session_id, s.expires_at, s.revoked_at,
             u.id AS user_id, u.phone_e164

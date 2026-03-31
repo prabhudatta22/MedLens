@@ -4,6 +4,7 @@ TRUNCATE
   sale_items,
   sales,
   partner_pharmacies,
+  service_provider_users,
   lab_test_prices,
   lab_tests,
   pharmacy_prices,
@@ -11,6 +12,11 @@ TRUNCATE
   pharmacies,
   cities
 RESTART IDENTITY CASCADE;
+
+-- Service Provider demo login (username: admin, password: admin)
+INSERT INTO service_provider_users (username, password_hash, active) VALUES
+  ('admin', '$2b$10$20AcibrTjxG1NZPeLdZrr.PzxCMhtj7iW05HQEooToJONPhInDfha', true)
+ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, active = true;
 
 INSERT INTO cities (name, state, slug) VALUES
   ('Mumbai', 'Maharashtra', 'mumbai'),

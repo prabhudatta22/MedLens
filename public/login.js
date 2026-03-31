@@ -4,6 +4,12 @@ function pretty(x) {
   return JSON.stringify(x, null, 2);
 }
 
+function setStatus(msg) {
+  const el = $("loginStatus");
+  if (!el) return;
+  el.textContent = msg || "";
+}
+
 function showVerifyStep() {
   const panel = $("verifyPanel");
   if (!panel) return;
@@ -26,6 +32,7 @@ function setMode(mode) {
   if ($("passOut")) $("passOut").textContent = "";
   if ($("reqOut")) $("reqOut").textContent = "";
   if ($("verOut")) $("verOut").textContent = "";
+  setStatus(provider ? "Service Provider mode" : "User mode");
 }
 
 async function post(url, body) {
@@ -64,45 +71,108 @@ if (modeSel) {
   setMode("user");
 }
 
-$("#passwordLogin")?.addEventListener("click", async () => {
-  $("#passOut").textContent = "Logging in…";
-  const username = $("#username")?.value || "";
-  const password = $("#password")?.value || "";
-  const r = await post("/api/auth/login", { username, password });
-  if (!r.ok) {
-    $("#passOut").textContent = r.json?.error || `Login failed (${r.status})`;
-    return;
-  }
-  const me = await get("/api/auth/me");
-  if (!me.ok || !me.json?.user) {
-    $("#passOut").textContent = "Login succeeded, but session was not detected. Please refresh and try again.";
-    return;
-  }
-  $("#passOut").innerHTML = `Logged in as <strong>Service Provider</strong>. <a href="/" style="color: inherit">Go to home</a>.`;
-});
+async function handleProviderLogin(e) {
+  e?.preventDefault?.();
+  try {
+    setStatus("Logging in…");
+    $("passOut").textContent = "";
+    const btn = $("passwordLogin");
+    if (btn) btn.disabled = true;
 
-$("#request").addEventListener("click", async () => {
-  $("#reqOut").textContent = "Sending…";
-  hideVerifyStep();
-  const phone = $("#phone").value;
-  const r = await post("/api/auth/request-otp", { phone });
-  $("#reqOut").textContent = pretty({ status: r.status, ...r.json });
-  if (r.ok) showVerifyStep();
-  if (r.json?.dev_otp) $("#code").value = r.json.dev_otp;
-  if (r.ok) $("#code")?.focus?.();
-});
+    const username = $("#username")?.value || "";
+    const password = $("#password")?.value || "";
+    const r = await post("/api/auth/login", { username, password });
+    if (!r.ok) {
+      setStatus("");
+      $("passOut").textContent = r.json?.error || `Login failed (${r.status})`;
+      if (btn) btn.disabled = false;
+      return;
+    }
+    const me = await get("/api/auth/me");
+    if (!me.ok || !me.json?.user) {
+      setStatus("");
+      $("passOut").textContent = "Login succeeded, but session was not detected. Please refresh and try again.";
+      if (btn) btn.disabled = false;
+      return;
+    }
+    setStatus("");
+    $("passOut").textContent = "Logged in successfully. Redirecting…";
+    if (btn) btn.disabled = false;
+    window.location.assign("/");
+  } catch (e) {
+    setStatus("");
+    if ($("passOut")) $("passOut").textContent = String(e?.message || e);
+    $("passwordLogin") && ($("passwordLogin").disabled = false);
+  }
+}
 
-$("#verify").addEventListener("click", async () => {
-  $("#verOut").textContent = "Verifying…";
-  const phone = $("#phone").value;
-  const code = $("#code").value;
-  const r = await post("/api/auth/verify-otp", { phone, code });
-  $("#verOut").textContent = pretty({ status: r.status, ...r.json });
-});
+$("#providerForm")?.addEventListener("submit", handleProviderLogin);
+$("#passwordLogin")?.addEventListener("click", handleProviderLogin);
+
+async function handleOtpRequest(e) {
+  e?.preventDefault?.();
+  try {
+    $("reqOut").textContent = "Sending…";
+    hideVerifyStep();
+    const btn = $("request");
+    if (btn) btn.disabled = true;
+    const phone = $("#phone").value;
+    const r = await post("/api/auth/request-otp", { phone });
+    $("reqOut").textContent = pretty({ status: r.status, ...r.json });
+    if (r.ok) showVerifyStep();
+    if (r.json?.dev_otp) $("#code").value = r.json.dev_otp;
+    if (r.ok) $("#code")?.focus?.();
+    if (btn) btn.disabled = false;
+  } catch (e) {
+    $("reqOut").textContent = String(e?.message || e);
+    $("request") && ($("request").disabled = false);
+  }
+}
+
+$("#otpRequestForm")?.addEventListener("submit", handleOtpRequest);
+$("#request")?.addEventListener("click", handleOtpRequest);
+
+async function handleOtpVerify(e) {
+  e?.preventDefault?.();
+  try {
+    $("verOut").textContent = "Verifying…";
+    const btn = $("verify");
+    if (btn) btn.disabled = true;
+    const phone = $("#phone").value;
+    const code = $("#code").value;
+    const r = await post("/api/auth/verify-otp", { phone, code });
+    $("verOut").textContent = pretty({ status: r.status, ...r.json });
+    if (btn) btn.disabled = false;
+  } catch (e) {
+    $("verOut").textContent = String(e?.message || e);
+    $("verify") && ($("verify").disabled = false);
+  }
+}
+
+$("#otpVerifyForm")?.addEventListener("submit", handleOtpVerify);
+$("#verify")?.addEventListener("click", handleOtpVerify);
 
 $("#logout").addEventListener("click", async () => {
-  $("#verOut").textContent = "Logging out…";
-  const r = await post("/api/auth/logout", {});
-  $("#verOut").textContent = pretty({ status: r.status, ...r.json });
+  try {
+    $("verOut").textContent = "Logging out…";
+    const btn = $("logout");
+    if (btn) btn.disabled = true;
+    const r = await post("/api/auth/logout", {});
+    $("verOut").textContent = pretty({ status: r.status, ...r.json });
+    if (btn) btn.disabled = false;
+  } catch (e) {
+    $("verOut").textContent = String(e?.message || e);
+    $("logout") && ($("logout").disabled = false);
+  }
+});
+
+window.addEventListener("error", (e) => {
+  const msg = e?.message || "Script error";
+  if ($("passOut")) $("passOut").textContent = `Error: ${msg}`;
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  const msg = e?.reason?.message || String(e?.reason || "Unhandled promise rejection");
+  if ($("passOut")) $("passOut").textContent = `Error: ${msg}`;
 });
 

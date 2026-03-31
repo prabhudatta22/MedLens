@@ -37,6 +37,53 @@ function refreshCartBadge() {
   el.classList.toggle("hidden", n === 0);
 }
 
+let currentUser = null;
+
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+function renderAuthNav() {
+  const userEl = $("navUser");
+  const loginEl = $("navLogin");
+  const logoutEl = $("navLogout");
+  if (!userEl || !loginEl || !logoutEl) return;
+
+  const u = currentUser;
+  const isLogged = Boolean(u);
+  loginEl.classList.toggle("hidden", isLogged);
+  logoutEl.classList.toggle("hidden", !isLogged);
+  userEl.classList.toggle("hidden", !isLogged);
+
+  if (!isLogged) {
+    userEl.textContent = "";
+    return;
+  }
+  userEl.textContent =
+    u.role === "service_provider"
+      ? `SP · ${u.username || "account"}`
+      : u.phone_e164
+        ? `${u.phone_e164}`
+        : "Account";
+}
+
+async function refreshAuth() {
+  try {
+    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
+    const data = await res.json();
+    currentUser = data.user || null;
+  } catch {
+    currentUser = null;
+  }
+  renderAuthNav();
+}
+
 async function loadCities() {
   try {
     const res = await fetch("/api/cities");
@@ -187,7 +234,15 @@ $("labCity").addEventListener("change", runSearch);
 
 await loadCities();
 await loadCategories();
+await refreshAuth();
 refreshCartBadge();
+
+$("navLogout")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await postJson("/api/auth/logout", {});
+  currentUser = null;
+  renderAuthNav();
+});
 
 // Support deep-link from home page: /labs.html?q=...&city=...&category=...
 const params = new URLSearchParams(window.location.search);

@@ -17,6 +17,7 @@ let cities = [];
 /** For purchase-reminder deep link only — set when local results show exactly one medicine */
 let selectedMedicine = null;
 let loggedIn = false;
+let currentUser = null;
 /** @type {{ provider_id: string, label: string, search_url: string, price_inr?: number } | null} */
 let selectedOnlineOffer = null;
 
@@ -616,14 +617,53 @@ function fmt(n) {
   return Number(n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+function renderAuthNav() {
+  const userEl = $("navUser");
+  const loginEl = $("navLogin");
+  const logoutEl = $("navLogout");
+  if (!userEl || !loginEl || !logoutEl) return;
+
+  const u = currentUser;
+  const isLogged = Boolean(u);
+  loginEl.classList.toggle("hidden", isLogged);
+  logoutEl.classList.toggle("hidden", !isLogged);
+  userEl.classList.toggle("hidden", !isLogged);
+
+  if (!isLogged) {
+    userEl.textContent = "";
+    return;
+  }
+
+  const label =
+    u.role === "service_provider"
+      ? `SP · ${u.username || "account"}`
+      : u.phone_e164
+        ? `${u.phone_e164}`
+        : "Account";
+  userEl.textContent = label;
+}
+
 async function refreshAuth() {
   try {
     const res = await fetch("/api/auth/me", { credentials: "same-origin" });
     const data = await res.json();
-    loggedIn = Boolean(data.user);
+    currentUser = data.user || null;
+    loggedIn = Boolean(currentUser);
   } catch {
+    currentUser = null;
     loggedIn = false;
   }
+  renderAuthNav();
 }
 
 function updateReminderHint() {
@@ -642,6 +682,16 @@ function updateReminderHint() {
 
 window.addEventListener("storage", (e) => {
   if (e.key === STORAGE_KEY) refreshCartBadge();
+});
+
+// Logout from header (user + service provider)
+$("navLogout")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await postJson("/api/auth/logout", {});
+  currentUser = null;
+  loggedIn = false;
+  renderAuthNav();
+  updateReminderHint();
 });
 
 loadCities()

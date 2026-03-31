@@ -50,48 +50,55 @@
           <p class="muted hint" style="margin: 0.6rem 0 0">
             User login uses OTP. Service Provider login uses username & password.
           </p>
+          <p id="loginStatus" class="muted hint" style="margin: 0.4rem 0 0" aria-live="polite"></p>
         </div>
 
         <div class="auth-step is-hidden" id="passwordPanel">
           <h2>Service Provider login</h2>
-          <label class="field">
-            <span>Username</span>
-            <input id="username" autocomplete="username" placeholder="admin" />
-          </label>
-          <label class="field">
-            <span>Password</span>
-            <input id="password" type="password" autocomplete="current-password" placeholder="admin" />
-          </label>
-          <div class="auth-actions">
-            <button class="btn btn-primary" id="passwordLogin">Login</button>
-            <!-- <span class="muted hint">Dev-only shortcut</span> -->
-          </div>
-          <pre id="passOut" class="muted auth-out"></pre>
+          <form id="providerForm" novalidate>
+            <label class="field">
+              <span>Username</span>
+              <input id="username" autocomplete="username" placeholder="admin" />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input id="password" type="password" autocomplete="current-password" placeholder="admin" />
+            </label>
+            <div class="auth-actions">
+              <button type="submit" class="btn btn-primary" id="passwordLogin">Login</button>
+              <!-- <span class="muted hint">Dev-only shortcut</span> -->
+            </div>
+            <pre id="passOut" class="muted auth-out"></pre>
+          </form>
         </div>
 
         <div class="auth-step" id="requestPanel">
           <h2>Request OTP</h2>
-          <label class="field">
-            <span>Mobile number</span>
-            <input id="phone" inputmode="tel" placeholder="e.g. 9876543210" />
-          </label>
-          <div class="auth-actions">
-            <button class="btn btn-primary" id="request">Send OTP</button>
-          </div>
-          <pre id="reqOut" class="muted auth-out"></pre>
+          <form id="otpRequestForm" novalidate>
+            <label class="field">
+              <span>Mobile number</span>
+              <input id="phone" inputmode="tel" placeholder="e.g. 9876543210" />
+            </label>
+            <div class="auth-actions">
+              <button type="submit" class="btn btn-primary" id="request">Send OTP</button>
+            </div>
+            <pre id="reqOut" class="muted auth-out"></pre>
+          </form>
         </div>
 
         <div class="auth-step is-hidden" id="verifyPanel">
           <h2>Verify OTP</h2>
-          <label class="field">
-            <span>OTP</span>
-            <input id="code" inputmode="numeric" placeholder="6-digit code" />
-          </label>
-          <div class="auth-actions">
-            <button class="btn btn-primary" id="verify">Verify & login</button>
-            <button class="btn btn-ghost" id="logout">Logout</button>
-          </div>
-          <pre id="verOut" class="muted auth-out"></pre>
+          <form id="otpVerifyForm" novalidate>
+            <label class="field">
+              <span>OTP</span>
+              <input id="code" inputmode="numeric" placeholder="6-digit code" />
+            </label>
+            <div class="auth-actions">
+              <button type="submit" class="btn btn-primary" id="verify">Verify & login</button>
+              <button type="button" class="btn btn-ghost" id="logout">Logout</button>
+            </div>
+            <pre id="verOut" class="muted auth-out"></pre>
+          </form>
         </div>
       </section>
     </main>

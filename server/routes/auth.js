@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
+import bcrypt from "bcryptjs";
 import {
   generateOtpCode,
   hashOtp,
   normalizeIndiaPhoneToE164,
   randomSessionId,
 } from "../auth/phone.js";
+import { createProviderSession, deleteProviderSession } from "../auth/providerSessions.js";
 
 const router = Router();
 
@@ -105,78 +107,52 @@ router.post("/login", async (req, res) => {
   const username = String(req.body?.username || "").trim();
   const password = String(req.body?.password || "").trim();
 
-  const isProd = process.env.NODE_ENV === "production";
-  // Default ON for localhost/dev unless explicitly disabled.
-  // In production, require explicit ENABLE_DEV_ADMIN_LOGIN=true.
-  const flag = process.env.ENABLE_DEV_ADMIN_LOGIN;
-  const allowDevLogin = flag == null ? !isProd : String(flag) === "true";
-  if (!allowDevLogin) return res.status(404).json({ error: "Not found" });
+  if (!username || !password) return res.status(400).json({ error: "Username and password are required" });
 
-  const expectedUser = String(process.env.DEV_ADMIN_USERNAME || "admin").trim();
-  const expectedPass = String(process.env.DEV_ADMIN_PASSWORD || "admin").trim();
+  const { rows } = await pool.query(
+    `SELECT id, username, password_hash, active
+     FROM service_provider_users
+     WHERE lower(username) = lower($1)
+     LIMIT 1`,
+    [username]
+  );
+  if (!rows.length) return res.status(401).json({ error: "Invalid credentials" });
+  const u = rows[0];
+  if (!u.active) return res.status(403).json({ error: "Account disabled" });
 
-  // Dev-only convenience: treat admin creds case-insensitively to avoid UX friction.
-  const uOk = username.toLowerCase() === expectedUser.toLowerCase();
-  const pOk = password.toLowerCase() === expectedPass.toLowerCase();
-  if (!uOk || !pOk) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
+  const ok = bcrypt.compareSync(password, u.password_hash);
+  if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
-  const days = Number(process.env.SESSION_DAYS || 30);
-  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60_000).toISOString();
+  await pool.query(`UPDATE service_provider_users SET last_login_at = now() WHERE id = $1`, [u.id]);
 
-  // Prefer DB-backed sessions when DB is available.
-  // If DB is down/misconfigured, fall back to a dev-only cookie that middleware recognizes.
+  let sid;
+  let ttlSeconds;
   try {
-    const phoneE164 = "+910000000000";
-    const userRes = await pool.query(
-      `INSERT INTO users (phone_e164, last_login_at)
-       VALUES ($1, now())
-       ON CONFLICT (phone_e164) DO UPDATE SET last_login_at = now()
-       RETURNING id, phone_e164`,
-      [phoneE164]
-    );
-    const user = userRes.rows[0];
-
-    const sid = randomSessionId();
-    await pool.query(`INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`, [
-      sid,
-      user.id,
-      expiresAt,
-    ]);
-
-    res.cookie("sid", sid, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd,
-      expires: new Date(expiresAt),
-    });
-
-    return res.json({ ok: true, user: { id: user.id, phone_e164: user.phone_e164, dev_admin: true } });
+    const s = await createProviderSession({ providerUserId: u.id, username: u.username });
+    sid = s.sid;
+    ttlSeconds = s.ttlSeconds;
   } catch (e) {
-    const sid = "dev-admin";
-    res.cookie("sid", sid, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-      expires: new Date(expiresAt),
-    });
-
-    return res.json({
-      ok: true,
-      user: { id: 0, phone_e164: "+910000000000", dev_admin: true },
-      warning: "Database unavailable; using dev-only login cookie.",
+    return res.status(503).json({
+      error: "Login temporarily unavailable",
       detail: String(e?.message || e),
+      hint: "Redis must be running and REDIS_URL must be set",
     });
   }
+  res.cookie("sid", sid, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: ttlSeconds * 1000,
+  });
 
-  // unreachable
+  return res.json({ ok: true, user: { id: `sp:${u.id}`, username: u.username, role: "service_provider" } });
 });
 
 router.post("/logout", async (req, res) => {
   const sid = req.cookies?.sid;
   if (sid) {
-    await pool.query(`UPDATE sessions SET revoked_at = now() WHERE id = $1`, [sid]);
+    await deleteProviderSession(sid).catch(() => {});
+    await pool.query(`UPDATE sessions SET revoked_at = now() WHERE id = $1`, [sid]).catch(() => {});
   }
   res.clearCookie("sid");
   res.json({ ok: true });

@@ -10,5 +10,11 @@ services:
     volumes:
       - medlens_pg:/var/lib/postgresql/data
 
+  redis:
+    image: valkey/valkey:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["valkey-server", "--save", "60", "1", "--loglevel", "warning"]
+
 volumes:
   medlens_pg:
