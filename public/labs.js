@@ -233,8 +233,8 @@ $("labQ").addEventListener("input", scheduleSearch);
 $("labCity").addEventListener("change", runSearch);
 
 await loadCities();
-await loadCategories();
 await refreshAuth();
+await loadCategories();
 refreshCartBadge();
 
 $("navLogout")?.addEventListener("click", async (e) => {

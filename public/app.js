@@ -694,8 +694,7 @@ $("navLogout")?.addEventListener("click", async (e) => {
   updateReminderHint();
 });
 
-loadCities()
-  .then(() => refreshAuth())
+Promise.all([loadCities(), refreshAuth()])
   .then(() => updateReminderHint())
   .then(() => refreshCartBadge())
   .catch(console.error);

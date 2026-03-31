@@ -142,6 +142,13 @@ async function handleOtpVerify(e) {
     const code = $("#code").value;
     const r = await post("/api/auth/verify-otp", { phone, code });
     $("verOut").textContent = pretty({ status: r.status, ...r.json });
+    if (r.ok) {
+      const me = await get("/api/auth/me");
+      if (me.ok && me.json?.user) {
+        window.location.assign("/");
+        return;
+      }
+    }
     if (btn) btn.disabled = false;
   } catch (e) {
     $("verOut").textContent = String(e?.message || e);
