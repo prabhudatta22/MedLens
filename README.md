@@ -50,6 +50,30 @@ Install Docker Desktop, then start Postgres via Compose:
 
 4. Open **http://localhost:3000** — type a medicine name; the app queries each configured online retailer in parallel and shows matching **demo** pharmacy rows for the selected city.
 
+## Importing ERP exports (Marg / RetailGraph)
+
+MedLens supports ingesting common **ERP export files** (CSV/XLSX) from retail pharmacy systems like **Marg** and **RetailGraph**.
+
+- **Endpoints**:
+  - `POST /api/import/erp/marg`
+  - `POST /api/import/erp/retailgraph`
+- **Form fields (required)**: `city`, `state`, `pharmacy_name`
+- **Optional**: `pincode`, `chain`, `address_line`, `lat`, `lng`
+- **File field**: `file` (CSV or XLSX)
+
+Example (Marg):
+
+```bash
+curl -X POST "http://localhost:3000/api/import/erp/marg" \
+  -F "city=Hyderabad" \
+  -F "state=Telangana" \
+  -F "pharmacy_name=My Pharmacy (Ameerpet)" \
+  -F "pincode=500016" \
+  -F "file=@/path/to/marg-export.xlsx"
+```
+
+Header mapping is **auto-detected**. Typical columns that work well include: `Item Name`, `MRP`, `Sale Rate` (or `Rate`), and optionally `Qty/Stock` or `Availability`.
+
 ### DB troubleshooting
 
 - **Reset local DB** (drops Docker volume data):
