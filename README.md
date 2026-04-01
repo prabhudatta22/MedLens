@@ -37,6 +37,17 @@ Install Docker Desktop, then start Postgres via Compose:
    npm run dev
    ```
 
+   **Schema** is defined in `server/db/sql/schema.sql` (applied by `db:migrate`). **Seed demo rows** are in `server/db/sql/seed.sql` (`db:seed`).
+
+   **Full bundled data** (everything in the repo snapshot, including the large Excel import) is in `server/db/sql/postgres_data.sql`. Load it on a **fresh** database after migrate—**do not** run `db:seed` first, or primary keys will collide:
+
+   ```bash
+   npm run db:migrate
+   npm run db:load-full-data
+   ```
+
+   To reproduce the spreadsheet import from your own file instead: `npm run db:import-dataset` (see `server/scripts/import-medlens-dataset.js`).
+
 4. Open **http://localhost:3000** — type a medicine name; the app queries each configured online retailer in parallel and shows matching **demo** pharmacy rows for the selected city.
 
 ### DB troubleshooting

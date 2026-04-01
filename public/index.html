@@ -82,6 +82,24 @@
                 <div id="locationDetail" class="location-detail hidden" aria-live="polite"></div>
               </div>
 
+              <label class="field field-hero">
+                <span>PIN code (for database compare)</span>
+                <div class="input-wrap">
+                  <input
+                    id="pincode"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="6"
+                    placeholder="e.g. 400050"
+                    autocomplete="postal-code"
+                    aria-describedby="pincodeHint"
+                  />
+                </div>
+                <p id="pincodeHint" class="muted hint">
+                  Online retailers section uses pilot DB prices for this PIN (and your selected city when both are set).
+                </p>
+              </label>
+
               <div class="search-actions" aria-label="Search actions">
                 <button type="button" class="btn btn-primary" id="searchBtn">Compare prices</button>
                 <!-- <span class="muted hint">Tip: press Enter to search.</span> -->

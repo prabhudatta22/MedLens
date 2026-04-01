@@ -1,6 +1,7 @@
 -- MedLens India: PostgreSQL schema (use with DATABASE_URL)
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS cities (
   id SERIAL PRIMARY KEY,
@@ -155,6 +156,59 @@ CREATE TABLE IF NOT EXISTS service_provider_users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_login_at TIMESTAMPTZ
 );
+
+-- Registered service provider businesses (pharmacy / lab partners, etc.)
+CREATE TABLE IF NOT EXISTS service_providers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  address TEXT,
+  area VARCHAR(100),
+  city VARCHAR(100),
+  state VARCHAR(100),
+  pincode VARCHAR(10),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_location ON service_providers (pincode, city);
+
+-- SKU master (medicine / diagnostic sellable items)
+CREATE TABLE IF NOT EXISTS skus (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  details TEXT,
+  category VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_sku_name ON skus (name);
+
+-- Consumer profiles for catalog / orders (OTP login still uses integer `users` above)
+CREATE TABLE IF NOT EXISTS catalog_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username VARCHAR(100) NOT NULL,
+  phone_number VARCHAR(15) UNIQUE NOT NULL,
+  address TEXT,
+  area VARCHAR(100),
+  city VARCHAR(100),
+  state VARCHAR(100),
+  pincode VARCHAR(10),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Per-provider pricing for SKUs (discount stored as INR off list price; app may treat as % later)
+CREATE TABLE IF NOT EXISTS provider_skus (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  service_provider_id UUID NOT NULL REFERENCES service_providers (id) ON DELETE CASCADE,
+  sku_id UUID NOT NULL REFERENCES skus (id) ON DELETE CASCADE,
+  price NUMERIC(10, 2) NOT NULL,
+  discount NUMERIC(5, 2) DEFAULT 0,
+  final_price NUMERIC(10, 2) GENERATED ALWAYS AS (price - discount) STORED,
+  availability BOOLEAN DEFAULT TRUE,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (service_provider_id, sku_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_price_lookup ON provider_skus (sku_id, price);
 
 -- Purchase reminders (refill / buy-again) for logged-in users
 CREATE TABLE IF NOT EXISTS purchase_reminders (

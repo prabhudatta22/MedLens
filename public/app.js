@@ -126,9 +126,75 @@ function applyGeocodeResponse(body) {
     if (ok) sel.value = matched_city.slug;
   }
   if (google) {
+    const pinEl = $("pincode");
+    if (pinEl && google.postal_code) {
+      const d = String(google.postal_code).replace(/\D/g, "").slice(0, 6);
+      if (d.length === 6 && !pinEl.value.trim()) pinEl.value = d;
+    }
     renderLocationDetail(google, matched_city);
     saveGeoState(google, matched_city);
   }
+}
+
+/** 6-digit PIN for database-backed “Online retailers” compare (input or geocoded). */
+function getComparePincode() {
+  const raw = $("pincode")?.value?.trim() || "";
+  const digits = raw.replace(/\D/g, "").slice(0, 6);
+  if (digits.length === 6) return digits;
+  const geoPin = loadGeoState()?.google?.postal_code;
+  if (geoPin) {
+    const d = String(geoPin).replace(/\D/g, "").slice(0, 6);
+    if (d.length === 6) return d;
+  }
+  return "";
+}
+
+function mapsUrlFromDbOffer(o) {
+  const mapsQuery = [o.address_line, o.pincode, o.city_name, o.pharmacy_name].filter(Boolean).join(" ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+}
+
+/** Map /api/compare/by-pincode JSON into the shape expected by renderOnlineTable */
+function dbCompareResponseToOnlineShape(data) {
+  const offers = data.offers || [];
+  const prices = offers.map((o) => Number(o.price_inr)).filter((n) => Number.isFinite(n));
+  const min = prices.length ? Math.min(...prices) : null;
+  const max = prices.length ? Math.max(...prices) : null;
+  let spread_percent = null;
+  if (min != null && max != null && max > 0 && min < max) {
+    spread_percent = Math.round(((max - min) / max) * 1000) / 10;
+  }
+  const stats =
+    data.stats && (data.stats.min_inr != null || data.stats.max_inr != null)
+      ? data.stats
+      : { min_inr: min, max_inr: max, spread_percent };
+
+  return {
+    source: "db",
+    filter_label: data.filter_label || "",
+    parallel_ms: 0,
+    stats,
+    providers: offers.map((o) => ({
+      provider_id: `db-${o.pharmacy_id}-${o.price_id}`,
+      label: o.chain ? `${o.pharmacy_name} (${o.chain})` : o.pharmacy_name,
+      ok: true,
+      price_inr: o.price_inr,
+      mrp_inr: o.mrp_inr,
+      product_title: `${o.display_name} · ${o.strength || ""}`.trim(),
+      search_url: mapsUrlFromDbOffer(o),
+      website: mapsUrlFromDbOffer(o),
+      data_mode: "local_db",
+      pharmacy_id: o.pharmacy_id,
+      medicine_id: o.medicine_id,
+      address_line: o.address_line,
+      pincode: o.pincode,
+      city_name: o.city_name,
+      pharmacy_name: o.pharmacy_name,
+      chain: o.chain,
+      display_name: o.display_name,
+      strength: o.strength,
+    })),
+  };
 }
 
 function restoreGeoFromSession() {
@@ -283,6 +349,11 @@ $("city").addEventListener("change", () => {
   runRealtimeSearch();
 });
 
+$("pincode")?.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runRealtimeSearch, SEARCH_DEBOUNCE_MS);
+});
+
 function abortPendingSearch() {
   if (compareAbort) {
     compareAbort.abort();
@@ -318,33 +389,31 @@ async function runRealtimeSearch() {
 
   compareAbort = new AbortController();
   const signal = compareAbort.signal;
-  statusEl.textContent = "Searching online retailers and local demo pharmacies…";
+  statusEl.textContent = "Searching database (by PIN / city) and local demo pharmacies…";
 
-  const onlineUrl = `/api/online/compare?q=${encodeURIComponent(q)}`;
+  const pin = getComparePincode();
+  const pinParam = pin ? `&pincode=${encodeURIComponent(pin)}` : "";
+  const dbRetailersUrl = `/api/compare/by-pincode?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}${pinParam}`;
   const localUrl = `/api/compare/search?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}`;
 
   try {
-    const [onlineRes, localRes] = await Promise.all([
-      fetch(onlineUrl, { signal }),
-      fetch(localUrl, { signal }),
-    ]);
+    const [dbRes, localRes] = await Promise.all([fetch(dbRetailersUrl, { signal }), fetch(localUrl, { signal })]);
 
     if (signal.aborted) return;
 
-    let onlineMs = "—";
-    if (onlineRes.ok) {
-      const onlineData = await onlineRes.json();
+    if (dbRes.ok) {
+      const dbData = await dbRes.json();
       if (signal.aborted) return;
-      renderOnlineTable(onlineData, q);
-      onlineMs = onlineData.parallel_ms ?? "—";
+      const shaped = dbData.source === "db" ? dbCompareResponseToOnlineShape(dbData) : dbData;
+      renderOnlineTable(shaped, q);
     } else {
-      const errBody = await onlineRes.json().catch(() => ({}));
+      const errBody = await dbRes.json().catch(() => ({}));
       if (signal.aborted) return;
       $("online-stats")?.classList.add("hidden");
       $("online-table-wrap")?.classList.add("hidden");
       $("online-checkout")?.classList.add("hidden");
       $("online-rows").innerHTML = "";
-      $("online-status").textContent = errBody.error || `Online search failed (${onlineRes.status})`;
+      $("online-status").textContent = errBody.error || `Database compare failed (${dbRes.status})`;
     }
 
     if (localRes.ok) {
@@ -360,7 +429,8 @@ async function runRealtimeSearch() {
       updateReminderHint();
     }
 
-    statusEl.textContent = `Results for “${q}” in ${city}. Online fetch: ${onlineMs} ms.`;
+    const pinNote = pin ? ` · PIN ${pin}` : "";
+    statusEl.textContent = `Results for “${q}” in ${city}${pinNote}. Online retailers: pilot DB. Local: city-wide search.`;
   } catch (e) {
     if (e?.name === "AbortError") return;
     statusEl.textContent = String(e?.message || e);
@@ -397,6 +467,11 @@ function resetOnlinePanel() {
   selectedOnlineOffer = null;
   openBtn.disabled = true;
   selLabel.textContent = "";
+  if (openBtn) openBtn.textContent = "Continue on selected site";
+  const hintEl = openBtn?.nextElementSibling;
+  if (hintEl?.classList?.contains("hint")) {
+    hintEl.textContent = "Opens the retailer search in a new tab.";
+  }
 }
 
 function renderLocalTable(offers, city, q, errorMsg) {
@@ -488,23 +563,52 @@ function renderOnlineTable(data, q) {
   const checkout = $("online-checkout");
   const openBtn = $("online-open-btn");
   const selLabel = $("online-selected-label");
+  const isDbSource = data.source === "db";
+
+  if (openBtn) {
+    openBtn.textContent = isDbSource ? "Open in Maps" : "Continue on selected site";
+  }
+  const hintEl = openBtn?.nextElementSibling;
+  if (hintEl?.classList?.contains("hint")) {
+    hintEl.textContent = isDbSource
+      ? "Opens Google Maps for the selected pharmacy."
+      : "Opens the retailer search in a new tab.";
+  }
 
   const providers = data.providers || [];
+  if (!providers.length) {
+    statsEl.classList.add("hidden");
+    wrap.classList.add("hidden");
+    checkout.classList.add("hidden");
+    tbody.innerHTML = "";
+    selectedOnlineOffer = null;
+    if (openBtn) openBtn.disabled = true;
+    selLabel.textContent = "";
+    status.textContent = isDbSource
+      ? `No database matches for “${q}” (${data.filter_label || "try another PIN or city"}).`
+      : "No retailer rows to display.";
+    return;
+  }
+
   const anyOk = providers.some((p) => p.ok);
-  status.textContent = `Parallel fetch completed in ${data.parallel_ms ?? "—"} ms.${
-    anyOk
-      ? ""
-      : " No partner APIs returned prices — configure .env (see README) or set ONLINE_USE_ILLUSTRATIVE_FALLBACK=true for demo numbers."
-  }`;
+  status.textContent = isDbSource
+    ? `Pilot database · ${data.filter_label || "compare"}. ${providers.filter((p) => p.ok).length} listing(s).`
+    : `Parallel fetch completed in ${data.parallel_ms ?? "—"} ms.${
+        anyOk
+          ? ""
+          : " No partner APIs returned prices — configure .env (see README) or set ONLINE_USE_ILLUSTRATIVE_FALLBACK=true for demo numbers."
+      }`;
 
   const s = data.stats || {};
   const spread =
     s.spread_percent != null
       ? `<span>Spread: <strong>${s.spread_percent}%</strong></span>`
       : "";
+  const lowLbl = isDbSource ? "Lowest" : "Lowest (est.)";
+  const highLbl = isDbSource ? "Highest" : "Highest (est.)";
   statsEl.innerHTML = `
-    <span>Lowest (est.): <strong>₹${fmt(s.min_inr)}</strong></span>
-    <span>Highest (est.): <strong>₹${fmt(s.max_inr)}</strong></span>
+    <span>${lowLbl}: <strong>₹${fmt(s.min_inr)}</strong></span>
+    <span>${highLbl}: <strong>₹${fmt(s.max_inr)}</strong></span>
     ${spread}
   `;
   statsEl.classList.remove("hidden");
@@ -523,20 +627,21 @@ function renderOnlineTable(data, q) {
       const ok = p.ok;
       const id = escapeAttr(p.provider_id || "");
       const checked = ok && p.provider_id === bestId ? " checked" : "";
-      const price = ok ? fmt(p.price_inr) : "—";
-      const mrp = ok && p.mrp_inr != null ? fmt(p.mrp_inr) : "—";
+      const priceCell = ok ? `₹${escapeHtml(fmt(p.price_inr))}` : "—";
+      const mrpCell = ok && p.mrp_inr != null ? `₹${escapeHtml(fmt(p.mrp_inr))}` : "—";
       const url = escapeAttr(p.search_url || p.website || "#");
       const err = !ok ? ` <span class="muted">(${escapeHtml(p.error || "error")})</span>` : "";
       const canAdd = Boolean(p.search_url || p.website);
       const title = p.product_title ? escapeHtml(p.product_title) : `<span class="muted">—</span>`;
+      const openLabel = isDbSource ? "Map" : "Open site";
       return `
       <tr>
         <td><input type="radio" name="online-pick" value="${id}"${checked} /></td>
         <td>${escapeHtml(p.label || p.provider_id)}${err}</td>
         <td class="muted">${title}</td>
-        <td class="price-cell">${escapeHtml(price)}</td>
-        <td class="muted">${escapeHtml(mrp)}</td>
-        <td><a href="${url}" target="_blank" rel="noopener noreferrer">Open site</a></td>
+        <td class="price-cell">${priceCell}</td>
+        <td class="muted">${mrpCell}</td>
+        <td><a href="${url}" target="_blank" rel="noopener noreferrer">${escapeHtml(openLabel)}</a></td>
         <td><button type="button" class="btn btn-sm add-online-cart" data-pidx="${pidx}"${
           canAdd ? "" : " disabled"
         }>Add</button></td>
@@ -568,7 +673,7 @@ function renderOnlineTable(data, q) {
     };
     openBtn.disabled = false;
     selLabel.textContent = `Selected: ${row.label}${
-      row.price_inr != null ? ` — est. ₹${fmt(row.price_inr)}` : ""
+      row.price_inr != null ? ` — ₹${fmt(row.price_inr)}${isDbSource ? "" : " (est.)"}` : ""
     }`;
   }
 
@@ -592,19 +697,37 @@ function renderOnlineTable(data, q) {
       if (!p) return;
       const checkoutUrl = p.search_url || p.website;
       if (!checkoutUrl) return;
-      const label = (p.product_title || q).trim();
-      addCartLine({
-        source: "online",
-        medicineId: 0,
-        medicineLabel: label,
-        strength: "",
-        searchQuery: q,
-        unitPriceInr: p.price_inr != null ? Number(p.price_inr) : 0,
-        mrpInr: p.mrp_inr != null ? Number(p.mrp_inr) : null,
-        onlineProviderId: p.provider_id,
-        onlineLabel: p.label,
-        checkoutUrl,
-      });
+      const citySlug = $("city")?.value || "";
+      if (p.data_mode === "local_db") {
+        addCartLine({
+          source: "local",
+          medicineId: p.medicine_id,
+          medicineLabel: p.display_name,
+          strength: p.strength || "",
+          unitPriceInr: Number(p.price_inr),
+          mrpInr: p.mrp_inr != null ? Number(p.mrp_inr) : null,
+          pharmacyId: p.pharmacy_id,
+          pharmacyName: p.pharmacy_name,
+          pharmacyAddress: p.address_line,
+          pharmacyPincode: p.pincode,
+          citySlug: citySlug,
+          checkoutUrl,
+        });
+      } else {
+        const label = (p.product_title || q).trim();
+        addCartLine({
+          source: "online",
+          medicineId: 0,
+          medicineLabel: label,
+          strength: "",
+          searchQuery: q,
+          unitPriceInr: p.price_inr != null ? Number(p.price_inr) : 0,
+          mrpInr: p.mrp_inr != null ? Number(p.mrp_inr) : null,
+          onlineProviderId: p.provider_id,
+          onlineLabel: p.label,
+          checkoutUrl,
+        });
+      }
       refreshCartBadge();
     });
   });

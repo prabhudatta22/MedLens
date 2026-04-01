@@ -1,16 +1,26 @@
 -- Demo data for India (INR). Replace with real feeds in production.
 
 TRUNCATE
+  cart_items,
+  carts,
   sale_items,
   sales,
   partner_pharmacies,
+  provider_skus,
+  skus,
+  catalog_users,
+  service_providers,
   service_provider_users,
   lab_test_prices,
   lab_tests,
   pharmacy_prices,
+  purchase_reminders,
+  sessions,
+  otp_codes,
   medicines,
   pharmacies,
-  cities
+  cities,
+  users
 RESTART IDENTITY CASCADE;
 
 -- Service Provider demo login (username: admin, password: Admin)
@@ -22,6 +32,11 @@ INSERT INTO cities (name, state, slug) VALUES
   ('Mumbai', 'Maharashtra', 'mumbai'),
   ('Bengaluru', 'Karnataka', 'bengaluru'),
   ('New Delhi', 'Delhi', 'new-delhi');
+
+-- Service provider businesses (UUID) for SKU catalog / provider_skus
+INSERT INTO service_providers (id, name, address, area, city, state, pincode) VALUES
+  ('b1111111-1111-4111-8111-111111111101', 'MedPlus Health — Bandra', 'Hill Road, Bandra West', 'Bandra West', 'Mumbai', 'Maharashtra', '400050'),
+  ('b1111111-1111-4111-8111-111111111102', 'Apollo Pharmacy — Koramangala', '80 Feet Road, 4th Block', 'Koramangala', 'Bengaluru', 'Karnataka', '560034');
 
 INSERT INTO pharmacies (name, chain, city_id, address_line, pincode, lat, lng) VALUES
   ('Apollo Pharmacy — Bandra', 'Apollo', 1, 'Linking Rd, Bandra West', '400050', 19.0596, 72.8295),
@@ -39,6 +54,39 @@ INSERT INTO medicines (display_name, generic_name, strength, form, pack_size, sc
   ('Telma 40 (Telmisartan)', 'Telmisartan', '40 mg', 'tablet', 10, 'H'),
   ('Pantoprazole 40 mg', 'Pantoprazole', '40 mg', 'tablet', 10, 'H'),
   ('Amoxicillin 500 mg', 'Amoxicillin', '500 mg', 'capsule', 10, 'H1');
+
+-- OTP users (integer id; distinct phones from catalog_users demo)
+INSERT INTO users (phone_e164, last_login_at) VALUES
+  ('+919998887766', now() - interval '2 hours'),
+  ('+919887766554', now() - interval '1 day'),
+  ('+917777666655', NULL);
+
+-- Demo session for user 1 (for DB inspection; request real login for a fresh token)
+INSERT INTO sessions (id, user_id, created_at, expires_at, revoked_at) VALUES
+  ('seed-demo-session-medlens-01', 1, now() - interval '1 hour', now() + interval '6 days', NULL);
+
+-- OTP row (expired; hash is placeholder — use real /api/auth flow for login)
+INSERT INTO otp_codes (phone_e164, code_hash, purpose, expires_at, consumed_at, ip, user_agent) VALUES
+  ('+919998887766', '$2b$10$placeholderExpiredOtpHashDemoOnly', 'login', now() - interval '1 day', now() - interval '1 day', '127.0.0.1', 'MedLens seed'),
+  ('+919887766554', '$2b$10$placeholderPendingOtpHashDemoOnly', 'login', now() + interval '10 minutes', NULL, '127.0.0.1', 'MedLens seed');
+
+-- WhatsApp draft cart + web ready cart (OCR / cart API demos)
+INSERT INTO carts (source, source_ref, wa_from, wa_message_id, status, ocr_text) VALUES
+  ('whatsapp', 'wa:demo:msg-1001', '919811122233', 'wamid.demo.001', 'draft', 'Metformin 500\nAtorva 20mg strip'),
+  ('web', 'web:demo:checkout-42', NULL, NULL, 'ready', NULL),
+  ('whatsapp', 'wa:demo:msg-1002', '919876543210', 'wamid.demo.002', 'failed', 'unclear photo');
+
+INSERT INTO cart_items (cart_id, medicine_id, quantity, match_score, match_line) VALUES
+  (1, 1, 2, 0.94, 'Metformin 500'),
+  (1, 2, 1, 0.88, 'Atorva 20mg'),
+  (2, 3, 1, 1.00, 'Telma 40'),
+  (2, 4, 2, 0.92, 'Pantoprazole 40 mg');
+
+-- Purchase reminders (user 1 · medicines 1 & 2)
+INSERT INTO purchase_reminders (user_id, medicine_id, medicine_label, remind_at, repeat_interval_days, notes) VALUES
+  (1, 1, 'Metformin 500 mg · strip of 10', now() + interval '25 days', 30, 'After breakfast · demo refill'),
+  (1, 2, 'Atorvastatin 20 mg', now() + interval '60 days', 90, NULL),
+  (2, NULL, 'Vitamin D3 60k (OTC demo)', now() + interval '14 days', NULL, 'medicine_id NULL example');
 
 -- Mumbai Metformin: show 30–50% style spread (illustrative)
 INSERT INTO pharmacy_prices (pharmacy_id, medicine_id, price_inr, mrp_inr, price_type) VALUES
@@ -131,3 +179,22 @@ INSERT INTO lab_test_prices (city_id, lab_name, test_id, price_inr, mrp_inr) VAL
   (3, 'Tata 1mg Labs', 3, 419.00, 450.00),
   (3, 'Tata 1mg Labs', 4, 2199.00, 4498.00),
   (3, 'Tata 1mg Labs', 5, 1899.00, 3998.00);
+
+-- SKU master + catalog consumer profiles + provider pricing (demo)
+INSERT INTO skus (id, name, details, category) VALUES
+  ('c2222222-2222-4222-8222-222222222201', 'Metformin 500 mg — strip of 10', 'Antidiabetic · schedule H', 'medicine'),
+  ('c2222222-2222-4222-8222-222222222202', 'CBC (Complete Blood Count)', '21 parameters · home collection', 'diagnostic'),
+  ('c2222222-2222-4222-8222-222222222203', 'Lipid Profile', '8 tests · fasting advised', 'diagnostic');
+
+INSERT INTO catalog_users (id, username, phone_number, address, area, city, state, pincode) VALUES
+  ('d3333333-3333-4333-8333-333333333301', 'riya_shah', '+919876543210', '12 Turner Road', 'Bandra West', 'Mumbai', 'Maharashtra', '400050'),
+  ('d3333333-3333-4333-8333-333333333302', 'arjun_k', '+919811122233', '45 100 Feet Road', 'Indiranagar', 'Bengaluru', 'Karnataka', '560038');
+
+-- discount is INR off `price` for demo; final_price is generated (price - discount)
+INSERT INTO provider_skus (service_provider_id, sku_id, price, discount, availability) VALUES
+  ('b1111111-1111-4111-8111-111111111101', 'c2222222-2222-4222-8222-222222222201', 52.00, 4.00, true),
+  ('b1111111-1111-4111-8111-111111111101', 'c2222222-2222-4222-8222-222222222202', 320.00, 21.00, true),
+  ('b1111111-1111-4111-8111-111111111101', 'c2222222-2222-4222-8222-222222222203', 410.00, 11.00, true),
+  ('b1111111-1111-4111-8111-111111111102', 'c2222222-2222-4222-8222-222222222201', 48.50, 0.00, true),
+  ('b1111111-1111-4111-8111-111111111102', 'c2222222-2222-4222-8222-222222222202', 299.00, 0.00, false),
+  ('b1111111-1111-4111-8111-111111111102', 'c2222222-2222-4222-8222-222222222203', 389.00, 15.50, true);

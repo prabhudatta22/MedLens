@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.js";
 import remindersRoutes from "./routes/reminders.js";
 import onlineCompareRoutes from "./routes/onlineCompare.js";
 import geocodeRoutes from "./routes/geocode.js";
+import catalogRoutes from "./routes/catalog.js";
 import cookieParser from "cookie-parser";
 import { attachUser } from "./auth/middleware.js";
 
@@ -24,6 +25,7 @@ app.use(cookieParser());
 app.use(attachUser);
 app.use(express.static(publicDir));
 app.use("/api/geocode", geocodeRoutes);
+app.use("/api/catalog", catalogRoutes);
 app.use("/api", api);
 app.use("/api/auth", authRoutes);
 app.use("/api/reminders", remindersRoutes);

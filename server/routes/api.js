@@ -238,6 +238,104 @@ router.get("/compare/search", async (req, res) => {
   });
 });
 
+/**
+ * GET /api/compare/by-pincode?q=metformin&pincode=400050&city=mumbai
+ * Pilot DB prices: filter by 6-digit PIN (optional) and/or city slug.
+ * At least one of pincode (6 digits) or city is required.
+ */
+router.get(
+  "/compare/by-pincode",
+  asyncHandler(async (req, res) => {
+    const q = (req.query.q || "").toString().trim().slice(0, 120);
+    const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+    const pinDigits = (req.query.pincode || "").toString().replace(/\D/g, "").slice(0, 6);
+    const pinParam = pinDigits.length === 6 ? pinDigits : null;
+    const cityParam = citySlug || null;
+
+    if (!pinParam && !cityParam) {
+      return res
+        .status(400)
+        .json({ error: "Enter a 6-digit PIN code and/or select a city for database compare." });
+    }
+
+    if (!q || q.length < 2) {
+      const emptyStats = { min_inr: null, max_inr: null, spread_percent: null };
+      return res.json({
+        source: "db",
+        query: q,
+        pincode: pinParam,
+        city: cityParam,
+        filter_label: [pinParam ? `PIN ${pinParam}` : null, cityParam ? `City ${cityParam}` : null]
+          .filter(Boolean)
+          .join(" · "),
+        stats: emptyStats,
+        offers: [],
+      });
+    }
+
+    const like = `%${q.toLowerCase()}%`;
+    const { rows } = await pool.query(
+      `SELECT
+         pp.id AS price_id,
+         pp.price_inr,
+         pp.mrp_inr,
+         pp.in_stock,
+         pp.price_type,
+         pp.updated_at,
+         p.id AS pharmacy_id,
+         p.name AS pharmacy_name,
+         p.chain,
+         p.address_line,
+         p.pincode,
+         p.lat,
+         p.lng,
+         c.name AS city_name,
+         c.state,
+         m.id AS medicine_id,
+         m.display_name,
+         m.strength,
+         m.form,
+         m.pack_size
+       FROM pharmacy_prices pp
+       JOIN pharmacies p ON p.id = pp.pharmacy_id
+       JOIN cities c ON c.id = p.city_id
+       JOIN medicines m ON m.id = pp.medicine_id
+       WHERE pp.price_type = 'retail'
+         AND ($2::text IS NULL OR regexp_replace(COALESCE(p.pincode, ''), '[^0-9]', '', 'g') = $2)
+         AND ($3::text IS NULL OR $3 = '' OR c.slug = $3)
+         AND (
+           LOWER(m.display_name) LIKE $1
+           OR LOWER(COALESCE(m.generic_name, '')) LIKE $1
+         )
+       ORDER BY pp.price_inr ASC NULLS LAST
+       LIMIT 120`,
+      [like, pinParam, cityParam]
+    );
+
+    const prices = rows.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
+    const min = prices.length ? Math.min(...prices) : null;
+    const max = prices.length ? Math.max(...prices) : null;
+    let spreadPct = null;
+    if (min != null && max != null && max > 0 && min < max) {
+      spreadPct = Math.round(((max - min) / max) * 1000) / 10;
+    }
+
+    const filterLabel = [pinParam ? `PIN ${pinParam}` : null, cityParam ? `City ${cityParam}` : null]
+      .filter(Boolean)
+      .join(" · ");
+
+    res.json({
+      source: "db",
+      query: q,
+      pincode: pinParam,
+      city: cityParam,
+      filter_label: filterLabel || "Database",
+      stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
+      offers: rows,
+    });
+  })
+);
+
 router.get("/carts/:id", async (req, res) => {
   const cartId = Number(req.params.id);
   if (!Number.isFinite(cartId) || cartId < 1) {
