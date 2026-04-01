@@ -1,4 +1,4 @@
 id,user_id,medicine_id,medicine_label,remind_at,repeat_interval_days,notes,created_at,updated_at
 1,1,1,Metformin 500 mg · strip of 10,2026-04-26T05:16:39.804Z,30,After breakfast · demo refill,2026-04-01T05:16:39.804Z,2026-04-01T05:16:39.804Z
 2,1,2,Atorvastatin 20 mg,2026-05-31T05:16:39.804Z,90,,2026-04-01T05:16:39.804Z,2026-04-01T05:16:39.804Z
-3,2,,Vitamin D3 60k (OTC demo),2026-04-15T05:16:39.804Z,,medicine_id NULL example,2026-04-01T05:16:39.804Z,2026-04-01T05:16:39.804Z
+3,2,3,Vitamin D3 60k (OTC demo),2026-04-15T05:16:39.804Z,30,medicine_id NULL example,2026-04-01T05:16:39.804Z,2026-04-01T05:16:39.804Z
