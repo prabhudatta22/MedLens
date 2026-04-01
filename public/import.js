@@ -16,7 +16,19 @@ function downloadBlob({ blob, filename }) {
 }
 
 async function downloadTemplateXlsx() {
-  // Lazy-load SheetJS in the browser (no bundler needed).
+  // Prefer static template (works offline, no CDN). Fallback to in-browser generation.
+  try {
+    const res = await fetch("/templates/medlens-price-import-template.xlsx");
+    if (res.ok) {
+      const blob = await res.blob();
+      downloadBlob({ blob, filename: "medlens-price-import-template.xlsx" });
+      return;
+    }
+  } catch {
+    // ignore; fallback below
+  }
+
+  // Fallback: generate in browser (requires network to cdn.jsdelivr.net).
   const XLSX = await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");
 
   const required = [

@@ -754,6 +754,7 @@ function renderAuthNav() {
   const userEl = $("navUser");
   const loginEl = $("navLogin");
   const logoutEl = $("navLogout");
+  const importEl = $("navImport");
   if (!userEl || !loginEl || !logoutEl) return;
 
   const u = currentUser;
@@ -761,6 +762,7 @@ function renderAuthNav() {
   loginEl.classList.toggle("hidden", isLogged);
   logoutEl.classList.toggle("hidden", !isLogged);
   userEl.classList.toggle("hidden", !isLogged);
+  if (importEl) importEl.classList.toggle("hidden", !(isLogged && u?.role === "service_provider"));
 
   if (!isLogged) {
     userEl.textContent = "";
