@@ -1,0 +1,103 @@
+id,name,address,area,city,state,pincode,created_at
+b1111111-1111-4111-8111-111111111102,Apollo Pharmacy — Koramangala,"80 Feet Road, 4th Block",Koramangala,Bengaluru,Karnataka,560034,2026-03-31T23:46:39.804Z
+b1111111-1111-4111-8111-111111111101,MedPlus Health — Bandra,"Hill Road, Bandra West",Bandra West,Mumbai,Maharashtra,400050,2026-03-31T23:46:39.804Z
+d7e14b7b-5c03-4964-b708-485ddcd9e0a3,Pharmacy_1,Street 1,T Nagar,Mumbai,Maharashtra,500001,2026-03-31T23:46:40.129Z
+b29f0ad1-6907-4ec1-9d97-8b745bc2f868,Pharmacy_10,Street 10,Connaught Place,Chennai,Tamil Nadu,500010,2026-03-31T23:46:40.129Z
+31755217-4d64-46b5-91ea-9da5720f9d69,Pharmacy_100,Street 100,Connaught Place,Mumbai,Maharashtra,500100,2026-03-31T23:46:40.129Z
+9c4f391e-9272-431a-86a4-199c83387362,Pharmacy_11,Street 11,Madhapur,Bangalore,Karnataka,500011,2026-03-31T23:46:40.129Z
+e81aa23d-791a-48c8-98a8-0d8f0a101fbf,Pharmacy_12,Street 12,Banjara Hills,Hyderabad,Telangana,500012,2026-03-31T23:46:40.129Z
+16bfc380-f7c2-4f20-b258-607e9a38faef,Pharmacy_13,Street 13,Madhapur,Mumbai,Maharashtra,500013,2026-03-31T23:46:40.129Z
+1c39d179-a473-4504-b7ac-96ef282bf7bf,Pharmacy_14,Street 14,Connaught Place,Chennai,Tamil Nadu,500014,2026-03-31T23:46:40.129Z
+486026d5-eb2a-4997-a8f6-24ee30db850c,Pharmacy_15,Street 15,Andheri,Hyderabad,Telangana,500015,2026-03-31T23:46:40.129Z
+ee75298e-46fd-4a69-b2a3-2b3032934cbc,Pharmacy_16,Street 16,Andheri,Bangalore,Karnataka,500016,2026-03-31T23:46:40.129Z
+b0066d0c-2128-414c-a7d8-8a22c6ebe175,Pharmacy_17,Street 17,Banjara Hills,Mumbai,Maharashtra,500017,2026-03-31T23:46:40.129Z
+6bffecee-1044-4fce-b408-ed4936cd50ae,Pharmacy_18,Street 18,Connaught Place,Bangalore,Karnataka,500018,2026-03-31T23:46:40.129Z
+13d7d390-3a14-45af-b8a4-bc84a156e9c5,Pharmacy_19,Street 19,Andheri,Mumbai,Maharashtra,500019,2026-03-31T23:46:40.129Z
+9078938f-163a-4010-b348-2ee4525bf42a,Pharmacy_2,Street 2,T Nagar,Hyderabad,Telangana,500002,2026-03-31T23:46:40.129Z
+8a036a2f-671d-4dc0-a0f9-af7250b319a1,Pharmacy_20,Street 20,Andheri,Bangalore,Karnataka,500020,2026-03-31T23:46:40.129Z
+6b644c4c-50af-4e2a-8652-86dbeec2d81a,Pharmacy_21,Street 21,Madhapur,Delhi,Delhi,500021,2026-03-31T23:46:40.129Z
+2b6189c6-a9a1-4024-bb79-115fe7b9cdcf,Pharmacy_22,Street 22,Connaught Place,Delhi,Delhi,500022,2026-03-31T23:46:40.129Z
+a70be600-b00b-41b7-9d56-ae0d81541ddc,Pharmacy_23,Street 23,Indiranagar,Delhi,Delhi,500023,2026-03-31T23:46:40.129Z
+40c7232a-65d0-4cd3-b131-7e767a6d7475,Pharmacy_24,Street 24,Connaught Place,Delhi,Delhi,500024,2026-03-31T23:46:40.129Z
+5a794802-ddfb-4c8d-a978-a8c7bff0c565,Pharmacy_25,Street 25,Indiranagar,Chennai,Tamil Nadu,500025,2026-03-31T23:46:40.129Z
+07f32005-cb0c-4a5f-b9be-4c90ca14744f,Pharmacy_26,Street 26,T Nagar,Chennai,Tamil Nadu,500026,2026-03-31T23:46:40.129Z
+d76efd65-ef74-4d62-b600-d5a50c0dd1a1,Pharmacy_27,Street 27,Indiranagar,Hyderabad,Telangana,500027,2026-03-31T23:46:40.129Z
+abaf7335-f9dd-49d8-94a5-6667f3f6dc3c,Pharmacy_28,Street 28,Madhapur,Mumbai,Maharashtra,500028,2026-03-31T23:46:40.129Z
+fc381dbf-c87c-4945-abb1-c75d76ffbdbb,Pharmacy_29,Street 29,Indiranagar,Bangalore,Karnataka,500029,2026-03-31T23:46:40.129Z
+b0061a92-c853-4982-8aea-98c8461d652a,Pharmacy_3,Street 3,Connaught Place,Mumbai,Maharashtra,500003,2026-03-31T23:46:40.129Z
+b7f068c8-32e6-4596-a70a-70d47c783ec4,Pharmacy_30,Street 30,T Nagar,Chennai,Tamil Nadu,500030,2026-03-31T23:46:40.129Z
+8e322c86-fc51-40fb-8194-ea953f535048,Pharmacy_31,Street 31,Andheri,Bangalore,Karnataka,500031,2026-03-31T23:46:40.129Z
+ce98f474-bdc1-40d3-8499-486d3e5de1f6,Pharmacy_32,Street 32,Connaught Place,Bangalore,Karnataka,500032,2026-03-31T23:46:40.129Z
+f2f3aaa6-4d87-458b-a76b-1215b57e020e,Pharmacy_33,Street 33,Connaught Place,Mumbai,Maharashtra,500033,2026-03-31T23:46:40.129Z
+0a926f62-7bf4-4735-941a-959a9fac8572,Pharmacy_34,Street 34,Banjara Hills,Chennai,Tamil Nadu,500034,2026-03-31T23:46:40.129Z
+a4e7eef0-902f-405d-8409-4291e26014f3,Pharmacy_35,Street 35,Banjara Hills,Bangalore,Karnataka,500035,2026-03-31T23:46:40.129Z
+30dc0ef2-c762-4f51-b611-90a883258c53,Pharmacy_36,Street 36,Andheri,Mumbai,Maharashtra,500036,2026-03-31T23:46:40.129Z
+7cd77768-f79b-433e-96f4-ba6e3d8259c5,Pharmacy_37,Street 37,T Nagar,Delhi,Delhi,500037,2026-03-31T23:46:40.129Z
+f2b7e5e7-c723-49a1-98af-9a978548cf7d,Pharmacy_38,Street 38,Connaught Place,Delhi,Delhi,500038,2026-03-31T23:46:40.129Z
+52615d0b-2bc9-45e2-a5d5-23bdfaebbe8a,Pharmacy_39,Street 39,Connaught Place,Bangalore,Karnataka,500039,2026-03-31T23:46:40.129Z
+f67db082-c40e-4f7b-8c55-c900d5157bd7,Pharmacy_4,Street 4,Andheri,Bangalore,Karnataka,500004,2026-03-31T23:46:40.129Z
+173ffa2f-f728-48a8-b495-883643eabba7,Pharmacy_40,Street 40,Banjara Hills,Mumbai,Maharashtra,500040,2026-03-31T23:46:40.129Z
+7ff2575b-7704-4198-bdcc-7d64fc00684b,Pharmacy_41,Street 41,Madhapur,Delhi,Delhi,500041,2026-03-31T23:46:40.129Z
+02df916f-c258-4458-9bfd-eb50c6380a7b,Pharmacy_42,Street 42,Connaught Place,Chennai,Tamil Nadu,500042,2026-03-31T23:46:40.129Z
+8f124a8c-a32f-4129-8a14-b5bf878f8862,Pharmacy_43,Street 43,Andheri,Delhi,Delhi,500043,2026-03-31T23:46:40.129Z
+e1f9a4bf-8710-4173-8e0b-5b77f40902fc,Pharmacy_44,Street 44,Madhapur,Hyderabad,Telangana,500044,2026-03-31T23:46:40.129Z
+a59aacaf-571e-486d-b74d-345fa09714e9,Pharmacy_45,Street 45,Indiranagar,Mumbai,Maharashtra,500045,2026-03-31T23:46:40.129Z
+b1a6869e-5024-449f-965f-aac73cae9c41,Pharmacy_46,Street 46,Madhapur,Bangalore,Karnataka,500046,2026-03-31T23:46:40.129Z
+3ec03b08-4ba7-40e5-8ae0-50668812191c,Pharmacy_47,Street 47,T Nagar,Mumbai,Maharashtra,500047,2026-03-31T23:46:40.129Z
+956e2b9f-0ee6-4162-8542-1c01a213236d,Pharmacy_48,Street 48,T Nagar,Delhi,Delhi,500048,2026-03-31T23:46:40.129Z
+30847cfb-6411-4724-8125-33a78bf115b7,Pharmacy_49,Street 49,Indiranagar,Hyderabad,Telangana,500049,2026-03-31T23:46:40.129Z
+82f558af-72e6-41f9-8063-f31f65dce52f,Pharmacy_5,Street 5,Connaught Place,Chennai,Tamil Nadu,500005,2026-03-31T23:46:40.129Z
+c0430d2e-f8c4-4aba-9a85-cc7d1e8fc115,Pharmacy_50,Street 50,T Nagar,Delhi,Delhi,500050,2026-03-31T23:46:40.129Z
+64e2f5ac-e080-4845-ab01-904bb218eec7,Pharmacy_51,Street 51,Indiranagar,Delhi,Delhi,500051,2026-03-31T23:46:40.129Z
+9e49cce3-43ac-4d3d-86bb-685f83d03ec4,Pharmacy_52,Street 52,Banjara Hills,Mumbai,Maharashtra,500052,2026-03-31T23:46:40.129Z
+1b36cc59-e894-416b-aff4-5ecf2ab1f098,Pharmacy_53,Street 53,Madhapur,Delhi,Delhi,500053,2026-03-31T23:46:40.129Z
+205658cb-10d5-4f4a-a9f5-606fac44c06e,Pharmacy_54,Street 54,Andheri,Chennai,Tamil Nadu,500054,2026-03-31T23:46:40.129Z
+b359128d-9e01-40fa-86da-f5942ce5f4c4,Pharmacy_55,Street 55,T Nagar,Hyderabad,Telangana,500055,2026-03-31T23:46:40.129Z
+df00ab23-28ec-4f8b-88f2-679277c96f75,Pharmacy_56,Street 56,Indiranagar,Chennai,Tamil Nadu,500056,2026-03-31T23:46:40.129Z
+fad73506-6e75-4102-8a7f-b2d1299099cd,Pharmacy_57,Street 57,Banjara Hills,Chennai,Tamil Nadu,500057,2026-03-31T23:46:40.129Z
+3c7cd280-2b24-46a3-9c98-735566fc4017,Pharmacy_58,Street 58,Madhapur,Hyderabad,Telangana,500058,2026-03-31T23:46:40.129Z
+94ec2662-53ca-4400-bcc8-9c6df4b7b8ad,Pharmacy_59,Street 59,Banjara Hills,Mumbai,Maharashtra,500059,2026-03-31T23:46:40.129Z
+1397fcfb-6783-4eb8-bd44-f026c2bc305e,Pharmacy_6,Street 6,T Nagar,Mumbai,Maharashtra,500006,2026-03-31T23:46:40.129Z
+842b98be-427c-4a12-aa3b-d13f6aaf5466,Pharmacy_60,Street 60,Connaught Place,Delhi,Delhi,500060,2026-03-31T23:46:40.129Z
+2b395c50-c0e7-439d-94d2-1081d1006fe6,Pharmacy_61,Street 61,Indiranagar,Hyderabad,Telangana,500061,2026-03-31T23:46:40.129Z
+31d4ad7c-770a-48a8-aaa5-721f0394eca0,Pharmacy_62,Street 62,Madhapur,Chennai,Tamil Nadu,500062,2026-03-31T23:46:40.129Z
+dac78a84-e6f5-40b4-ad58-0daf84eb7a2a,Pharmacy_63,Street 63,Madhapur,Mumbai,Maharashtra,500063,2026-03-31T23:46:40.129Z
+fefe2b83-4a37-4d8f-a56f-baa0bc426a2d,Pharmacy_64,Street 64,Indiranagar,Hyderabad,Telangana,500064,2026-03-31T23:46:40.129Z
+7fcdc535-ae7a-49ec-a826-c402b1844865,Pharmacy_65,Street 65,Banjara Hills,Hyderabad,Telangana,500065,2026-03-31T23:46:40.129Z
+cf05080a-f92a-4027-991a-66bb43857070,Pharmacy_66,Street 66,T Nagar,Mumbai,Maharashtra,500066,2026-03-31T23:46:40.129Z
+af6aff4e-cdf1-45cd-904c-398a8926ff6e,Pharmacy_67,Street 67,Andheri,Hyderabad,Telangana,500067,2026-03-31T23:46:40.129Z
+508b8345-63d2-4b63-b2e5-e8dcc186b8f7,Pharmacy_68,Street 68,T Nagar,Delhi,Delhi,500068,2026-03-31T23:46:40.129Z
+88189d3d-f8ed-47b1-85e4-c3cea9c53397,Pharmacy_69,Street 69,Connaught Place,Bangalore,Karnataka,500069,2026-03-31T23:46:40.129Z
+19639dcc-675a-4619-b1ac-a16585f11648,Pharmacy_7,Street 7,Andheri,Delhi,Delhi,500007,2026-03-31T23:46:40.129Z
+903c6695-393d-4b6c-8188-24aab0b18d94,Pharmacy_70,Street 70,Banjara Hills,Hyderabad,Telangana,500070,2026-03-31T23:46:40.129Z
+cf6b7f44-4cc9-4836-837b-0b157e36f087,Pharmacy_71,Street 71,Madhapur,Hyderabad,Telangana,500071,2026-03-31T23:46:40.129Z
+4ffd6410-a3a7-4d42-aac7-b8e47237ce6e,Pharmacy_72,Street 72,Banjara Hills,Hyderabad,Telangana,500072,2026-03-31T23:46:40.129Z
+953f17d1-0a4e-4b11-b28b-c2ae28748f76,Pharmacy_73,Street 73,Banjara Hills,Mumbai,Maharashtra,500073,2026-03-31T23:46:40.129Z
+f5cb655b-fd57-4d3c-9e3f-31b8cd213fbc,Pharmacy_74,Street 74,Indiranagar,Hyderabad,Telangana,500074,2026-03-31T23:46:40.129Z
+d98adc93-134c-4e9f-8fa2-92492b854678,Pharmacy_75,Street 75,Madhapur,Mumbai,Maharashtra,500075,2026-03-31T23:46:40.129Z
+f91029b8-3730-4d32-b6dc-b74720bc646b,Pharmacy_76,Street 76,Banjara Hills,Delhi,Delhi,500076,2026-03-31T23:46:40.129Z
+6ebc2997-a68b-4742-9922-42a6f1d00ac4,Pharmacy_77,Street 77,Madhapur,Delhi,Delhi,500077,2026-03-31T23:46:40.129Z
+05c8be42-11b2-4636-8f06-8cbc30f82983,Pharmacy_78,Street 78,Connaught Place,Hyderabad,Telangana,500078,2026-03-31T23:46:40.129Z
+778716c8-70a4-4a5b-a195-007a5ef7c499,Pharmacy_79,Street 79,Connaught Place,Hyderabad,Telangana,500079,2026-03-31T23:46:40.129Z
+672798ee-8727-4ea7-96a9-adff0f5a00fc,Pharmacy_8,Street 8,T Nagar,Chennai,Tamil Nadu,500008,2026-03-31T23:46:40.129Z
+c68e7b7b-e9ca-4076-92e1-70a6f6f9e754,Pharmacy_80,Street 80,T Nagar,Chennai,Tamil Nadu,500080,2026-03-31T23:46:40.129Z
+d5af2801-af90-4044-848d-183bf1c1bcbe,Pharmacy_81,Street 81,Connaught Place,Chennai,Tamil Nadu,500081,2026-03-31T23:46:40.129Z
+cc017cbb-3fe8-4179-9251-b0ff56b08962,Pharmacy_82,Street 82,Connaught Place,Delhi,Delhi,500082,2026-03-31T23:46:40.129Z
+a54baa9d-19dc-415a-a8e4-a6f8176d4454,Pharmacy_83,Street 83,Connaught Place,Mumbai,Maharashtra,500083,2026-03-31T23:46:40.129Z
+67968b6e-755e-4b56-92eb-8f5d2aaf4996,Pharmacy_84,Street 84,T Nagar,Chennai,Tamil Nadu,500084,2026-03-31T23:46:40.129Z
+048e5728-12a7-43bb-bdf8-7299b05f991e,Pharmacy_85,Street 85,Indiranagar,Bangalore,Karnataka,500085,2026-03-31T23:46:40.129Z
+219ab5e8-4097-44d1-af44-95838073c4c2,Pharmacy_86,Street 86,Andheri,Bangalore,Karnataka,500086,2026-03-31T23:46:40.129Z
+97d5ecd9-4342-44fc-bd7d-ab988a6b1c8b,Pharmacy_87,Street 87,Andheri,Delhi,Delhi,500087,2026-03-31T23:46:40.129Z
+5037f82d-cba4-4baa-a97c-fefbb1fc42d0,Pharmacy_88,Street 88,Andheri,Bangalore,Karnataka,500088,2026-03-31T23:46:40.129Z
+d624f732-c5f9-471a-8267-7592b22c4383,Pharmacy_89,Street 89,Madhapur,Bangalore,Karnataka,500089,2026-03-31T23:46:40.129Z
+53d6f08c-d859-40c4-a71d-8c78c4f178fd,Pharmacy_9,Street 9,Andheri,Delhi,Delhi,500009,2026-03-31T23:46:40.129Z
+7df634e2-89f5-411d-9765-0e32b7e16d99,Pharmacy_90,Street 90,Connaught Place,Hyderabad,Telangana,500090,2026-03-31T23:46:40.129Z
+bfa8f97f-d8c1-4c7e-a6a5-839bebe5090b,Pharmacy_91,Street 91,Banjara Hills,Chennai,Tamil Nadu,500091,2026-03-31T23:46:40.129Z
+b56ce828-8677-4484-8d4d-4149e06d6f48,Pharmacy_92,Street 92,Indiranagar,Bangalore,Karnataka,500092,2026-03-31T23:46:40.129Z
+4609c4cf-0c81-4d42-982a-0814351e1ec4,Pharmacy_93,Street 93,T Nagar,Delhi,Delhi,500093,2026-03-31T23:46:40.129Z
+43e228bb-bca0-44db-a488-dbee65134292,Pharmacy_94,Street 94,Indiranagar,Delhi,Delhi,500094,2026-03-31T23:46:40.129Z
+03122204-f02b-4d9c-9699-8647f508a0a6,Pharmacy_95,Street 95,Indiranagar,Hyderabad,Telangana,500095,2026-03-31T23:46:40.129Z
+777f6d16-6962-428f-a955-4d3f76d9c803,Pharmacy_96,Street 96,Indiranagar,Hyderabad,Telangana,500096,2026-03-31T23:46:40.129Z
+b7c9a13f-a471-4416-a905-f38f107d8649,Pharmacy_97,Street 97,Madhapur,Chennai,Tamil Nadu,500097,2026-03-31T23:46:40.129Z
+3e737754-f4a0-490b-9a9b-8e9bbf9fca68,Pharmacy_98,Street 98,Indiranagar,Bangalore,Karnataka,500098,2026-03-31T23:46:40.129Z
+7a7444c6-01c9-4e97-9b68-3531de3ce694,Pharmacy_99,Street 99,Banjara Hills,Mumbai,Maharashtra,500099,2026-03-31T23:46:40.129Z

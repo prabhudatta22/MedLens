@@ -1,0 +1,6 @@
+id,heading,sub_heading,category,icon_url,slug,report_tat_hours,home_collection,search_vector
+1,CBC (Complete Blood Count),Contains 21 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/1717,7,true,cbc (complete blood count) contains 21 tests
+2,"Thyroid Profile Total (T3, T4 & TSH)",Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/thyroid-profile,7,true,"thyroid profile total (t3, t4 & tsh) contains 3 tests"
+3,Lipid Profile,Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lipid-profile,7,true,lipid profile contains 8 tests
+4,Comprehensive Gold Full Body Checkup,Contains 86 tests · Smart Report,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/gold-full-body,18,true,comprehensive gold full body checkup contains 86 tests · smart report
+5,Senior Citizen Health Checkup,Contains 83 tests · Smart Report,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,true,senior citizen health checkup contains 83 tests · smart report

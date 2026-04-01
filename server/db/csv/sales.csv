@@ -1,0 +1,6 @@
+id,pharmacy_id,sold_at,channel,customer_ref
+1,1,2026-03-31T05:16:39.804Z,walkin,INV-1001
+2,1,2026-03-30T05:16:39.804Z,walkin,INV-1002
+3,1,2026-03-27T05:16:39.804Z,phone,INV-1003
+4,1,2026-03-23T05:16:39.804Z,online,INV-1004
+5,1,2026-03-19T05:16:39.804Z,walkin,INV-1005

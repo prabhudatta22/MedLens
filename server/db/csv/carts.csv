@@ -1,0 +1,4 @@
+id,source,source_ref,wa_from,wa_message_id,status,ocr_text,created_at
+1,whatsapp,wa:demo:msg-1001,919811122233,wamid.demo.001,draft,Metformin 500\nAtorva 20mg strip,2026-04-01T05:16:39.804Z
+2,web,web:demo:checkout-42,,,ready,,2026-04-01T05:16:39.804Z
+3,whatsapp,wa:demo:msg-1002,919876543210,wamid.demo.002,failed,unclear photo,2026-04-01T05:16:39.804Z

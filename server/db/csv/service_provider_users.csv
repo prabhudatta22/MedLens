@@ -1,0 +1,2 @@
+id,username,password_hash,active,created_at,last_login_at
+1,admin,$2b$10$XgnD1GSE6UOB8DvhVLCUluBKSsw0X5B9hHWuCx6x/SZbtd74EPtJ6,true,2026-04-01T05:16:39.804Z,

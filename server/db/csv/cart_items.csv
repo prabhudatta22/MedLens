@@ -1,0 +1,5 @@
+id,cart_id,medicine_id,quantity,match_score,match_line
+1,1,1,2,0.94,Metformin 500
+2,1,2,1,0.88,Atorva 20mg
+3,2,3,1,1,Telma 40
+4,2,4,2,0.92,Pantoprazole 40 mg
