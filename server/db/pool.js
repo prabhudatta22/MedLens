@@ -1,4 +1,5 @@
 import pg from "pg";
+import { parse } from "pg-connection-string";
 import "dotenv/config";
 
 const { Pool } = pg;
@@ -9,18 +10,37 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-function shouldUseSsl(databaseUrl) {
-  if (!databaseUrl) return false;
+function isLocalDatabaseUrl(databaseUrl) {
+  if (!databaseUrl) return true;
   const s = String(databaseUrl);
-  // Local dev typically runs without TLS.
-  if (s.includes("localhost") || s.includes("127.0.0.1")) return false;
-  // Supabase/hosted Postgres generally requires TLS.
-  return true;
+  return s.includes("localhost") || s.includes("127.0.0.1");
 }
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: shouldUseSsl(process.env.DATABASE_URL) ? { rejectUnauthorized: false } : undefined,
-  max: 10,
-  idleTimeoutMillis: 30_000,
-});
+/**
+ * Build Pool config. Important: pg merges `parse(connectionString)` *after* top-level
+ * options, so `?sslmode=...` in DATABASE_URL overwrites `ssl: { rejectUnauthorized: false }`.
+ * For remote DBs we parse the URL, strip ssl-related fields, then set ssl explicitly.
+ */
+function buildPoolConfig() {
+  const conn = process.env.DATABASE_URL;
+  const base = { max: 10, idleTimeoutMillis: 30_000 };
+
+  if (!conn) return base;
+
+  if (isLocalDatabaseUrl(conn)) {
+    return { ...base, connectionString: conn };
+  }
+
+  const parsed = parse(conn);
+  for (const key of ["ssl", "sslmode", "sslcert", "sslkey", "sslrootcert"]) {
+    delete parsed[key];
+  }
+
+  return {
+    ...base,
+    ...parsed,
+    ssl: { rejectUnauthorized: false },
+  };
+}
+
+export const pool = new Pool(buildPoolConfig());
