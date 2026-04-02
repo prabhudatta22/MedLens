@@ -585,37 +585,43 @@ $("labQ").addEventListener("blur", () => setTimeout(() => closeSuggestions(), 12
 
 $("labCity").addEventListener("change", runSearch);
 
-await loadCities();
-await refreshAuth();
-await loadCategories();
-refreshCartBadge();
-renderRecent();
-
-$("navLogout")?.addEventListener("click", async (e) => {
-  e.preventDefault();
-  await postJson("/api/auth/logout", {});
-  currentUser = null;
-  renderAuthNav();
-});
-
-$("labRxUploadBtn")?.addEventListener("click", () => uploadDiagnosticsPrescriptionAndExtract());
-
-// Support deep-link from home page: /labs.html?q=...&city=...&category=...
-const params = new URLSearchParams(window.location.search);
-const q0 = (params.get("q") || "").trim();
-const city0 = (params.get("city") || "").trim();
-const cat0 = (params.get("category") || "").trim().toUpperCase();
-if (city0 && $("labCity") && [...$("labCity").options].some((o) => o.value === city0)) {
-  $("labCity").value = city0;
-}
-if (cat0 === "PATHOLOGY" || cat0 === "RADIOLOGY") {
-  selectedCategory = cat0;
+async function initLabsPage() {
+  await loadCities();
+  await refreshAuth();
   await loadCategories();
+  refreshCartBadge();
+  renderRecent();
+
+  $("navLogout")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    await postJson("/api/auth/logout", {});
+    currentUser = null;
+    renderAuthNav();
+  });
+
+  $("labRxUploadBtn")?.addEventListener("click", () => uploadDiagnosticsPrescriptionAndExtract());
+
+  // Support deep-link from home page: /labs.html?q=...&city=...&category=...
+  const params = new URLSearchParams(window.location.search);
+  const q0 = (params.get("q") || "").trim();
+  const city0 = (params.get("city") || "").trim();
+  const cat0 = (params.get("category") || "").trim().toUpperCase();
+  if (city0 && $("labCity") && [...$("labCity").options].some((o) => o.value === city0)) {
+    $("labCity").value = city0;
+  }
+  if (cat0 === "PATHOLOGY" || cat0 === "RADIOLOGY") {
+    selectedCategory = cat0;
+    await loadCategories();
+  }
+  if (q0) {
+    $("labQ").value = q0;
+    runSearch();
+  } else {
+    setStatus("Type a test name to search (e.g. CBC).");
+  }
 }
-if (q0) {
-  $("labQ").value = q0;
-  runSearch();
-} else {
-  setStatus("Type a test name to search (e.g. CBC).");
-}
+
+initLabsPage().catch((e) => {
+  setStatus(String(e?.message || e));
+});
 
