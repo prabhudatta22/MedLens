@@ -14,6 +14,18 @@ const asyncHandler =
   (req, res, next) =>
     Promise.resolve(fn(req, res, next)).catch(next);
 
+function normalizeCitySlug(slug) {
+  const s = (slug || "").toString().trim().toLowerCase();
+  if (!s) return "";
+  const alias = {
+    bangalore: "bengaluru",
+    bengalore: "bengaluru",
+    "new delhi": "new-delhi",
+    delhi: "new-delhi",
+  };
+  return alias[s] || s.replace(/\s+/g, "-");
+}
+
 router.get("/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -79,7 +91,7 @@ router.post(
   "/labs/prescription/ocr",
   upload.single("file"),
   asyncHandler(async (req, res) => {
-    const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+    const citySlug = normalizeCitySlug(req.query.city);
     if (!citySlug) return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
     if (!req.file?.buffer) return res.status(400).json({ error: "Missing file (field name: file)" });
     const text = await ocrImageBytes(req.file.buffer);
@@ -103,7 +115,7 @@ router.get(
   "/labs/intent",
   asyncHandler(async (req, res) => {
     const q = (req.query.q || "").toString().trim().slice(0, 120).toLowerCase();
-    const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+    const citySlug = normalizeCitySlug(req.query.city);
     if (!citySlug) {
       return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
     }
@@ -155,7 +167,7 @@ router.get(
   "/labs/search",
   asyncHandler(async (req, res) => {
   const q = (req.query.q || "").toString().trim().slice(0, 120);
-  const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+  const citySlug = normalizeCitySlug(req.query.city);
   const category = (req.query.category || "").toString().trim().toUpperCase();
   if (!citySlug) {
     return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
