@@ -66,7 +66,21 @@
             <span>Find tests & packages</span>
             <div class="input-wrap">
               <span class="input-icon" aria-hidden="true">⌕</span>
-              <input id="labQ" type="search" placeholder="e.g. CBC, Thyroid, Full body" autocomplete="off" />
+              <input
+                id="labQ"
+                type="search"
+                placeholder="e.g. CBC, Thyroid, Full body"
+                autocomplete="off"
+                aria-autocomplete="list"
+                aria-expanded="false"
+                aria-controls="labQ-suggestions"
+              />
+              <div
+                id="labQ-suggestions"
+                class="suggestions hidden"
+                role="listbox"
+                aria-label="Diagnostic test suggestions"
+              ></div>
             </div>
           </label>
           <label class="field field-hero" style="width: 260px; margin: 0">

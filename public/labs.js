@@ -4,6 +4,8 @@ const $ = (id) => document.getElementById(id);
 
 const MIN_QUERY_LEN = 2;
 const DEBOUNCE_MS = 380;
+const SUGGEST_MIN_QUERY_LEN = 3;
+const SUGGEST_DEBOUNCE_MS = 180;
 
 let cities = [];
 let selectedCategory = "";
@@ -21,6 +23,10 @@ function escapeHtml(s) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
 function fmtINR(n) {
@@ -229,7 +235,176 @@ function scheduleSearch() {
   t = setTimeout(runSearch, DEBOUNCE_MS);
 }
 
-$("labQ").addEventListener("input", scheduleSearch);
+// --- Autocomplete suggestions (3+ chars) ---
+let suggestTimer;
+/** @type {AbortController | null} */
+let suggestAbort = null;
+let suggestItems = [];
+let suggestActive = -1;
+
+function getSuggestEls() {
+  const input = $("labQ");
+  const box = $("labQ-suggestions");
+  return { input, box };
+}
+
+function closeSuggestions() {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+  box.classList.add("hidden");
+  box.innerHTML = "";
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+  suggestItems = [];
+  suggestActive = -1;
+}
+
+function openSuggestions() {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+  box.classList.remove("hidden");
+  input.setAttribute("aria-expanded", "true");
+}
+
+function renderSuggestions(items, q) {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  suggestItems = items.slice(0, 10);
+  suggestActive = -1;
+  openSuggestions();
+
+  const qLower = String(q || "").toLowerCase();
+  box.innerHTML = suggestItems
+    .map((it, idx) => {
+      const id = `labQ-sug-${idx}`;
+      const heading = String(it.heading || "").trim();
+      const sub = String(it.sub_heading || "").trim();
+      const headingLower = heading.toLowerCase();
+      const hitAt = qLower && headingLower.includes(qLower) ? headingLower.indexOf(qLower) : -1;
+      const label =
+        hitAt >= 0 && qLower.length
+          ? `${escapeHtml(heading.slice(0, hitAt))}<mark>${escapeHtml(
+              heading.slice(hitAt, hitAt + qLower.length)
+            )}</mark>${escapeHtml(heading.slice(hitAt + qLower.length))}`
+          : escapeHtml(heading);
+      return `
+        <div class="suggestion" role="option" id="${escapeAttr(id)}" data-idx="${idx}" aria-selected="false">
+          <div class="suggestion-title">${label}</div>
+          ${sub ? `<div class="suggestion-sub muted">${escapeHtml(sub)}</div>` : ""}
+        </div>`;
+    })
+    .join("");
+
+  box.querySelectorAll(".suggestion").forEach((row) => {
+    row.addEventListener("mousedown", (e) => e.preventDefault());
+    row.addEventListener("click", () => {
+      const idx = Number(row.dataset.idx);
+      pickSuggestion(idx);
+    });
+  });
+}
+
+function setActiveSuggestion(nextIdx) {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+  const rows = [...box.querySelectorAll(".suggestion")];
+  if (!rows.length) return;
+  suggestActive = Math.max(0, Math.min(nextIdx, rows.length - 1));
+  rows.forEach((el, i) => el.setAttribute("aria-selected", i === suggestActive ? "true" : "false"));
+  const activeEl = rows[suggestActive];
+  if (activeEl?.id) input.setAttribute("aria-activedescendant", activeEl.id);
+  activeEl?.scrollIntoView?.({ block: "nearest" });
+}
+
+function pickSuggestion(idx) {
+  const { input } = getSuggestEls();
+  if (!input) return;
+  const it = suggestItems[idx];
+  const heading = String(it?.heading || "").trim();
+  if (!heading) return;
+  input.value = heading;
+  closeSuggestions();
+  clearTimeout(t);
+  runSearch();
+}
+
+async function runSuggestSearch() {
+  const { input } = getSuggestEls();
+  if (!input) return;
+  const q = input.value.trim();
+
+  if (!q || q.length < SUGGEST_MIN_QUERY_LEN) {
+    closeSuggestions();
+    return;
+  }
+
+  if (suggestAbort) suggestAbort.abort();
+  suggestAbort = new AbortController();
+  const signal = suggestAbort.signal;
+
+  const city = $("labCity")?.value || "";
+  const params = new URLSearchParams({ q, city });
+  if (selectedCategory) params.set("category", selectedCategory);
+
+  try {
+    // Reuse labs search endpoint for suggestions (we only display top results).
+    const res = await fetch(`/api/labs/search?${params.toString()}`, { signal });
+    const data = await res.json().catch(() => ({}));
+    if (signal.aborted) return;
+    if (!res.ok) {
+      closeSuggestions();
+      return;
+    }
+    renderSuggestions(data.items || [], q);
+  } catch (e) {
+    if (e?.name === "AbortError") return;
+    closeSuggestions();
+  }
+}
+
+$("labQ").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    const { box } = getSuggestEls();
+    if (!box || box.classList.contains("hidden")) return;
+    e.preventDefault();
+    const delta = e.key === "ArrowDown" ? 1 : -1;
+    setActiveSuggestion((suggestActive < 0 ? -1 : suggestActive) + delta);
+    return;
+  }
+  if (e.key === "Escape") {
+    const { box } = getSuggestEls();
+    if (box && !box.classList.contains("hidden")) {
+      e.preventDefault();
+      closeSuggestions();
+      return;
+    }
+  }
+  if (e.key !== "Enter") return;
+  const { box } = getSuggestEls();
+  if (box && !box.classList.contains("hidden")) {
+    const rows = box.querySelectorAll(".suggestion");
+    if (rows.length && suggestActive >= 0) {
+      e.preventDefault();
+      pickSuggestion(suggestActive);
+      return;
+    }
+  }
+});
+
+$("labQ").addEventListener("input", () => {
+  scheduleSearch();
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
+});
+
+$("labQ").addEventListener("blur", () => setTimeout(() => closeSuggestions(), 120));
+
 $("labCity").addEventListener("change", runSearch);
 
 await loadCities();

@@ -4,6 +4,8 @@ const $ = (id) => document.getElementById(id);
 
 const SEARCH_DEBOUNCE_MS = 420;
 const MIN_QUERY_LEN = 2;
+const SUGGEST_MIN_QUERY_LEN = 3;
+const SUGGEST_DEBOUNCE_MS = 180;
 
 function refreshCartBadge() {
   const n = cartLineCount();
@@ -333,11 +335,182 @@ $("q").addEventListener("input", () => {
   searchTimer = setTimeout(runRealtimeSearch, SEARCH_DEBOUNCE_MS);
 });
 
-$("q").addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
+// --- Autocomplete suggestions (3+ chars) ---
+let suggestTimer;
+/** @type {AbortController | null} */
+let suggestAbort = null;
+let suggestItems = [];
+let suggestActive = -1;
+
+function getSuggestEls() {
+  const input = $("q");
+  const box = $("q-suggestions");
+  return { input, box };
+}
+
+function closeSuggestions() {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+  box.classList.add("hidden");
+  box.innerHTML = "";
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+  suggestItems = [];
+  suggestActive = -1;
+}
+
+function openSuggestions() {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+  box.classList.remove("hidden");
+  input.setAttribute("aria-expanded", "true");
+}
+
+function renderSuggestions(items, q) {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  suggestItems = items;
+  suggestActive = -1;
+  openSuggestions();
+
+  const qLower = String(q || "").toLowerCase();
+  box.innerHTML = items
+    .slice(0, 10)
+    .map((m, idx) => {
+      const id = `q-sug-${idx}`;
+      const name = String(m.display_name || m.generic_name || "").trim();
+      const strength = String(m.strength || "").trim();
+      const form = String(m.form || "").trim();
+      const extra = [strength, form].filter(Boolean).join(" · ");
+      const nameLower = name.toLowerCase();
+      const hitAt = qLower && nameLower.includes(qLower) ? nameLower.indexOf(qLower) : -1;
+      const label =
+        hitAt >= 0 && qLower.length
+          ? `${escapeHtml(name.slice(0, hitAt))}<mark>${escapeHtml(
+              name.slice(hitAt, hitAt + qLower.length)
+            )}</mark>${escapeHtml(name.slice(hitAt + qLower.length))}`
+          : escapeHtml(name);
+      return `
+        <div class="suggestion" role="option" id="${escapeAttr(id)}" data-idx="${idx}" aria-selected="false">
+          <div class="suggestion-title">${label}</div>
+          ${extra ? `<div class="suggestion-sub muted">${escapeHtml(extra)}</div>` : ""}
+        </div>`;
+    })
+    .join("");
+
+  box.querySelectorAll(".suggestion").forEach((row) => {
+    row.addEventListener("mousedown", (e) => {
+      // Prevent input blur before we handle selection.
+      e.preventDefault();
+    });
+    row.addEventListener("click", () => {
+      const idx = Number(row.dataset.idx);
+      pickSuggestion(idx);
+    });
+  });
+}
+
+function setActiveSuggestion(nextIdx) {
+  const { input, box } = getSuggestEls();
+  if (!input || !box) return;
+  const rows = [...box.querySelectorAll(".suggestion")];
+  if (!rows.length) return;
+
+  suggestActive = Math.max(0, Math.min(nextIdx, rows.length - 1));
+  rows.forEach((el, i) => el.setAttribute("aria-selected", i === suggestActive ? "true" : "false"));
+  const activeEl = rows[suggestActive];
+  if (activeEl?.id) input.setAttribute("aria-activedescendant", activeEl.id);
+  activeEl?.scrollIntoView?.({ block: "nearest" });
+}
+
+function pickSuggestion(idx) {
+  const { input } = getSuggestEls();
+  if (!input) return;
+  const item = suggestItems[idx];
+  const name = String(item?.display_name || item?.generic_name || "").trim();
+  if (!name) return;
+  input.value = name;
+  closeSuggestions();
   clearTimeout(searchTimer);
   runRealtimeSearch();
+}
+
+async function runSuggestSearch() {
+  const { input } = getSuggestEls();
+  if (!input) return;
+  const q = input.value.trim();
+
+  if (!q || q.length < SUGGEST_MIN_QUERY_LEN) {
+    closeSuggestions();
+    return;
+  }
+
+  if (suggestAbort) suggestAbort.abort();
+  suggestAbort = new AbortController();
+  const signal = suggestAbort.signal;
+
+  try {
+    const res = await fetch(`/api/medicines/search?q=${encodeURIComponent(q)}`, { signal });
+    const data = await res.json().catch(() => ({}));
+    if (signal.aborted) return;
+    renderSuggestions(data.medicines || [], q);
+  } catch (e) {
+    if (e?.name === "AbortError") return;
+    closeSuggestions();
+  }
+}
+
+$("q").addEventListener("keydown", (e) => {
+  // Suggestion list keyboard controls
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    const { box } = getSuggestEls();
+    if (!box || box.classList.contains("hidden")) return;
+    e.preventDefault();
+    const delta = e.key === "ArrowDown" ? 1 : -1;
+    setActiveSuggestion((suggestActive < 0 ? -1 : suggestActive) + delta);
+    return;
+  }
+  if (e.key === "Escape") {
+    const { box } = getSuggestEls();
+    if (box && !box.classList.contains("hidden")) {
+      e.preventDefault();
+      closeSuggestions();
+      return;
+    }
+  }
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+
+  // If a suggestion is active, pick it; otherwise do normal search.
+  const { box } = getSuggestEls();
+  if (box && !box.classList.contains("hidden")) {
+    const rows = box.querySelectorAll(".suggestion");
+    if (rows.length && suggestActive >= 0) {
+      pickSuggestion(suggestActive);
+      return;
+    }
+  }
+
+  clearTimeout(searchTimer);
+  runRealtimeSearch();
+});
+
+// Debounced suggestion fetch (independent from live search)
+$("q").addEventListener("input", () => {
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
+});
+
+// Close suggestions when focus leaves the input
+$("q").addEventListener("blur", () => {
+  // Delay so click selection can run first.
+  setTimeout(() => closeSuggestions(), 120);
 });
 
 $("searchBtn")?.addEventListener("click", () => {

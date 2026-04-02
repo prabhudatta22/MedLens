@@ -69,7 +69,16 @@
                     type="search"
                     placeholder="e.g. Dolo 650, Metformin, Atorvastatin"
                     autocomplete="off"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="q-suggestions"
                   />
+                  <div
+                    id="q-suggestions"
+                    class="suggestions hidden"
+                    role="listbox"
+                    aria-label="Medicine suggestions"
+                  ></div>
                 </div>
               </label>
 
