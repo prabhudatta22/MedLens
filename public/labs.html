@@ -47,20 +47,12 @@
     </header>
 
     <main class="shell">
-      <section class="hero" style="margin-top: 0">
-        <div class="hero-inner" style="grid-template-columns: 1fr">
-          <div class="hero-copy" style="padding-bottom: 0">
-            <p class="hero-kicker">Home collection · doctor-verified reports</p>
-            <h2 class="hero-title">Book lab tests with transparent pricing</h2>
-            <p class="hero-subtitle">
-              This is a demo diagnostics section inspired by modern lab marketplaces (category browsing, discounts, and quick booking).
-            </p>
-           
-          </div>
+      <section class="panel hero-card" style="margin-top: 0">
+        <div class="hero-card-copy">
+          <p class="hero-kicker">Home collection · doctor-verified reports</p>
+          <h2 class="hero-title">Book lab tests with transparent pricing</h2>
+          
         </div>
-      </section>
-
-      <section class="panel" style="margin-top: 1rem">
         <div class="labs-toolbar">
           <label class="field field-hero" style="flex: 1; margin: 0">
             <span>Find tests & packages</span>
@@ -87,6 +79,18 @@
             <span>City</span>
             <select id="labCity" aria-label="City"></select>
           </label>
+        </div>
+
+        <div class="field field-hero" style="margin-top: 0.35rem">
+          <span class="muted" style="display: block; margin-bottom: 0.35rem">Or upload a prescription / note (printed)</span>
+          <div class="input-wrap">
+            <input id="labRxFile" type="file" accept="image/*,application/pdf" />
+          </div>
+          <div class="search-actions" style="margin-top: 0.5rem">
+            <button type="button" class="btn btn-ghost" id="labRxUploadBtn">Extract tests</button>
+          </div>
+          <div id="labRxStatus" class="muted hint" aria-live="polite"></div>
+          <div id="labRxMatches" class="rx-matches hidden" aria-label="Extracted diagnostic tests"></div>
         </div>
 
         <div id="labIntentRow" class="quick-chips hidden" aria-label="Suggested intents" style="margin-top: 0.75rem"></div>

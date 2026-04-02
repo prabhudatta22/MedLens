@@ -4,6 +4,7 @@ import multer from "multer";
 import { ocrImageBytes } from "../ocr/ocr.js";
 import { matchMedicinesFromText } from "../prescription/parse.js";
 import { normalizeQuery } from "../ai/normalize.js";
+import { matchLabTestsFromText } from "../labs/parse.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -74,6 +75,19 @@ router.post(
 );
 
 // ---- Diagnostics / labs (demo) ----
+router.post(
+  "/labs/prescription/ocr",
+  upload.single("file"),
+  asyncHandler(async (req, res) => {
+    const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+    if (!citySlug) return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
+    if (!req.file?.buffer) return res.status(400).json({ error: "Missing file (field name: file)" });
+    const text = await ocrImageBytes(req.file.buffer);
+    const matches = await matchLabTestsFromText(text, { limitItems: 10, citySlug });
+    res.json({ ok: true, text, matches });
+  })
+);
+
 router.get(
   "/labs/categories",
   asyncHandler(async (_req, res) => {

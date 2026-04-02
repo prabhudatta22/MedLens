@@ -88,6 +88,82 @@ function renderRecent() {
   host.appendChild(wrap);
 }
 
+async function uploadDiagnosticsPrescriptionAndExtract() {
+  const fileEl = $("labRxFile");
+  const btn = $("labRxUploadBtn");
+  const status = $("labRxStatus");
+  const out = $("labRxMatches");
+  const city = $("labCity")?.value || "";
+  if (!fileEl || !btn || !status || !out) return;
+
+  const file = fileEl.files?.[0];
+  if (!file) {
+    status.textContent = "Choose an image/PDF first.";
+    return;
+  }
+  if (!city) {
+    status.textContent = "Choose a city first.";
+    return;
+  }
+
+  btn.disabled = true;
+  status.textContent = "Extracting tests from image…";
+  out.classList.add("hidden");
+  out.innerHTML = "";
+
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`/api/labs/prescription/ocr?city=${encodeURIComponent(city)}`, { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      status.textContent = data.error || `OCR failed (${res.status})`;
+      btn.disabled = false;
+      return;
+    }
+    const matches = data.matches || [];
+    if (!matches.length) {
+      status.textContent = "No tests confidently matched. Try a clearer photo (printed text works best).";
+      btn.disabled = false;
+      return;
+    }
+    status.textContent = `Matched ${matches.length} test(s). Click one to search.`;
+    out.innerHTML = matches
+      .map((m, idx) => {
+        const extra = [m.lab_name ? `Lab: ${m.lab_name}` : "", m.price_inr != null ? fmtINR(m.price_inr) : ""]
+          .filter(Boolean)
+          .join(" · ");
+        const line = m.match_line ? `Matched line: ${m.match_line}` : "";
+        return `
+          <div class="rx-match">
+            <div>
+              <div class="rx-match-title">${escapeHtml(m.heading || "")}</div>
+              <div class="rx-match-sub muted">${escapeHtml(m.sub_heading || "")}${
+                extra ? ` · ${escapeHtml(extra)}` : ""
+              }${line ? ` · ${escapeHtml(line)}` : ""}</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary dxrx-pick" data-idx="${idx}">Search</button>
+          </div>`;
+      })
+      .join("");
+    out.classList.remove("hidden");
+    out.querySelectorAll(".dxrx-pick").forEach((b) => {
+      b.addEventListener("click", () => {
+        const idx = Number(b.dataset.idx);
+        const m = matches[idx];
+        if (!m?.heading) return;
+        $("labQ").value = String(m.heading);
+        closeSuggestions?.();
+        runSearch();
+      });
+    });
+  } catch (e) {
+    status.textContent = String(e?.message || e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function refreshCartBadge() {
   const n = cartLineCount();
   const el = $("cartBadge");
@@ -521,6 +597,8 @@ $("navLogout")?.addEventListener("click", async (e) => {
   currentUser = null;
   renderAuthNav();
 });
+
+$("labRxUploadBtn")?.addEventListener("click", () => uploadDiagnosticsPrescriptionAndExtract());
 
 // Support deep-link from home page: /labs.html?q=...&city=...&category=...
 const params = new URLSearchParams(window.location.search);

@@ -146,6 +146,7 @@ body {
   max-width: 1120px;
   margin: 0 auto;
   padding: 1.25rem 1.25rem 2.5rem;
+  align-items: left;
 }
 
 .hero {
@@ -160,7 +161,7 @@ body {
 
 @media (min-width: 980px) {
   .hero-inner {
-    grid-template-columns: 1.1fr 0.95fr;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
   }
 }
@@ -205,6 +206,10 @@ body {
 .hero-card {
   box-shadow: var(--shadow);
   border: 1px solid rgba(208, 218, 230, 0.85);
+}
+
+.hero-card-copy {
+  padding: 1rem 1.1rem 0.2rem;
 }
 
 
