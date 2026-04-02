@@ -18,9 +18,30 @@ function slugifyCity(name) {
     .replace(/(^-|-$)/g, "");
 }
 
+function detectPriceAnomalies(r) {
+  const issues = [];
+  const price = Number(r?.price?.price_inr);
+  const mrp = r?.price?.mrp_inr == null ? null : Number(r.price.mrp_inr);
+  if (!Number.isFinite(price) || price < 0) issues.push("invalid_price");
+  if (Number.isFinite(price) && price === 0) issues.push("zero_price");
+  if (mrp != null && (!Number.isFinite(mrp) || mrp < 0)) issues.push("invalid_mrp");
+  if (mrp != null && Number.isFinite(price) && price > mrp * 1.05) issues.push("price_gt_mrp");
+  if (mrp != null && mrp > 0 && Number.isFinite(price) && price >= 0) {
+    const off = (mrp - price) / mrp;
+    if (off >= 0.8) issues.push("huge_discount");
+  }
+  if (Number.isFinite(price) && price > 250_000) issues.push("very_high_price");
+  return issues;
+}
+
 async function ingestNormalizedRows(client, rows, summary) {
   for (const r of rows) {
     try {
+      const anomalies = detectPriceAnomalies(r);
+      if (anomalies.length) {
+        summary.warnings.push({ row: r.rowNum, issues: anomalies });
+      }
+
       const citySlug = slugifyCity(r.city);
       const cityRes = await client.query(
         `INSERT INTO cities (name, state, slug)
@@ -130,6 +151,7 @@ router.post("/prices/xlsx", upload.single("file"), async (req, res) => {
     inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0 },
     updated: { prices: 0 },
     errors: [],
+    warnings: [],
   };
 
   try {
@@ -163,6 +185,7 @@ router.post("/erp/marg", upload.single("file"), async (req, res) => {
     inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0 },
     updated: { prices: 0 },
     errors: [],
+    warnings: [],
     detected_headers: parsed.headers,
     stats: parsed.stats,
   };
@@ -197,6 +220,7 @@ router.post("/erp/retailgraph", upload.single("file"), async (req, res) => {
     inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0 },
     updated: { prices: 0 },
     errors: [],
+    warnings: [],
     detected_headers: parsed.headers,
     stats: parsed.stats,
   };

@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
+import multer from "multer";
+import { ocrImageBytes } from "../ocr/ocr.js";
+import { matchMedicinesFromText } from "../prescription/parse.js";
+import { normalizeQuery } from "../ai/normalize.js";
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const asyncHandler =
   (fn) =>
@@ -28,6 +33,15 @@ router.get(
 );
 
 router.get(
+  "/normalize",
+  asyncHandler(async (req, res) => {
+    const q = (req.query.q || "").toString().slice(0, 200);
+    const out = await normalizeQuery(q);
+    res.json(out);
+  })
+);
+
+router.get(
   "/medicines/search",
   asyncHandler(async (req, res) => {
   const q = (req.query.q || "").toString().trim().slice(0, 120);
@@ -47,6 +61,18 @@ router.get(
   })
 );
 
+// OCR prescription/bill (printed) -> best matching medicines from DB
+router.post(
+  "/prescription/ocr",
+  upload.single("file"),
+  asyncHandler(async (req, res) => {
+    if (!req.file?.buffer) return res.status(400).json({ error: "Missing file (field name: file)" });
+    const text = await ocrImageBytes(req.file.buffer);
+    const matches = await matchMedicinesFromText(text, { limitItems: 10 });
+    res.json({ ok: true, text, matches });
+  })
+);
+
 // ---- Diagnostics / labs (demo) ----
 router.get(
   "/labs/categories",
@@ -55,6 +81,55 @@ router.get(
     `SELECT DISTINCT category FROM lab_tests ORDER BY category`
   );
   res.json({ categories: rows.map((r) => r.category) });
+  })
+);
+
+// Lightweight intent helper for diagnostics search box
+router.get(
+  "/labs/intent",
+  asyncHandler(async (req, res) => {
+    const q = (req.query.q || "").toString().trim().slice(0, 120).toLowerCase();
+    const citySlug = (req.query.city || "").toString().trim().toLowerCase();
+    if (!citySlug) {
+      return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
+    }
+    if (!q || q.length < 2) {
+      return res.json({ query: q, city: citySlug, intents: [], suggestions: [] });
+    }
+
+    const intents = [];
+    const has = (re) => re.test(q);
+
+    if (has(/\b(thyroid|tsh|t3|t4)\b/)) intents.push({ id: "thyroid", label: "Thyroid" });
+    if (has(/\b(cbc|blood count|hemogram)\b/)) intents.push({ id: "cbc", label: "CBC / blood count" });
+    if (has(/\b(lipid|cholesterol)\b/)) intents.push({ id: "lipid", label: "Lipid / cholesterol" });
+    if (has(/\b(diabetes|hba1c|glucose|sugar)\b/)) intents.push({ id: "diabetes", label: "Diabetes / glucose" });
+    if (has(/\b(full body|health check|checkup)\b/)) intents.push({ id: "full_body", label: "Full body checkup" });
+    if (has(/\b(vitamin d|vit d)\b/)) intents.push({ id: "vitd", label: "Vitamin D" });
+    if (has(/\b(vitamin b12|b12)\b/)) intents.push({ id: "b12", label: "Vitamin B12" });
+
+    // Suggest a few best matches from DB, using the existing search_vector
+    const like = `%${q}%`;
+    const { rows } = await pool.query(
+      `SELECT
+        t.id,
+        t.heading,
+        t.sub_heading,
+        t.category,
+        t.slug,
+        p.lab_name,
+        p.price_inr,
+        p.mrp_inr
+       FROM lab_tests t
+       JOIN cities c ON c.slug = $2
+       JOIN lab_test_prices p ON p.test_id = t.id AND p.city_id = c.id
+       WHERE t.search_vector LIKE $1
+       ORDER BY p.price_inr ASC NULLS LAST
+       LIMIT 8`,
+      [like, citySlug]
+    );
+
+    res.json({ query: q, city: citySlug, intents, suggestions: rows });
   })
 );
 

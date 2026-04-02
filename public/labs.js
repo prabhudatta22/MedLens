@@ -6,6 +6,8 @@ const MIN_QUERY_LEN = 2;
 const DEBOUNCE_MS = 380;
 const SUGGEST_MIN_QUERY_LEN = 3;
 const SUGGEST_DEBOUNCE_MS = 180;
+const RECENT_KEY = "medlens_recent_lab_searches_v1";
+const RECENT_MAX = 6;
 
 let cities = [];
 let selectedCategory = "";
@@ -33,6 +35,57 @@ function fmtINR(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return "—";
   return `₹${x.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+}
+
+function loadRecent() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(q) {
+  const s = String(q || "").trim();
+  if (!s) return;
+  const arr = loadRecent().filter((x) => x.toLowerCase() !== s.toLowerCase());
+  arr.unshift(s);
+  const next = arr.slice(0, RECENT_MAX);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+  renderRecent();
+}
+
+function renderRecent() {
+  const host = document.querySelector('.quick-chips[aria-label="Popular"]');
+  if (!host) return;
+  const existing = host.querySelector(".recent-chip-group");
+  if (existing) existing.remove();
+  const recent = loadRecent();
+  if (!recent.length) return;
+  const wrap = document.createElement("div");
+  wrap.className = "recent-chip-group";
+  wrap.style.display = "contents";
+  recent.slice(0, 4).forEach((q) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip";
+    btn.textContent = q;
+    btn.addEventListener("click", () => {
+      const input = $("labQ");
+      if (!input) return;
+      input.value = q;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.focus();
+    });
+    wrap.appendChild(btn);
+  });
+  host.appendChild(wrap);
 }
 
 function refreshCartBadge() {
@@ -210,6 +263,7 @@ async function runSearch() {
   }
 
   setStatus("Searching…");
+  saveRecent(q);
 
   const params = new URLSearchParams({ q, city });
   if (selectedCategory) params.set("category", selectedCategory);
@@ -233,6 +287,52 @@ async function runSearch() {
 function scheduleSearch() {
   clearTimeout(t);
   t = setTimeout(runSearch, DEBOUNCE_MS);
+}
+
+function renderIntents(intents) {
+  const row = $("labIntentRow");
+  if (!row) return;
+  if (!Array.isArray(intents) || intents.length === 0) {
+    row.classList.add("hidden");
+    row.innerHTML = "";
+    return;
+  }
+  row.classList.remove("hidden");
+  row.innerHTML = intents
+    .slice(0, 6)
+    .map((it) => `<button type="button" class="chip" data-intent="${escapeHtml(it.id)}">${escapeHtml(it.label)}</button>`)
+    .join("");
+  row.querySelectorAll("button[data-intent]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const label = b.textContent || "";
+      const input = $("labQ");
+      if (!input) return;
+      input.value = label;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.focus();
+    });
+  });
+}
+
+let intentTimer;
+async function refreshIntentHints() {
+  const q = $("labQ")?.value?.trim() || "";
+  const city = $("labCity")?.value || "";
+  if (!city || q.length < 2) {
+    renderIntents([]);
+    return;
+  }
+  try {
+    const res = await fetch(`/api/labs/intent?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      renderIntents([]);
+      return;
+    }
+    renderIntents(data.intents || []);
+  } catch {
+    renderIntents([]);
+  }
 }
 
 // --- Autocomplete suggestions (3+ chars) ---
@@ -399,6 +499,8 @@ $("labQ").addEventListener("keydown", (e) => {
 
 $("labQ").addEventListener("input", () => {
   scheduleSearch();
+  clearTimeout(intentTimer);
+  intentTimer = setTimeout(refreshIntentHints, 220);
   clearTimeout(suggestTimer);
   suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
 });
@@ -411,6 +513,7 @@ await loadCities();
 await refreshAuth();
 await loadCategories();
 refreshCartBadge();
+renderRecent();
 
 $("navLogout")?.addEventListener("click", async (e) => {
   e.preventDefault();

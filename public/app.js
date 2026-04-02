@@ -6,6 +6,7 @@ const SEARCH_DEBOUNCE_MS = 420;
 const MIN_QUERY_LEN = 2;
 const SUGGEST_MIN_QUERY_LEN = 3;
 const SUGGEST_DEBOUNCE_MS = 180;
+const NORMALIZE_MIN_LEN = 3;
 
 function refreshCartBadge() {
   const n = cartLineCount();
@@ -29,6 +30,8 @@ let compareAbort = null;
 let liveQuery = "";
 
 const GEO_STORAGE_KEY = "medlens_geo_location_v1";
+const RECENT_SEARCH_KEY = "medlens_recent_searches_v1";
+const RECENT_MAX = 6;
 
 const DEFAULT_METRO_CITIES = [
   { slug: "mumbai", name: "Mumbai", state: "Maharashtra" },
@@ -305,6 +308,124 @@ function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
+function loadRecentSearches() {
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCH_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(q) {
+  const s = String(q || "").trim();
+  if (!s) return;
+  const arr = loadRecentSearches().filter((x) => x.toLowerCase() !== s.toLowerCase());
+  arr.unshift(s);
+  const next = arr.slice(0, RECENT_MAX);
+  try {
+    localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+  renderRecentChips();
+}
+
+function renderRecentChips() {
+  const host = document.querySelector('.quick-chips[aria-label="Quick searches"]');
+  if (!host) return;
+  const existing = host.querySelector(".recent-chip-group");
+  if (existing) existing.remove();
+  const recent = loadRecentSearches();
+  if (!recent.length) return;
+  const wrap = document.createElement("div");
+  wrap.className = "recent-chip-group";
+  wrap.style.display = "contents";
+  recent.slice(0, 4).forEach((q) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip";
+    btn.textContent = q;
+    btn.addEventListener("click", () => {
+      const input = $("q");
+      if (!input) return;
+      input.value = q;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.focus();
+    });
+    wrap.appendChild(btn);
+  });
+  host.appendChild(wrap);
+}
+
+async function uploadPrescriptionAndExtract() {
+  const fileEl = $("rxFile");
+  const btn = $("rxUploadBtn");
+  const status = $("rxStatus");
+  const out = $("rxMatches");
+  if (!fileEl || !btn || !status || !out) return;
+
+  const file = fileEl.files?.[0];
+  if (!file) {
+    status.textContent = "Choose an image/PDF first.";
+    return;
+  }
+
+  btn.disabled = true;
+  status.textContent = "Extracting medicines from image…";
+  out.classList.add("hidden");
+  out.innerHTML = "";
+
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/prescription/ocr", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      status.textContent = data.error || `OCR failed (${res.status})`;
+      btn.disabled = false;
+      return;
+    }
+    const matches = data.matches || [];
+    if (!matches.length) {
+      status.textContent = "No medicines confidently matched. Try a clearer photo (printed text works best).";
+      btn.disabled = false;
+      return;
+    }
+    status.textContent = `Matched ${matches.length} medicine(s). Click one to compare prices.`;
+    out.innerHTML = matches
+      .map((m, idx) => {
+        const extra = [m.strength, m.form, m.pack_size].filter(Boolean).join(" · ");
+        const line = m.match_line ? `Matched line: ${m.match_line}` : "";
+        return `
+          <div class="rx-match">
+            <div>
+              <div class="rx-match-title">${escapeHtml(m.display_name || "")}</div>
+              <div class="rx-match-sub muted">${escapeHtml(extra)}${line ? ` · ${escapeHtml(line)}` : ""}</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary rx-pick" data-idx="${idx}">Compare</button>
+          </div>`;
+      })
+      .join("");
+    out.classList.remove("hidden");
+    out.querySelectorAll(".rx-pick").forEach((b) => {
+      b.addEventListener("click", () => {
+        const idx = Number(b.dataset.idx);
+        const m = matches[idx];
+        if (!m?.display_name) return;
+        $("q").value = String(m.display_name);
+        closeSuggestions?.();
+        runRealtimeSearch();
+      });
+    });
+  } catch (e) {
+    status.textContent = String(e?.message || e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function syncReminderMedicineFromOffers(offers) {
   const ids = new Set(
     (offers || []).map((o) => o.medicine_id).filter((id) => id != null && Number(id) > 0)
@@ -518,6 +639,8 @@ $("searchBtn")?.addEventListener("click", () => {
   runRealtimeSearch();
 });
 
+$("rxUploadBtn")?.addEventListener("click", () => uploadPrescriptionAndExtract());
+
 $("city").addEventListener("change", () => {
   runRealtimeSearch();
 });
@@ -535,7 +658,7 @@ function abortPendingSearch() {
 }
 
 async function runRealtimeSearch() {
-  const q = $("q").value.trim();
+  let q = $("q").value.trim();
   liveQuery = q;
   const city = $("city").value;
   const statusEl = $("search-status");
@@ -560,9 +683,28 @@ async function runRealtimeSearch() {
     return;
   }
 
+  // Optional AI/rules normalization (best-effort, non-blocking)
+  if (q.length >= NORMALIZE_MIN_LEN) {
+    try {
+      const normRes = await fetch(`/api/normalize?q=${encodeURIComponent(q)}`);
+      const norm = await normRes.json().catch(() => null);
+      if (norm?.normalized && typeof norm.normalized === "string") {
+        const nq = norm.normalized.trim();
+        if (nq && nq !== q) {
+          q = nq;
+          $("q").value = nq;
+          liveQuery = nq;
+        }
+      }
+    } catch {
+      /* ignore normalization failures */
+    }
+  }
+
   compareAbort = new AbortController();
   const signal = compareAbort.signal;
   statusEl.textContent = "Searching database (by PIN / city) and local demo pharmacies…";
+  saveRecentSearch(q);
 
   const pin = getComparePincode();
   const pinParam = pin ? `&pincode=${encodeURIComponent(pin)}` : "";
@@ -995,4 +1137,5 @@ $("navLogout")?.addEventListener("click", async (e) => {
 Promise.all([loadCities(), refreshAuth()])
   .then(() => updateReminderHint())
   .then(() => refreshCartBadge())
+  .then(() => renderRecentChips())
   .catch(console.error);

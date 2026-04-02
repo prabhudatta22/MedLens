@@ -115,6 +115,18 @@
                 <!-- <span class="muted hint">Tip: press Enter to search.</span> -->
               </div>
 
+              <div class="field field-hero" style="margin-top: 0.35rem">
+                <span class="muted" style="display: block; margin-bottom: 0.35rem">Or upload a prescription / bill (printed)</span>
+                <div class="input-wrap">
+                  <input id="rxFile" type="file" accept="image/*,application/pdf" />
+                </div>
+                <div class="search-actions" style="margin-top: 0.5rem">
+                  <button type="button" class="btn btn-ghost" id="rxUploadBtn">Extract medicines</button>
+                </div>
+                <div id="rxStatus" class="muted hint" aria-live="polite"></div>
+                <div id="rxMatches" class="rx-matches hidden" aria-label="Extracted medicines"></div>
+              </div>
+
               <div class="quick-chips" aria-label="Quick searches">
                 <button type="button" class="chip" data-q="Dolo 650">Dolo 650</button>
                 <button type="button" class="chip" data-q="Paracetamol 650">Paracetamol</button>
