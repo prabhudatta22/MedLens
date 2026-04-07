@@ -35,6 +35,13 @@ function setMode(mode) {
   setStatus(provider ? "Service Provider mode" : "User mode");
 }
 
+function syncGoogleButtonForMode() {
+  const btn = $("googleLoginBtn");
+  if (!btn) return;
+  const mode = $("loginMode")?.value || "user";
+  btn.classList.toggle("is-hidden", mode === "provider");
+}
+
 async function post(url, body) {
   const res = await fetch(url, {
     method: "POST",
@@ -70,6 +77,9 @@ if (modeSel) {
 } else {
   setMode("user");
 }
+
+syncGoogleButtonForMode();
+modeSel?.addEventListener("change", syncGoogleButtonForMode);
 
 async function handleProviderLogin(e) {
   e?.preventDefault?.();

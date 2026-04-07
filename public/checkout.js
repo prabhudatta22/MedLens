@@ -308,5 +308,7 @@ fetchMe().then((u) => {
   const loginLink = $("loginToOrderLink");
   if (!loginLink) return;
   loginLink.classList.toggle("hidden", Boolean(u));
+  const ordersNav = $("navOrders");
+  if (ordersNav) ordersNav.classList.toggle("hidden", !(u && u.role !== "service_provider"));
 });
 $("placeOrderBtn")?.addEventListener("click", () => placeDeliveryOrder());

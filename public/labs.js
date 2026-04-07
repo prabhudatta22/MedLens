@@ -188,6 +188,7 @@ function renderAuthNav() {
   const userEl = $("navUser");
   const loginEl = $("navLogin");
   const logoutEl = $("navLogout");
+  const ordersEl = $("navOrders");
   if (!userEl || !loginEl || !logoutEl) return;
 
   const u = currentUser;
@@ -195,6 +196,8 @@ function renderAuthNav() {
   loginEl.classList.toggle("hidden", isLogged);
   logoutEl.classList.toggle("hidden", !isLogged);
   userEl.classList.toggle("hidden", !isLogged);
+  // Orders are for consumer users only (OTP/Google). Hide for logged-out and service providers.
+  if (ordersEl) ordersEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
 
   if (!isLogged) {
     userEl.textContent = "";

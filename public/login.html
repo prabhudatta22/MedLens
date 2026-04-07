@@ -74,6 +74,12 @@
 
         <div class="auth-step" id="requestPanel">
           <h2>Request OTP</h2>
+          <div style="margin: 0.5rem 0 0.85rem">
+            <a class="btn btn-ghost" id="googleLoginBtn" href="/api/auth/google/start">Continue with Google</a>
+            <p class="muted hint" style="margin: 0.5rem 0 0">
+              Or login with OTP below.
+            </p>
+          </div>
           <form id="otpRequestForm" novalidate>
             <label class="field">
               <span>Mobile number</span>
