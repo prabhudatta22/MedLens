@@ -147,6 +147,19 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id, created_at DESC);
 
+-- OAuth identities (e.g. Google login). Maps provider identity -> local user_id.
+CREATE TABLE IF NOT EXISTS oauth_identities (
+  id SERIAL PRIMARY KEY,
+  provider TEXT NOT NULL CHECK (provider IN ('google')),
+  provider_subject TEXT NOT NULL,
+  email TEXT,
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (provider, provider_subject)
+);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_identities (user_id);
+
 -- Service Provider users (username/password). Store only password hashes.
 CREATE TABLE IF NOT EXISTS service_provider_users (
   id SERIAL PRIMARY KEY,
@@ -224,6 +237,78 @@ CREATE TABLE IF NOT EXISTS purchase_reminders (
 );
 
 CREATE INDEX IF NOT EXISTS idx_purchase_reminders_user_next ON purchase_reminders (user_id, remind_at);
+
+-- -----------------------------
+-- Orders + delivery (home delivery MVP)
+-- -----------------------------
+
+CREATE TABLE IF NOT EXISTS user_addresses (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  label TEXT,
+  name TEXT,
+  phone_e164 TEXT,
+  address_line1 TEXT NOT NULL,
+  address_line2 TEXT,
+  landmark TEXT,
+  city TEXT,
+  state TEXT,
+  pincode TEXT,
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_addresses_user ON user_addresses (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created','confirmed','packed','out_for_delivery','delivered','cancelled')),
+  delivery_option TEXT NOT NULL DEFAULT 'normal' CHECK (delivery_option IN ('express_60','express_4_6','same_day','normal')),
+  delivery_fee_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (delivery_fee_inr >= 0),
+  scheduled_for TIMESTAMPTZ,
+  address_id INTEGER REFERENCES user_addresses (id) ON DELETE SET NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+  source TEXT NOT NULL DEFAULT 'local' CHECK (source IN ('local','online','catalog')),
+  pharmacy_id INTEGER REFERENCES pharmacies (id) ON DELETE SET NULL,
+  medicine_id INTEGER REFERENCES medicines (id) ON DELETE SET NULL,
+  item_label TEXT NOT NULL,
+  strength TEXT,
+  form TEXT,
+  pack_size INTEGER,
+  quantity_units INTEGER NOT NULL DEFAULT 1 CHECK (quantity_units >= 1),
+  tablets_per_day NUMERIC(8, 2),
+  unit_price_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (unit_price_inr >= 0),
+  mrp_inr NUMERIC(12, 2),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id);
+
+CREATE TABLE IF NOT EXISTS order_events (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events (order_id, created_at ASC);
+
+ALTER TABLE purchase_reminders
+  ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders (id) ON DELETE SET NULL;
 
 -- Diagnostics / lab tests (demo dataset; extend with partner integrations)
 CREATE TABLE IF NOT EXISTS lab_tests (

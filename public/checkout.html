@@ -19,14 +19,15 @@
         <span class="logo" aria-hidden="true">◇</span>
         <div>
           <h1>MedLens</h1>
-          <p class="tagline">Multi-pharmacy checkout</p>
+          <p class="tagline">Checkout</p>
         </div>
       </div>
       <nav class="header-nav" aria-label="Account">
         <a href="/">Search</a>
+        <a href="/orders.html">Orders</a>
       </nav>
       <p class="disclaimer">
-        MedLens does not process payment. Open each pharmacy or retailer to complete purchase. Prices are from when you added the line.
+        You can either open external retailer/pharmacy links, or place a MedLens home-delivery order (MVP supports <strong>local pharmacy</strong> items only).
       </p>
     </header>
 
@@ -50,6 +51,57 @@
             <button type="button" class="btn" id="openAllBtn">Open all checkouts (staggered)</button>
           </div>
         </section>
+
+        <section class="panel" style="margin-top: 1rem" id="deliveryPanel">
+          <div class="online-head">
+            <h2 style="margin: 0">Home delivery (MedLens)</h2>
+            <a class="btn btn-sm btn-ghost" href="/login.html" id="loginToOrderLink">Login</a>
+          </div>
+          <p class="muted" style="margin-top: 0.5rem">
+            Delivery options: <strong>60 min</strong>, <strong>4–6 hrs</strong>, <strong>same day</strong> (charges) and <strong>normal</strong> (free).
+          </p>
+
+          <div id="deliveryStatus" class="muted" style="margin-top: 0.5rem"></div>
+
+          <div class="form-grid" style="margin-top: 0.75rem">
+            <label class="field">
+              <span>Address line</span>
+              <input id="addr1" type="text" placeholder="Flat / house, street" />
+            </label>
+            <label class="field">
+              <span>Landmark</span>
+              <input id="landmark" type="text" placeholder="Nearby landmark (optional)" />
+            </label>
+            <label class="field">
+              <span>City</span>
+              <input id="addrCity" type="text" placeholder="City" />
+            </label>
+            <label class="field">
+              <span>PIN code</span>
+              <input id="addrPin" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit PIN" />
+            </label>
+            <label class="field">
+              <span>Delivery speed</span>
+              <select id="deliveryOption">
+                <option value="normal">Normal (free)</option>
+                <option value="same_day">Same day (+₹19)</option>
+                <option value="express_4_6">4–6 hrs (+₹29)</option>
+                <option value="express_60">60 min (+₹49)</option>
+              </select>
+            </label>
+          </div>
+
+          <div style="margin-top: 0.75rem">
+            <h3 style="margin: 0 0 0.5rem; font-size: 1rem">Consumption (for reminders)</h3>
+            <div id="doseRows" class="table-wrap"></div>
+          </div>
+
+          <div class="online-checkout-actions" style="margin-top: 0.9rem">
+            <button type="button" class="btn btn-primary" id="placeOrderBtn">Place delivery order</button>
+            <span class="muted hint">Order tracking + WhatsApp updates included.</span>
+          </div>
+        </section>
+
         <div id="buckets"></div>
       </div>
     </main>

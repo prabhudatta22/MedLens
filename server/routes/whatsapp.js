@@ -38,12 +38,68 @@ router.post("/", async (req, res) => {
       const waFrom = msg.from; // wa_id
       const messageId = msg.id;
 
+      // Text commands: "status" or "status 123"
+      const bodyText = msg.text?.body ? String(msg.text.body).trim() : "";
+      if (bodyText) {
+        const m = bodyText.toLowerCase().match(/^status\b(?:\s+#?(\d+))?/);
+        if (m) {
+          const orderId = m[1] ? Number(m[1]) : null;
+          // Find latest order for this phone (best-effort: match by digits to users.phone_e164)
+          const e164Like = `%${String(waFrom).replace(/[^\d]/g, "")}`;
+          const userRes = await pool.query(
+            `SELECT id, phone_e164 FROM users WHERE phone_e164 LIKE $1 ORDER BY last_login_at DESC NULLS LAST LIMIT 1`,
+            [e164Like]
+          );
+          if (!userRes.rows.length) {
+            await sendTextMessage({
+              toWaId: waFrom,
+              text: "MedLens: I couldn’t find your account. Please login on the website once with OTP, then try again.",
+            }).catch(() => {});
+            continue;
+          }
+          const userId = userRes.rows[0].id;
+
+          const ordRes = orderId
+            ? await pool.query(
+                `SELECT id, status, delivery_option, scheduled_for, created_at
+                 FROM orders
+                 WHERE id = $1 AND user_id = $2
+                 LIMIT 1`,
+                [orderId, userId]
+              )
+            : await pool.query(
+                `SELECT id, status, delivery_option, scheduled_for, created_at
+                 FROM orders
+                 WHERE user_id = $1
+                 ORDER BY created_at DESC
+                 LIMIT 1`,
+                [userId]
+              );
+
+          if (!ordRes.rows.length) {
+            await sendTextMessage({
+              toWaId: waFrom,
+              text: orderId ? `MedLens: No order #${orderId} found.` : "MedLens: No orders found yet.",
+            }).catch(() => {});
+            continue;
+          }
+          const o = ordRes.rows[0];
+          await sendTextMessage({
+            toWaId: waFrom,
+            text: `MedLens: Order #${o.id} status: ${o.status}. Delivery: ${o.delivery_option}${
+              o.scheduled_for ? ` (scheduled ${new Date(o.scheduled_for).toLocaleString("en-IN")})` : ""
+            }.`,
+          }).catch(() => {});
+          continue;
+        }
+      }
+
       const image = msg.image;
       if (!image?.id) {
         await sendTextMessage({
           toWaId: waFrom,
           text:
-            "Please send a clear photo of the prescription (as an image). PDF/document support is coming next.",
+            "Send a prescription image to extract medicines, or reply “status” / “status 123” to track your latest order.",
         }).catch(() => {});
         continue;
       }

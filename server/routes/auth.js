@@ -8,6 +8,7 @@ import {
   randomSessionId,
 } from "../auth/phone.js";
 import { createProviderSession, deleteProviderSession } from "../auth/providerSessions.js";
+import { exchangeCodeForToken, fetchGoogleUserInfo, googleAuthUrl, googleEnabled, newState } from "../auth/google.js";
 
 const router = Router();
 
@@ -160,6 +161,83 @@ router.post("/logout", async (req, res) => {
 
 router.get("/me", async (req, res) => {
   res.json({ user: req.user || null });
+});
+
+// --- Google OAuth (Gmail login) ---
+router.get("/google/start", async (_req, res) => {
+  if (!googleEnabled()) return res.status(503).json({ error: "Google login is not configured" });
+  const state = newState();
+  // Store state in short-lived cookie (MVP). In production: server-side store.
+  res.cookie("gstate", state, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 10 * 60_000 });
+  res.redirect(googleAuthUrl(state));
+});
+
+router.get("/google/callback", async (req, res) => {
+  if (!googleEnabled()) return res.status(503).send("Google login not configured");
+  const code = String(req.query.code || "");
+  const state = String(req.query.state || "");
+  const cookieState = req.cookies?.gstate;
+  if (!code) return res.status(400).send("Missing code");
+  if (!state || !cookieState || state !== cookieState) return res.status(400).send("Invalid state");
+  res.clearCookie("gstate");
+
+  try {
+    const token = await exchangeCodeForToken(code);
+    const info = await fetchGoogleUserInfo(token.access_token);
+    const sub = String(info.sub || "");
+    const email = info.email ? String(info.email).toLowerCase() : null;
+    if (!sub) throw new Error("Missing Google subject");
+
+    // Find or create user mapped to google sub
+    const existing = await pool.query(
+      `SELECT u.id, u.phone_e164
+       FROM oauth_identities oi
+       JOIN users u ON u.id = oi.user_id
+       WHERE oi.provider = 'google' AND oi.provider_subject = $1
+       LIMIT 1`,
+      [sub]
+    );
+    let userId;
+    let phoneE164 = null;
+    if (existing.rows.length) {
+      userId = existing.rows[0].id;
+      phoneE164 = existing.rows[0].phone_e164;
+    } else {
+      // Create a placeholder user row (phone is required in current schema). MVP strategy:
+      // store a synthetic unique value so schema stays intact.
+      const syntheticPhone = `+000${Math.floor(Math.random() * 1e10)}`; // not a real phone; used only to satisfy schema
+      const ures = await pool.query(
+        `INSERT INTO users (phone_e164, last_login_at)
+         VALUES ($1, now())
+         RETURNING id, phone_e164`,
+        [syntheticPhone]
+      );
+      userId = ures.rows[0].id;
+      phoneE164 = ures.rows[0].phone_e164;
+      await pool.query(
+        `INSERT INTO oauth_identities (provider, provider_subject, email, user_id)
+         VALUES ('google', $1, $2, $3)`,
+        [sub, email, userId]
+      );
+    }
+
+    const sid = randomSessionId();
+    const days = Number(process.env.SESSION_DAYS || 30);
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60_000).toISOString();
+    await pool.query(`INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`, [sid, userId, expiresAt]);
+
+    res.cookie("sid", sid, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      expires: new Date(expiresAt),
+    });
+
+    // Redirect to home (or orders)
+    return res.redirect("/orders.html");
+  } catch (e) {
+    return res.status(500).send(`Google login failed: ${String(e?.message || e)}`);
+  }
 });
 
 export default router;

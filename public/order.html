@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — track order</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/" style="text-decoration: none; color: inherit">
+          <img class="brand-mark" src="/brand-mark.png" alt="MedLens" width="150" height="150" />
+          <div>
+            <h1>MedLens</h1>
+            <p class="tagline">Order tracking</p>
+          </div>
+        </a>
+        <nav class="header-nav" aria-label="Account">
+          <a href="/orders.html" class="nav-link">Orders</a>
+          <a href="/checkout.html" class="nav-link">Cart</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2 id="orderTitle" style="margin-bottom: 0.25rem">Order</h2>
+            <p class="muted section-sub" id="orderMeta"></p>
+          </div>
+        </div>
+        <div id="orderStatus" class="muted"></div>
+      </section>
+
+      <section class="panel" style="margin-top: 1rem">
+        <h2 style="margin-bottom: 0.5rem">Items</h2>
+        <div class="table-wrap">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Pharmacy</th>
+              </tr>
+            </thead>
+            <tbody id="orderItems"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top: 1rem">
+        <h2 style="margin-bottom: 0.5rem">Timeline</h2>
+        <div id="orderTimeline"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/order.js"></script>
+  </body>
+</html>
+

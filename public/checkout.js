@@ -45,6 +45,142 @@ function uniqueOpenUrls(lines) {
   return out;
 }
 
+async function fetchMe() {
+  try {
+    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
+    const data = await res.json().catch(() => ({}));
+    return data.user || null;
+  } catch {
+    return null;
+  }
+}
+
+function onlyLocalItems(items) {
+  return (items || []).filter((x) => x && x.source === "local");
+}
+
+function renderDoseTable(lines) {
+  const host = $("doseRows");
+  if (!host) return;
+  if (!lines.length) {
+    host.innerHTML = `<p class="muted">Add at least one <strong>local pharmacy</strong> item to place a delivery order.</p>`;
+    return;
+  }
+  host.innerHTML = `
+    <table class="price-table">
+      <thead>
+        <tr>
+          <th>Medicine</th>
+          <th>Qty</th>
+          <th>Tablets / day</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${lines
+          .map(
+            (L) => `
+          <tr>
+            <td>${escapeHtml(L.medicineLabel)}${L.strength ? ` <span class="muted">${escapeHtml(L.strength)}</span>` : ""}</td>
+            <td class="muted">${Number(L.quantity) || 1}</td>
+            <td><input class="qty-input dose-input" type="number" min="0.25" step="0.25" data-line-id="${escapeHtml(
+              L.lineId
+            )}" placeholder="e.g. 2" /></td>
+          </tr>`
+          )
+          .join("")}
+      </tbody>
+    </table>`;
+}
+
+function collectDoseByLineId() {
+  const map = new Map();
+  document.querySelectorAll(".dose-input[data-line-id]").forEach((inp) => {
+    const id = inp.getAttribute("data-line-id");
+    const v = inp.value;
+    if (!id) return;
+    const n = v == null || v === "" ? null : Number(v);
+    if (n != null && (!Number.isFinite(n) || n <= 0)) return;
+    map.set(id, n);
+  });
+  return map;
+}
+
+async function placeDeliveryOrder() {
+  const statusEl = $("deliveryStatus");
+  const btn = $("placeOrderBtn");
+  if (!statusEl || !btn) return;
+
+  const user = await fetchMe();
+  if (!user || user.role === "service_provider") {
+    statusEl.textContent = "Please login with your phone OTP to place an order.";
+    return;
+  }
+
+  const items = onlyLocalItems(getCartItems());
+  if (!items.length) {
+    statusEl.textContent = "Your cart has no local pharmacy items (delivery MVP supports local items only).";
+    return;
+  }
+
+  const addr1 = $("addr1")?.value?.trim() || "";
+  if (!addr1) {
+    statusEl.textContent = "Address line is required.";
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = "Placing order…";
+
+  const doseMap = collectDoseByLineId();
+  const delivery_option = $("deliveryOption")?.value || "normal";
+
+  const payload = {
+    delivery_option,
+    address: {
+      address_line1: addr1,
+      landmark: $("landmark")?.value?.trim() || "",
+      city: $("addrCity")?.value?.trim() || "",
+      pincode: $("addrPin")?.value?.trim() || "",
+    },
+    items: items.map((L) => ({
+      source: "local",
+      pharmacyId: L.pharmacyId,
+      medicineId: L.medicineId,
+      medicineLabel: L.medicineLabel,
+      strength: L.strength || "",
+      form: L.form || "",
+      pack_size: L.pack_size ?? null,
+      quantity: Number(L.quantity) || 1,
+      unitPriceInr: Number(L.unitPriceInr) || 0,
+      mrpInr: L.mrpInr ?? null,
+      tablets_per_day: doseMap.get(L.lineId) ?? null,
+    })),
+  };
+
+  try {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "same-origin",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      statusEl.textContent = data.error || `Order failed (${res.status})`;
+      btn.disabled = false;
+      return;
+    }
+    const id = data.order?.id;
+    statusEl.innerHTML = `Order placed: <strong>#${escapeHtml(id)}</strong>. <a href="/order.html?id=${encodeURIComponent(
+      id
+    )}">Track order</a>.`;
+  } catch (e) {
+    statusEl.textContent = String(e?.message || e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function render() {
   const items = getCartItems();
   const empty = $("empty-state");
@@ -145,6 +281,9 @@ function render() {
       });
     });
   });
+
+  // Home delivery panel
+  renderDoseTable(onlyLocalItems(items));
 }
 
 $("clearBtn")?.addEventListener("click", () => {
@@ -163,3 +302,11 @@ $("openAllBtn")?.addEventListener("click", () => {
 });
 
 render();
+
+// Wire delivery checkout
+fetchMe().then((u) => {
+  const loginLink = $("loginToOrderLink");
+  if (!loginLink) return;
+  loginLink.classList.toggle("hidden", Boolean(u));
+});
+$("placeOrderBtn")?.addEventListener("click", () => placeDeliveryOrder());
