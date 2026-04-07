@@ -113,6 +113,73 @@ The home page can use **the browser’s geolocation** (with your permission) and
 - If permission was already granted, the app may refresh coordinates on load without a second prompt; otherwise use **Use my location**.
 - Address text is cached in **`sessionStorage`** for the tab session.
 
+## AI enhancements (search, OCR, suggestions)
+
+MedLens includes a few **AI-assisted** features designed to improve search quality and reduce manual typing. All of them are implemented with **safe fallbacks** (so the app still works without any AI API key).
+
+### 1) Query normalization (optional OpenAI)
+
+The home page can “clean up” queries before searching (spacing, units, common abbreviations).
+
+- **Endpoint**: `GET /api/normalize?q=<query>`
+- **Behavior**:
+  - Always applies **rules** normalization
+  - If `OPENAI_API_KEY` is set, it will also attempt an **OpenAI** normalization step
+
+Environment variables:
+
+- `OPENAI_API_KEY` (optional)
+- `OPENAI_MODEL` (optional; default: `gpt-4o-mini`)
+
+Implementation: `server/ai/normalize.js` + `public/app.js` integration.
+
+### 2) Prescription / bill upload → OCR → DB matching (printed text)
+
+The app can OCR a **printed** prescription/bill image and suggest likely matches from the database.
+
+- **Medicines OCR endpoint**: `POST /api/prescription/ocr` (multipart form-data, file field name `file`)
+  - Returns `{ ok, text, matches }` where `matches[]` are best matches from `medicines`
+  - UI: home page upload control (click **Extract medicines**)
+
+- **Diagnostics OCR endpoint**: `POST /api/labs/prescription/ocr?city=<citySlug>` (multipart form-data, file field name `file`)
+  - Returns `{ ok, text, matches }` where `matches[]` are best matches from `lab_tests` (+ prices for that city)
+  - UI: diagnostics page upload control (click **Extract tests**)
+
+Notes:
+
+- OCR uses `tesseract.js` and is best for **printed** text. For handwriting, you typically need a Vision model provider.
+- Matching uses **Postgres `pg_trgm`** similarity (`search_vector` + `%` operator).
+
+Implementation:
+
+- OCR: `server/ocr/ocr.js`
+- Medicine matcher: `server/prescription/parse.js`
+- Diagnostics matcher: `server/labs/parse.js`
+
+### 3) Diagnostics “intent hints”
+
+Diagnostics search shows quick intent chips (e.g. Thyroid/CBC/Lipid) for common keywords.
+
+- **Endpoint**: `GET /api/labs/intent?q=<query>&city=<citySlug>`
+- **Output**: `{ intents: [...], suggestions: [...] }`
+
+### 4) Import anomaly warnings (data quality)
+
+Price uploads now include **warnings** for suspicious rows (e.g. price > MRP, huge discount, unusually high price).
+
+- Affects:
+  - `POST /api/import/prices/xlsx`
+  - `POST /api/import/erp/marg`
+  - `POST /api/import/erp/retailgraph`
+- Response includes `summary.warnings[]` (non-fatal)
+
+### 5) Lightweight personalization (no medical claims)
+
+The UI stores **recent searches** locally (in the browser) and surfaces them as quick chips.
+
+- Medicines: `localStorage` key `medlens_recent_searches_v1`
+- Diagnostics: `localStorage` key `medlens_recent_lab_searches_v1`
+
 ## WhatsApp prescription intake (scan -> cart)
 
 This app supports receiving a prescription image via **WhatsApp Cloud API** webhook, running OCR, and creating a cart.
@@ -252,6 +319,36 @@ Open **`/checkout.html`** (header **Cart** or footer **Multi checkout** on the h
 ## Home search (live)
 
 The home page does **not** require picking a medicine from a database list first. After you type at least two characters (debounced), the UI calls **`GET /api/online/compare?q=...`** so each integrated retailer is queried in parallel with your search text, and **`GET /api/compare/search?q=...&city=...`** for matching rows in the PostgreSQL demo inventory. Configure partner env vars (or `ONLINE_USE_ILLUSTRATIVE_FALLBACK=true` for demo prices). Physical pharmacies only appear when they exist in your seeded data for that city.
+
+### Pilot DB compare flow (home page)
+
+The home page also loads **pilot database** rows in parallel: **`GET /api/compare/by-pincode`** (optional 6-digit PIN + city → “Online retailers” table) and **`GET /api/compare/search`** (city → “Nearby pharmacies” table). The client may optionally call **`GET /api/normalize`** first to tidy the query string.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant UI as public/app.js
+  participant N as GET /api/normalize
+  participant P as GET /api/compare/by-pincode
+  participant L as GET /api/compare/search
+  participant DB as PostgreSQL
+
+  U->>UI: type medicine + city (+ PIN)
+  UI->>N: optional normalize
+  N-->>UI: normalized query (maybe)
+  par Pilot DB online panel
+    UI->>P: q, city, pincode?
+    P->>DB: pharmacy_prices + pharmacies + cities + medicines
+    DB-->>P: offers
+    P-->>UI: JSON source=db
+  and Local pharmacies panel
+    UI->>L: q, city
+    L->>DB: same joins, city slug only
+    DB-->>L: offers
+    L-->>UI: JSON
+  end
+  UI->>U: render online + local tables
+```
 
 ## Purchase reminders (refill / buy again)
 
