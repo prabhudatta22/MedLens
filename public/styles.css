@@ -60,6 +60,14 @@ body {
   max-width: 560px;
 }
 
+.login-as-card {
+  background: #BAC095;
+  border-radius: 14px;
+  padding: 1rem;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+}
+
 .auth-step + .auth-step {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
