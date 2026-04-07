@@ -78,6 +78,56 @@ body {
   margin-top: 0.8rem;
 }
 
+.google-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  justify-content: center;
+  padding: 0.95rem 1.2rem;
+  border-radius: 999px;
+  background: #ffa22a;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.14);
+  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+}
+
+.google-pill:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.18);
+}
+
+.google-pill:active {
+  transform: translateY(0);
+}
+
+.google-pill__icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.google-pill__text {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+@media (max-width: 520px) {
+  .google-pill__text {
+    font-size: 1.45rem;
+  }
+}
+
 .bg-grid {
   pointer-events: none;
   position: fixed;
