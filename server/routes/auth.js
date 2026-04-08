@@ -187,6 +187,7 @@ router.get("/google/callback", async (req, res) => {
     const sub = String(info.sub || "");
     const email = info.email ? String(info.email).toLowerCase() : null;
     if (!sub) throw new Error("Missing Google subject");
+    if (!email) throw new Error("Google account has no email");
 
     // Find or create user mapped to google sub
     const existing = await pool.query(
@@ -198,22 +199,18 @@ router.get("/google/callback", async (req, res) => {
       [sub]
     );
     let userId;
-    let phoneE164 = null;
     if (existing.rows.length) {
       userId = existing.rows[0].id;
-      phoneE164 = existing.rows[0].phone_e164;
     } else {
-      // Create a placeholder user row (phone is required in current schema). MVP strategy:
-      // store a synthetic unique value so schema stays intact.
-      const syntheticPhone = `+000${Math.floor(Math.random() * 1e10)}`; // not a real phone; used only to satisfy schema
+      // Production-safe: create user by email (phone may be null).
       const ures = await pool.query(
-        `INSERT INTO users (phone_e164, last_login_at)
+        `INSERT INTO users (email, last_login_at)
          VALUES ($1, now())
-         RETURNING id, phone_e164`,
-        [syntheticPhone]
+         ON CONFLICT ((lower(email))) DO UPDATE SET last_login_at = now()
+         RETURNING id`,
+        [email]
       );
       userId = ures.rows[0].id;
-      phoneE164 = ures.rows[0].phone_e164;
       await pool.query(
         `INSERT INTO oauth_identities (provider, provider_subject, email, user_id)
          VALUES ('google', $1, $2, $3)`,

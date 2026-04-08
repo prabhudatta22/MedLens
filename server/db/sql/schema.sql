@@ -118,10 +118,16 @@ CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items (sale_id);
 -- Users: phone OTP auth (India/mobile-first)
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
-  phone_e164 TEXT NOT NULL UNIQUE, -- e.g. +919876543210
+  phone_e164 TEXT UNIQUE, -- e.g. +919876543210 (nullable for OAuth-only users)
+  email TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_login_at TIMESTAMPTZ
 );
+
+-- Back-compat migration for existing DBs:
+ALTER TABLE users ALTER COLUMN phone_e164 DROP NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users (lower(email)) WHERE email IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS otp_codes (
   id SERIAL PRIMARY KEY,

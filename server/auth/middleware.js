@@ -24,7 +24,7 @@ export async function attachUser(req, _res, next) {
   // 2) User sessions (Postgres, OTP flow)
   const { rows } = await pool.query(
     `SELECT s.id AS session_id, s.expires_at, s.revoked_at,
-            u.id AS user_id, u.phone_e164
+            u.id AS user_id, u.phone_e164, u.email
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.id = $1
@@ -36,7 +36,7 @@ export async function attachUser(req, _res, next) {
   if (s.revoked_at) return next();
   if (new Date(s.expires_at).getTime() < Date.now()) return next();
 
-  req.user = { id: s.user_id, phone_e164: s.phone_e164, session_id: s.session_id };
+  req.user = { id: s.user_id, phone_e164: s.phone_e164, email: s.email, session_id: s.session_id };
   return next();
 }
 
