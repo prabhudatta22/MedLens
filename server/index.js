@@ -12,6 +12,7 @@ import onlineCompareRoutes from "./routes/onlineCompare.js";
 import geocodeRoutes from "./routes/geocode.js";
 import catalogRoutes from "./routes/catalog.js";
 import ordersRoutes from "./routes/orders.js";
+import profileRoutes from "./routes/profile.js";
 import cookieParser from "cookie-parser";
 import { attachUser } from "./auth/middleware.js";
 
@@ -34,6 +35,7 @@ app.use("/api/online", onlineCompareRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/api/orders", ordersRoutes);
+app.use("/api/profile", profileRoutes);
 app.use("/webhook/whatsapp", whatsapp);
 
 app.get("*", (_req, res) => {

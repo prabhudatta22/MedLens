@@ -12,12 +12,27 @@ export async function getRedis() {
   if (client) return client;
   if (connecting) return connecting;
 
-  client = createClient({ url: process.env.REDIS_URL });
+  client = createClient({
+    url: process.env.REDIS_URL,
+    socket: {
+      connectTimeout: 1000,
+      reconnectStrategy: () => false,
+    },
+  });
   client.on("error", (err) => {
     console.error("Redis error", err?.message || err);
   });
 
-  connecting = client.connect().then(() => client);
+  connecting = client
+    .connect()
+    .then(() => client)
+    .catch(() => {
+      client = null;
+      return null;
+    })
+    .finally(() => {
+      connecting = null;
+    });
   return connecting;
 }
 

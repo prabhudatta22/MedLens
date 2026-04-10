@@ -5,6 +5,87 @@ import { sendTextMessage, isWhatsappConfigured } from "../integrations/whatsappC
 
 const router = Router();
 router.use(requireUser);
+let ordersSchemaReadyPromise = null;
+
+async function ensureOrdersSchema() {
+  if (ordersSchemaReadyPromise) return ordersSchemaReadyPromise;
+  ordersSchemaReadyPromise = (async () => {
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS user_addresses (
+         id SERIAL PRIMARY KEY,
+         user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+         label TEXT,
+         name TEXT,
+         phone_e164 TEXT,
+         address_line1 TEXT NOT NULL,
+         address_line2 TEXT,
+         landmark TEXT,
+         city TEXT,
+         state TEXT,
+         pincode TEXT,
+         lat DOUBLE PRECISION,
+         lng DOUBLE PRECISION,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+         updated_at TIMESTAMPTZ,
+         is_default BOOLEAN NOT NULL DEFAULT false
+       );
+
+       CREATE INDEX IF NOT EXISTS idx_user_addresses_user ON user_addresses (user_id, created_at DESC);
+
+       CREATE TABLE IF NOT EXISTS orders (
+         id SERIAL PRIMARY KEY,
+         user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+         status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created','confirmed','packed','out_for_delivery','delivered','cancelled')),
+         delivery_option TEXT NOT NULL DEFAULT 'normal' CHECK (delivery_option IN ('express_60','express_4_6','same_day','normal')),
+         delivery_fee_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (delivery_fee_inr >= 0),
+         scheduled_for TIMESTAMPTZ,
+         address_id INTEGER REFERENCES user_addresses (id) ON DELETE SET NULL,
+         notes TEXT,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+         updated_at TIMESTAMPTZ
+       );
+
+       CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders (user_id, created_at DESC);
+       CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status, created_at DESC);
+
+       CREATE TABLE IF NOT EXISTS order_items (
+         id SERIAL PRIMARY KEY,
+         order_id INTEGER NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+         source TEXT NOT NULL DEFAULT 'local' CHECK (source IN ('local','online','catalog')),
+         pharmacy_id INTEGER REFERENCES pharmacies (id) ON DELETE SET NULL,
+         medicine_id INTEGER REFERENCES medicines (id) ON DELETE SET NULL,
+         item_label TEXT NOT NULL,
+         strength TEXT,
+         form TEXT,
+         pack_size INTEGER,
+         quantity_units INTEGER NOT NULL DEFAULT 1 CHECK (quantity_units >= 1),
+         tablets_per_day NUMERIC(8, 2),
+         unit_price_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (unit_price_inr >= 0),
+         mrp_inr NUMERIC(12, 2),
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       );
+
+       CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id);
+
+       CREATE TABLE IF NOT EXISTS order_events (
+         id SERIAL PRIMARY KEY,
+         order_id INTEGER NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+         status TEXT NOT NULL,
+         message TEXT,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       );
+
+       CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events (order_id, created_at ASC);
+
+       ALTER TABLE purchase_reminders
+         ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders (id) ON DELETE SET NULL;`
+    );
+  })().catch((e) => {
+    ordersSchemaReadyPromise = null;
+    throw e;
+  });
+  return ordersSchemaReadyPromise;
+}
 
 function nowPlusMinutes(min) {
   return new Date(Date.now() + min * 60_000);
@@ -38,6 +119,7 @@ async function maybeNotifyWhatsapp({ userPhoneE164, text }) {
 }
 
 router.post("/", async (req, res) => {
+  await ensureOrdersSchema();
   const userId = req.user.id;
   const role = req.user.role;
   if (role === "service_provider") return res.status(403).json({ error: "Service provider cannot place consumer orders" });
@@ -157,19 +239,21 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
+  await ensureOrdersSchema();
   const userId = req.user.id;
   const { rows } = await pool.query(
     `SELECT id, status, delivery_option, delivery_fee_inr, scheduled_for, created_at, updated_at
      FROM orders
      WHERE user_id = $1
      ORDER BY created_at DESC
-     LIMIT 50`,
+     LIMIT 10`,
     [userId]
   );
   res.json({ orders: rows });
 });
 
 router.get("/:id", async (req, res) => {
+  await ensureOrdersSchema();
   const userId = req.user.id;
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid id" });
@@ -206,6 +290,7 @@ router.get("/:id", async (req, res) => {
 
 // MVP: user can cancel only if not yet out_for_delivery/delivered
 router.post("/:id/cancel", async (req, res) => {
+  await ensureOrdersSchema();
   const userId = req.user.id;
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid id" });
@@ -279,6 +364,7 @@ async function createRefillRemindersFromOrder({ orderId, userId }) {
 
 // MVP: allow service_provider to update status for now (in real life: scoped to their pharmacy)
 router.post("/:id/events", async (req, res) => {
+  await ensureOrdersSchema();
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid id" });
 

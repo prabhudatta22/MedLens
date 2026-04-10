@@ -6,6 +6,7 @@ import {
   bucketKey,
   bucketTitle,
 } from "./cartStore.js";
+import { fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,13 +47,9 @@ function uniqueOpenUrls(lines) {
 }
 
 async function fetchMe() {
-  try {
-    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
-    const data = await res.json().catch(() => ({}));
-    return data.user || null;
-  } catch {
-    return null;
-  }
+  const cached = loadCachedUser();
+  if (cached) return cached;
+  return fetchAndCacheUser();
 }
 
 function onlyLocalItems(items) {

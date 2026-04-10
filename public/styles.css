@@ -360,6 +360,11 @@ body {
   gap: 0.5rem;
 }
 
+.stack {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .rx-match {
   border: 1px solid rgba(208, 218, 230, 0.85);
   border-radius: 14px;
@@ -1066,6 +1071,109 @@ body {
   border-radius: 999px;
   border: 1px solid rgba(13, 122, 108, 0.25);
   background: rgba(13, 122, 108, 0.07);
+}
+
+.nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid rgba(13, 122, 108, 0.22);
+  border-radius: 10px;
+  box-shadow: var(--shadow-soft);
+  padding: 0.35rem;
+  display: none;
+  z-index: 20;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown:focus-within .nav-dropdown-menu {
+  display: grid;
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.nav-dropdown-item:hover {
+  background: rgba(241, 245, 249, 0.95);
+}
+
+.profile-dashboard {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.1rem;
+}
+
+.profile-side {
+  border-right: 1px solid rgba(208, 218, 230, 0.85);
+  padding-right: 0.85rem;
+}
+
+.profile-side h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.3rem;
+}
+
+.profile-side-block {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(208, 218, 230, 0.75);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.profile-side-title {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.profile-side-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.25rem 0.1rem;
+}
+
+.profile-side-link:hover {
+  color: var(--accent);
+}
+
+.profile-main {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.profile-card {
+  border: 1px solid rgba(208, 218, 230, 0.85);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.95rem;
+}
+
+@media (max-width: 900px) {
+  .profile-dashboard {
+    grid-template-columns: 1fr;
+  }
+  .profile-side {
+    border-right: 0;
+    border-bottom: 1px solid rgba(208, 218, 230, 0.85);
+    padding-right: 0;
+    padding-bottom: 0.8rem;
+  }
 }
 
 .sr-only {

@@ -1,4 +1,5 @@
 import { cartLineCount } from "./cartStore.js";
+import { clearCachedUser, fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -189,6 +190,7 @@ function renderAuthNav() {
   const loginEl = $("navLogin");
   const logoutEl = $("navLogout");
   const ordersEl = $("navOrders");
+  const profileWrapEl = $("navProfileWrap");
   if (!userEl || !loginEl || !logoutEl) return;
 
   const u = currentUser;
@@ -198,6 +200,7 @@ function renderAuthNav() {
   userEl.classList.toggle("hidden", !isLogged);
   // Orders are for consumer users only (OTP/Google). Hide for logged-out and service providers.
   if (ordersEl) ordersEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
+  if (profileWrapEl) profileWrapEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
 
   if (!isLogged) {
     userEl.textContent = "";
@@ -206,19 +209,19 @@ function renderAuthNav() {
   userEl.textContent =
     u.role === "service_provider"
       ? `SP · ${u.username || "account"}`
+      : u.full_name
+        ? `${u.full_name}`
+      : u.email
+        ? `${u.email}`
       : u.phone_e164
         ? `${u.phone_e164}`
         : "Account";
 }
 
 async function refreshAuth() {
-  try {
-    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
-    const data = await res.json();
-    currentUser = data.user || null;
-  } catch {
-    currentUser = null;
-  }
+  currentUser = loadCachedUser();
+  renderAuthNav();
+  currentUser = await fetchAndCacheUser();
   renderAuthNav();
 }
 
@@ -598,6 +601,7 @@ async function initLabsPage() {
   $("navLogout")?.addEventListener("click", async (e) => {
     e.preventDefault();
     await postJson("/api/auth/logout", {});
+    clearCachedUser();
     currentUser = null;
     renderAuthNav();
   });

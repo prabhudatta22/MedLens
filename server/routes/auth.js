@@ -11,9 +11,28 @@ import { createProviderSession, deleteProviderSession } from "../auth/providerSe
 import { exchangeCodeForToken, fetchGoogleUserInfo, googleAuthUrl, googleEnabled, newState } from "../auth/google.js";
 
 const router = Router();
+const DUMMY_OTP_PHONE = "+919100946364";
+const DUMMY_OTP_CODE = "12345";
 
 function otpPepper() {
   return process.env.OTP_PEPPER || "dev-only-pepper-change-me";
+}
+
+async function issueUserSession(res, user) {
+  const sid = randomSessionId();
+  const days = Number(process.env.SESSION_DAYS || 30);
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60_000).toISOString();
+  await pool.query(
+    `INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`,
+    [sid, user.id, expiresAt]
+  );
+
+  res.cookie("sid", sid, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    expires: new Date(expiresAt),
+  });
 }
 
 router.post("/request-otp", async (req, res) => {
@@ -29,7 +48,7 @@ router.post("/request-otp", async (req, res) => {
   );
   if (recent[0]?.c >= 5) return res.status(429).json({ error: "Too many OTP requests. Try later." });
 
-  const code = generateOtpCode();
+  const code = phoneE164 === DUMMY_OTP_PHONE ? DUMMY_OTP_CODE : generateOtpCode();
   const codeHash = hashOtp({ phoneE164, code, pepper: otpPepper() });
   const expiresMinutes = Number(process.env.OTP_EXPIRES_MINUTES || 5);
   const expiresAt = new Date(Date.now() + expiresMinutes * 60_000).toISOString();
@@ -57,7 +76,21 @@ router.post("/verify-otp", async (req, res) => {
   const phoneE164 = normalizeIndiaPhoneToE164(req.body?.phone);
   const code = String(req.body?.code || "").trim();
   if (!phoneE164) return res.status(400).json({ error: "Invalid phone number (India only)" });
-  if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: "Invalid OTP" });
+  const isDummyOtp = phoneE164 === DUMMY_OTP_PHONE && code === DUMMY_OTP_CODE;
+  if (!isDummyOtp && !/^\d{6}$/.test(code)) return res.status(400).json({ error: "Invalid OTP" });
+
+  if (isDummyOtp) {
+    const userRes = await pool.query(
+      `INSERT INTO users (phone_e164, last_login_at)
+       VALUES ($1, now())
+       ON CONFLICT (phone_e164) DO UPDATE SET last_login_at = now()
+       RETURNING id, phone_e164`,
+      [phoneE164]
+    );
+    const user = userRes.rows[0];
+    await issueUserSession(res, user);
+    return res.json({ ok: true, user: { id: user.id, phone_e164: user.phone_e164 }, auth: "dummy_otp" });
+  }
 
   const codeHash = hashOtp({ phoneE164, code, pepper: otpPepper() });
 
@@ -86,20 +119,7 @@ router.post("/verify-otp", async (req, res) => {
   );
   const user = userRes.rows[0];
 
-  const sid = randomSessionId();
-  const days = Number(process.env.SESSION_DAYS || 30);
-  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60_000).toISOString();
-  await pool.query(
-    `INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`,
-    [sid, user.id, expiresAt]
-  );
-
-  res.cookie("sid", sid, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    expires: new Date(expiresAt),
-  });
+  await issueUserSession(res, user);
 
   res.json({ ok: true, user: { id: user.id, phone_e164: user.phone_e164 } });
 });

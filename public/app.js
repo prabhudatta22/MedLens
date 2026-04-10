@@ -1,4 +1,5 @@
 import { addCartLine, cartLineCount, STORAGE_KEY } from "./cartStore.js";
+import { clearCachedUser, fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -1071,6 +1072,7 @@ function renderAuthNav() {
   const logoutEl = $("navLogout");
   const importEl = $("navImport");
   const ordersEl = $("navOrders");
+  const profileWrapEl = $("navProfileWrap");
   if (!userEl || !loginEl || !logoutEl) return;
 
   const u = currentUser;
@@ -1081,6 +1083,7 @@ function renderAuthNav() {
   if (importEl) importEl.classList.toggle("hidden", !(isLogged && u?.role === "service_provider"));
   // Orders are for consumer users only (OTP/Google). Hide for logged-out and service providers.
   if (ordersEl) ordersEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
+  if (profileWrapEl) profileWrapEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
 
   if (!isLogged) {
     userEl.textContent = "";
@@ -1090,6 +1093,10 @@ function renderAuthNav() {
   const label =
     u.role === "service_provider"
       ? `SP · ${u.username || "account"}`
+      : u.full_name
+        ? `${u.full_name}`
+      : u.email
+        ? `${u.email}`
       : u.phone_e164
         ? `${u.phone_e164}`
         : "Account";
@@ -1097,15 +1104,12 @@ function renderAuthNav() {
 }
 
 async function refreshAuth() {
-  try {
-    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
-    const data = await res.json();
-    currentUser = data.user || null;
-    loggedIn = Boolean(currentUser);
-  } catch {
-    currentUser = null;
-    loggedIn = false;
-  }
+  // Render immediately from local cache, then refresh from server.
+  currentUser = loadCachedUser();
+  loggedIn = Boolean(currentUser);
+  renderAuthNav();
+  currentUser = await fetchAndCacheUser();
+  loggedIn = Boolean(currentUser);
   renderAuthNav();
 }
 
@@ -1131,6 +1135,7 @@ window.addEventListener("storage", (e) => {
 $("navLogout")?.addEventListener("click", async (e) => {
   e.preventDefault();
   await postJson("/api/auth/logout", {});
+  clearCachedUser();
   currentUser = null;
   loggedIn = false;
   renderAuthNav();

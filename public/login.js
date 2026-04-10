@@ -1,3 +1,4 @@
+import { cacheUser, clearCachedUser } from "./authProfile.js";
 const $ = (id) => document.getElementById(id);
 
 function pretty(x) {
@@ -89,8 +90,8 @@ async function handleProviderLogin(e) {
     const btn = $("passwordLogin");
     if (btn) btn.disabled = true;
 
-    const username = $("#username")?.value || "";
-    const password = $("#password")?.value || "";
+    const username = $("username")?.value || "";
+    const password = $("password")?.value || "";
     const r = await post("/api/auth/login", { username, password });
     if (!r.ok) {
       setStatus("");
@@ -106,6 +107,7 @@ async function handleProviderLogin(e) {
       return;
     }
     setStatus("");
+    cacheUser(me.json.user);
     $("passOut").textContent = "Logged in successfully. Redirecting…";
     if (btn) btn.disabled = false;
     window.location.assign("/");
@@ -116,8 +118,8 @@ async function handleProviderLogin(e) {
   }
 }
 
-$("#providerForm")?.addEventListener("submit", handleProviderLogin);
-$("#passwordLogin")?.addEventListener("click", handleProviderLogin);
+$("providerForm")?.addEventListener("submit", handleProviderLogin);
+$("passwordLogin")?.addEventListener("click", handleProviderLogin);
 
 async function handleOtpRequest(e) {
   e?.preventDefault?.();
@@ -126,12 +128,12 @@ async function handleOtpRequest(e) {
     hideVerifyStep();
     const btn = $("request");
     if (btn) btn.disabled = true;
-    const phone = $("#phone").value;
+    const phone = $("phone").value;
     const r = await post("/api/auth/request-otp", { phone });
     $("reqOut").textContent = pretty({ status: r.status, ...r.json });
     if (r.ok) showVerifyStep();
-    if (r.json?.dev_otp) $("#code").value = r.json.dev_otp;
-    if (r.ok) $("#code")?.focus?.();
+    if (r.json?.dev_otp) $("code").value = r.json.dev_otp;
+    if (r.ok) $("code")?.focus?.();
     if (btn) btn.disabled = false;
   } catch (e) {
     $("reqOut").textContent = String(e?.message || e);
@@ -139,8 +141,8 @@ async function handleOtpRequest(e) {
   }
 }
 
-$("#otpRequestForm")?.addEventListener("submit", handleOtpRequest);
-$("#request")?.addEventListener("click", handleOtpRequest);
+$("otpRequestForm")?.addEventListener("submit", handleOtpRequest);
+$("request")?.addEventListener("click", handleOtpRequest);
 
 async function handleOtpVerify(e) {
   e?.preventDefault?.();
@@ -148,13 +150,14 @@ async function handleOtpVerify(e) {
     $("verOut").textContent = "Verifying…";
     const btn = $("verify");
     if (btn) btn.disabled = true;
-    const phone = $("#phone").value;
-    const code = $("#code").value;
+    const phone = $("phone").value;
+    const code = $("code").value;
     const r = await post("/api/auth/verify-otp", { phone, code });
     $("verOut").textContent = pretty({ status: r.status, ...r.json });
     if (r.ok) {
       const me = await get("/api/auth/me");
       if (me.ok && me.json?.user) {
+        cacheUser(me.json.user);
         window.location.assign("/");
         return;
       }
@@ -166,15 +169,16 @@ async function handleOtpVerify(e) {
   }
 }
 
-$("#otpVerifyForm")?.addEventListener("submit", handleOtpVerify);
-$("#verify")?.addEventListener("click", handleOtpVerify);
+$("otpVerifyForm")?.addEventListener("submit", handleOtpVerify);
+$("verify")?.addEventListener("click", handleOtpVerify);
 
-$("#logout").addEventListener("click", async () => {
+$("logout")?.addEventListener("click", async () => {
   try {
     $("verOut").textContent = "Logging out…";
     const btn = $("logout");
     if (btn) btn.disabled = true;
     const r = await post("/api/auth/logout", {});
+    clearCachedUser();
     $("verOut").textContent = pretty({ status: r.status, ...r.json });
     if (btn) btn.disabled = false;
   } catch (e) {

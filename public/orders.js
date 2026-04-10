@@ -42,7 +42,7 @@ async function loadOrders() {
     status.textContent = "No orders yet.";
     return;
   }
-  status.textContent = `Showing ${orders.length} order(s).`;
+  status.textContent = `Showing last ${orders.length} order(s).`;
   tbody.innerHTML = orders
     .map((o) => {
       return `

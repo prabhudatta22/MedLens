@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/" style="text-decoration: none; color: inherit">
+          <img class="brand-mark" src="/brand-mark.png" alt="MedLens" width="150" height="150" />
+          <div>
+            <h1>MedLens</h1>
+            <p class="tagline">Your profile</p>
+          </div>
+        </a>
+        <nav class="header-nav" aria-label="Account">
+          <a href="/" class="nav-link">Medicines</a>
+          <a href="/labs.html" class="nav-link">Diagnostics</a>
+          <a href="/checkout.html" class="nav-link">Cart</a>
+          <a href="/orders.html" class="nav-link">Orders</a>
+          <a href="/profile.html" id="navProfile" class="nav-link active">Profile</a>
+          <span id="navUser" class="nav-pill hidden" aria-live="polite"></span>
+          <a href="/login.html" id="navLogin" class="nav-link">Login</a>
+          <a href="#" id="navLogout" class="nav-link hidden">Logout</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="panel profile-dashboard">
+        <aside class="profile-side">
+          <h2>Account</h2>
+          <p id="profileNamePreview" class="muted">User</p>
+
+          <div class="profile-side-block">
+            <span class="profile-side-title">Overview</span>
+            <a href="#profileCard" class="profile-side-link">Profile details</a>
+          </div>
+
+          <div class="profile-side-block">
+            <span class="profile-side-title">Orders</span>
+            <a href="/orders.html" class="profile-side-link">Order history (last 10)</a>
+          </div>
+
+          <div class="profile-side-block">
+            <span class="profile-side-title">Account</span>
+            <a href="#addressCard" class="profile-side-link">Saved addresses</a>
+            <a href="#paymentCard" class="profile-side-link">Saved payment methods</a>
+          </div>
+        </aside>
+
+        <div class="profile-main">
+          <section id="profileCard" class="profile-card">
+            <div class="section-head">
+              <div>
+                <h3 style="margin-bottom: 0.25rem">Profile details</h3>
+                <p class="muted section-sub">Name, gender, mobile and email for your account.</p>
+              </div>
+            </div>
+            <p class="muted" id="profileStatus" style="margin: 0 0 0.75rem"></p>
+            <form id="basicProfileForm" class="form-grid" novalidate>
+              <label class="field">
+                <span>User name</span>
+                <input id="pfName" type="text" placeholder="Your name" />
+              </label>
+              <label class="field">
+                <span>Gender</span>
+                <select id="pfGender">
+                  <option value="">Prefer not to say</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Mobile no</span>
+                <input id="pfPhone" type="text" readonly />
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input id="pfEmail" type="email" placeholder="you@example.com" />
+              </label>
+              <div class="auth-actions">
+                <button type="submit" class="btn btn-primary">Save profile</button>
+              </div>
+            </form>
+          </section>
+
+          <section id="addressCard" class="profile-card">
+            <div class="section-head">
+              <div>
+                <h3 style="margin-bottom: 0.25rem">Saved addresses</h3>
+                <p class="muted section-sub">Save multiple addresses manually or auto-save from your current location.</p>
+              </div>
+            </div>
+            <p class="muted" id="addressStatus" style="margin: 0 0 0.75rem"></p>
+            <div id="addressList" class="stack"></div>
+            <form id="addressForm" class="form-grid" novalidate style="margin-top: 0.75rem">
+              <label class="field">
+                <span>Label</span>
+                <input id="addrLabel" type="text" placeholder="Home / Office" />
+              </label>
+              <label class="field">
+                <span>Address line</span>
+                <input id="addrLine1" type="text" placeholder="Flat / house, street" />
+              </label>
+              <label class="field">
+                <span>Landmark</span>
+                <input id="addrLandmark" type="text" placeholder="Near..." />
+              </label>
+              <label class="field">
+                <span>City</span>
+                <input id="addrCity" type="text" placeholder="City" />
+              </label>
+              <label class="field">
+                <span>State</span>
+                <input id="addrState" type="text" placeholder="State" />
+              </label>
+              <label class="field">
+                <span>Pincode</span>
+                <input id="addrPin" type="text" placeholder="6-digit PIN" />
+              </label>
+              <div class="auth-actions">
+                <button type="button" class="btn btn-ghost" id="useLocationAddressBtn">Use my location</button>
+                <button type="submit" class="btn btn-primary">Save address</button>
+              </div>
+            </form>
+          </section>
+
+          <section id="paymentCard" class="profile-card">
+            <div class="section-head">
+              <div>
+                <h3 style="margin-bottom: 0.25rem">Saved payment methods</h3>
+                <p class="muted section-sub">Save multiple UPI/Card methods (Razorpay-backed).</p>
+              </div>
+            </div>
+            <p class="muted" id="paymentStatus" style="margin: 0 0 0.75rem"></p>
+            <div id="paymentList" class="stack"></div>
+
+            <div class="form-grid" style="margin-top: 0.75rem">
+              <form id="upiForm" novalidate>
+                <label class="field">
+                  <span>UPI ID</span>
+                  <input id="upiId" type="text" placeholder="name@bank" />
+                </label>
+                <label class="field">
+                  <span>Label</span>
+                  <input id="upiLabel" type="text" placeholder="Primary UPI" />
+                </label>
+                <div class="auth-actions">
+                  <button type="submit" class="btn btn-primary">Save UPI</button>
+                </div>
+              </form>
+
+              <form id="cardForm" novalidate>
+                <label class="field">
+                  <span>Card last 4 digits</span>
+                  <input id="cardLast4" type="text" maxlength="4" placeholder="1234" />
+                </label>
+                <label class="field">
+                  <span>Network</span>
+                  <input id="cardNetwork" type="text" placeholder="Visa / MasterCard" />
+                </label>
+                <label class="field">
+                  <span>Card holder name</span>
+                  <input id="cardHolder" type="text" placeholder="Name on card" />
+                </label>
+                <label class="field">
+                  <span>Label</span>
+                  <input id="cardLabel" type="text" placeholder="Primary card" />
+                </label>
+                <div class="auth-actions">
+                  <button type="submit" class="btn btn-primary">Save card</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <section id="orderCard" class="profile-card">
+            <div class="section-head">
+              <div>
+                <h3 style="margin-bottom: 0.25rem">Order history (last 10)</h3>
+                <p class="muted section-sub">Quick view of your latest orders and delivery status.</p>
+              </div>
+              <a href="/orders.html" class="btn btn-sm btn-ghost">View all</a>
+            </div>
+            <div class="table-wrap">
+              <table class="price-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Status</th>
+                    <th>Delivery</th>
+                    <th>Fee</th>
+                    <th>Placed</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="recentOrdersRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/profile.js"></script>
+  </body>
+</html>
+

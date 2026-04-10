@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Back-compat migration for existing DBs:
 ALTER TABLE users ALTER COLUMN phone_e164 DROP NOT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users (lower(email)) WHERE email IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS otp_codes (
@@ -266,7 +268,27 @@ CREATE TABLE IF NOT EXISTS user_addresses (
   updated_at TIMESTAMPTZ
 );
 
+ALTER TABLE user_addresses
+  ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT false;
+
 CREATE INDEX IF NOT EXISTS idx_user_addresses_user ON user_addresses (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS user_payment_methods (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  method_type TEXT NOT NULL CHECK (method_type IN ('upi','card')),
+  provider TEXT NOT NULL DEFAULT 'razorpay',
+  label TEXT,
+  upi_id TEXT,
+  card_last4 TEXT,
+  card_network TEXT,
+  card_holder_name TEXT,
+  is_default BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_payment_methods_user ON user_payment_methods (user_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
