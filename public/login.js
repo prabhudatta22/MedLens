@@ -130,10 +130,14 @@ async function handleOtpRequest(e) {
     if (btn) btn.disabled = true;
     const phone = $("phone").value;
     const r = await post("/api/auth/request-otp", { phone });
-    $("reqOut").textContent = pretty({ status: r.status, ...r.json });
-    if (r.ok) showVerifyStep();
-    if (r.json?.dev_otp) $("code").value = r.json.dev_otp;
-    if (r.ok) $("code")?.focus?.();
+    if (!r.ok) {
+      $("reqOut").textContent = r.json?.error || `OTP request failed (${r.status})`;
+      if (btn) btn.disabled = false;
+      return;
+    }
+    $("reqOut").textContent = "OTP sent successfully. Enter the code to continue.";
+    showVerifyStep();
+    $("code")?.focus?.();
     if (btn) btn.disabled = false;
   } catch (e) {
     $("reqOut").textContent = String(e?.message || e);
@@ -153,7 +157,12 @@ async function handleOtpVerify(e) {
     const phone = $("phone").value;
     const code = $("code").value;
     const r = await post("/api/auth/verify-otp", { phone, code });
-    $("verOut").textContent = pretty({ status: r.status, ...r.json });
+    if (!r.ok) {
+      $("verOut").textContent = r.json?.error || `OTP verify failed (${r.status})`;
+      if (btn) btn.disabled = false;
+      return;
+    }
+    $("verOut").textContent = "Verified. Signing you in…";
     if (r.ok) {
       const me = await get("/api/auth/me");
       if (me.ok && me.json?.user) {

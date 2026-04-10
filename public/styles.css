@@ -1077,11 +1077,13 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
+  padding-bottom: 0.2rem;
+  margin-bottom: -0.2rem;
 }
 
 .nav-dropdown-menu {
   position: absolute;
-  top: calc(100% + 0.35rem);
+  top: 100%;
   right: 0;
   min-width: 220px;
   background: #fff;
@@ -1107,6 +1109,22 @@ body {
 
 .nav-dropdown-item:hover {
   background: rgba(241, 245, 249, 0.95);
+}
+
+.nav-dropdown-name {
+  padding: 0.45rem 0.55rem 0.35rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 700;
+  border-bottom: 1px solid rgba(208, 218, 230, 0.65);
+  margin-bottom: 0.2rem;
+}
+
+.nav-dropdown-item--danger {
+  color: #9f1239 !important;
+  border-top: 1px solid rgba(208, 218, 230, 0.65);
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
 }
 
 .profile-dashboard {

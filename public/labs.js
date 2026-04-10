@@ -191,19 +191,25 @@ function renderAuthNav() {
   const logoutEl = $("navLogout");
   const ordersEl = $("navOrders");
   const profileWrapEl = $("navProfileWrap");
+  const profileNameEl = $("navProfileName");
+  const profileLogoutEl = $("navProfileLogout");
   if (!userEl || !loginEl || !logoutEl) return;
 
   const u = currentUser;
   const isLogged = Boolean(u);
   loginEl.classList.toggle("hidden", isLogged);
-  logoutEl.classList.toggle("hidden", !isLogged);
-  userEl.classList.toggle("hidden", !isLogged);
+  // Keep standalone logout hidden; logout is shown under Profile menu.
+  logoutEl.classList.add("hidden");
+  // Keep standalone user badge hidden; name is shown inside Profile dropdown.
+  userEl.classList.add("hidden");
   // Orders are for consumer users only (OTP/Google). Hide for logged-out and service providers.
   if (ordersEl) ordersEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
   if (profileWrapEl) profileWrapEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
+  if (profileLogoutEl) profileLogoutEl.classList.toggle("hidden", !isLogged);
 
   if (!isLogged) {
     userEl.textContent = "";
+    if (profileNameEl) profileNameEl.textContent = "Account";
     return;
   }
   userEl.textContent =
@@ -216,6 +222,7 @@ function renderAuthNav() {
       : u.phone_e164
         ? `${u.phone_e164}`
         : "Account";
+  if (profileNameEl) profileNameEl.textContent = userEl.textContent;
 }
 
 async function refreshAuth() {
@@ -599,6 +606,14 @@ async function initLabsPage() {
   renderRecent();
 
   $("navLogout")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    await postJson("/api/auth/logout", {});
+    clearCachedUser();
+    currentUser = null;
+    renderAuthNav();
+  });
+
+  $("navProfileLogout")?.addEventListener("click", async (e) => {
     e.preventDefault();
     await postJson("/api/auth/logout", {});
     clearCachedUser();

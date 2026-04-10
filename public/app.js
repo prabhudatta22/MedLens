@@ -1073,20 +1073,26 @@ function renderAuthNav() {
   const importEl = $("navImport");
   const ordersEl = $("navOrders");
   const profileWrapEl = $("navProfileWrap");
+  const profileNameEl = $("navProfileName");
+  const profileLogoutEl = $("navProfileLogout");
   if (!userEl || !loginEl || !logoutEl) return;
 
   const u = currentUser;
   const isLogged = Boolean(u);
   loginEl.classList.toggle("hidden", isLogged);
-  logoutEl.classList.toggle("hidden", !isLogged);
-  userEl.classList.toggle("hidden", !isLogged);
+  // Keep standalone logout hidden; logout is shown under Profile menu.
+  logoutEl.classList.add("hidden");
+  // Keep standalone user badge hidden; name is shown inside Profile dropdown.
+  userEl.classList.add("hidden");
   if (importEl) importEl.classList.toggle("hidden", !(isLogged && u?.role === "service_provider"));
   // Orders are for consumer users only (OTP/Google). Hide for logged-out and service providers.
   if (ordersEl) ordersEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
   if (profileWrapEl) profileWrapEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
+  if (profileLogoutEl) profileLogoutEl.classList.toggle("hidden", !isLogged);
 
   if (!isLogged) {
     userEl.textContent = "";
+    if (profileNameEl) profileNameEl.textContent = "Account";
     return;
   }
 
@@ -1101,6 +1107,7 @@ function renderAuthNav() {
         ? `${u.phone_e164}`
         : "Account";
   userEl.textContent = label;
+  if (profileNameEl) profileNameEl.textContent = label;
 }
 
 async function refreshAuth() {
@@ -1133,6 +1140,16 @@ window.addEventListener("storage", (e) => {
 
 // Logout from header (user + service provider)
 $("navLogout")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await postJson("/api/auth/logout", {});
+  clearCachedUser();
+  currentUser = null;
+  loggedIn = false;
+  renderAuthNav();
+  updateReminderHint();
+});
+
+$("navProfileLogout")?.addEventListener("click", async (e) => {
   e.preventDefault();
   await postJson("/api/auth/logout", {});
   clearCachedUser();
