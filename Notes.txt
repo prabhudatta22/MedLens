@@ -1,0 +1,68 @@
+MedPlus, Apollo, Netmeds, and Medkart do not ship a single public, keyless JSON “search price” API you can call from MedLens without a commercial / technical onboarding (base URL, auth, and schema they give you).
+
+Tata 1mg is the one with published merchant documentation (Onedoc): TATA 1mg merchant API docs — still not usable without the credentials and endpoints they issue after signup.
+
+So “integrate sanctioned API” here means: real fetch() to URLs and auth you configure in .env, not hard-coded secrets or scraping.
+
+What was implemented
+server/integrations/partners/partnerEnv.js
+Maps each UI retailer to env prefixes: MEDPLUS, APOLLO, NETMEDS, ONE_MG, MEDKART and reads:
+
+{PREFIX}_PARTNER_API_BASE (required for live calls)
+{PREFIX}_PARTNER_BEARER_TOKEN or {PREFIX}_PARTNER_API_KEY (+ optional header name)
+Optional: SEARCH_PATH, SEARCH_METHOD, QUERY_PARAM, POST_BODY_TEMPLATE, EXTRA_HEADERS_JSON, timeout
+server/integrations/partners/fetchPartnerSearch.js
+Performs authenticated GET (default) or POST JSON calls to your partner base URL.
+
+server/integrations/partners/parseOfferJson.js
+Best-effort parsing of common field names (selling_price, price, mrp, etc.). If a partner’s JSON differs, adjust this or add a per-partner parser once you have their schema.
+
+server/integrations/onlinePharmacies.js → quoteProvider()
+
+If {PREFIX}_PARTNER_API_BASE is set → real HTTP + parse → data_mode: "partner_api".
+If not set → ok: false, data_mode: "unconfigured" (no made-up price).
+Optional local demo only: ONLINE_USE_ILLUSTRATIVE_FALLBACK=true → old deterministic numbers, data_mode: "illustrative_fallback".
+.env.example, README (partner section + 1mg Onedoc link), UI copy on the online panel, and a clearer status line in public/app.js when nothing is configured.
+
+What you need to do for “real” prices
+For each retailer, after you have their official search/catalog contract:
+
+Set *_PARTNER_API_BASE and auth env vars.
+Set *_PARTNER_SEARCH_PATH / method / query param / POST body to match their spec.
+If parsing fails, extend parseOfferJson.js or add a dedicated parser for that partner’s response.
+Until then, for a working demo UI, use:
+
+ONLINE_USE_ILLUSTRATIVE_FALLBACK=true
+
+in .env (documented as dev-only).
+
+
+Here’s what was added for Apollo and Netmeds using the same pattern as MedPlus: optional consumer search when B2B *_PARTNER_API_BASE is not set.
+
+Apollo (server/integrations/apolloCatalog.js)
+GET https://search.apollo247.com/v4/search?query=…&pincode=…
+Headers: authorization (raw value from DevTools — not forced to Bearer), x-app-os: web, x-source-service: PHARMA_AP_IN, x-token: (empty), x-unique-session-id (new UUID per request), Referer like the site.
+Env: APOLLO_CATALOG_AUTHORIZATION (required), APOLLO_CATALOG_PINCODE (optional, default 400001 so you never send pincode=undefined).
+Parses data.productDetails.products[]: specialPrice → selling price, price → MRP when present.
+data_mode: apollo_catalog / apollo_catalog_error
+Netmeds (server/integrations/netmedsCatalog.js)
+GET https://www.netmeds.com/ext/search/application/api/v1.0/products?page_id=*&page_size=…&q=…
+Headers: Authorization: Bearer …, x-currency-code: INR, x-location-detail (JSON string), Referer to /products/?q=…
+Env: NETMEDS_CATALOG_BEARER or NETMEDS_CATALOG_AUTHORIZATION (full value; Bearer added if missing). Optional NETMEDS_CATALOG_LOCATION_JSON; otherwise defaults to 110001 / Delhi (same idea as your sample).
+Parses items[]: price.effective.min, price.marked.min
+data_mode: netmeds_catalog / netmeds_catalog_error
+Note: Your browser also sends x-fp-signature and cookies. Many calls still work with only Bearer + location; if Netmeds starts failing, refresh tokens/headers from DevTools or use contract NETMEDS_PARTNER_*.
+Wiring
+onlinePharmacies.js: After B2B config and MedPlus catalog, runs Apollo catalog for apollopharmacy and Netmeds catalog for netmeds when the corresponding env is set.
+onlineCompare.js: Min/max stats include apollo_catalog and netmeds_catalog.
+.env.example and README document the variables (placeholders only — don’t commit real tokens).
+Security: Rotate any keys you pasted in chat; set them only in local .env, not in the repo.
+
+
+Setup
+In Google Cloud: create a key, enable Geocoding API, restrict the key (IP for the server, or as you prefer). Add to .env:
+
+GOOGLE_MAPS_API_KEY=your_key_here
+Without the key, Use my location returns a clear error from the API (503 + hint); the city dropdown still works as before.
+
+Note: Full address data comes from Google. Local pharmacy prices still use your Postgres city slug; if the user is outside the seeded cities, they’ll see the Google address but should pick the nearest demo city in the list.
