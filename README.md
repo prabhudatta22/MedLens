@@ -163,6 +163,24 @@ Diagnostics search shows quick intent chips (e.g. Thyroid/CBC/Lipid) for common 
 - **Endpoint**: `GET /api/labs/intent?q=<query>&city=<citySlug>`
 - **Output**: `{ intents: [...], suggestions: [...] }`
 
+### 3.1) MedLens ↔ Healthians request/response contract map
+
+This section is a compact handoff map for diagnostics partner integration.
+
+| MedLens endpoint | Healthians endpoint(s) | Key request mapping (MedLens -> Healthians) | Key response mapping (Healthians -> MedLens) |
+| --- | --- | --- | --- |
+| `GET /api/labs/search` | `/<partner>/getPartnerProducts` | `q, city, category, pincode` -> `zipcode, test_type(pathology/radiology), start, limit, client_id` | Normalized `items[]`: `package_id/deal_id, heading, sub_heading, category, price_inr, mrp_inr, report_tat_hours, home_collection, lab_name` |
+| `GET /api/labs/package/:packageId` | `/<partner>/getPartnerProducts` (lookup by id) | `packageId, city, pincode` -> fetch partner products and match by `package_id/deal_id/product_type_id` | Single normalized `item` (same shape as diagnostics search row) |
+| `POST /api/orders/diagnostics` | `/<partner>/getAccessToken` -> `/<partner>/checkServiceabilityByLocation_v2` -> `/<partner>/getSlotsByLocation` -> `/<partner>/freezeSlot_v1` -> `/<partner>/createBooking_v3` | MedLens body `packages[], scheduled_for, payment_type, patient, address` -> Healthians booking payload `customer[], slot.slot_id, package:[{deal_id:[...]}], payment_option, discounted_price, vendor_booking_id, vendor_billing_user_id, zipcode/lat/long/zone_id`; optional `X-Checksum` header | Partner booking mapped to MedLens order metadata: `booking_ref, slot, freeze_ref, zone_id, provider_response`; stored as `provider_order_ref/provider_payload` |
+| `GET /api/orders/:id` (diagnostics orders) | `/<partner>/getBookingStatus` | `provider_order_ref` -> `{ booking_id }` | `partner_status`: `booking_id, booking_status, customer[], raw` |
+
+Shared auth/config notes:
+
+- Auth call uses Basic Auth with `DIAG_B2B_API_KEY` + `DIAG_B2B_API_SECRET`.
+- Subsequent partner calls use `Authorization: Bearer <token>`.
+- Endpoint paths are env-configurable via `DIAG_B2B_*_PATH` and prefixed by `DIAG_B2B_PARTNER_NAME`.
+- Integration is toggled by `DIAG_B2B_ENABLED=true`.
+
 ### 4) Import anomaly warnings (data quality)
 
 Price uploads now include **warnings** for suspicious rows (e.g. price > MRP, huge discount, unusually high price).
