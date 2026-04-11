@@ -5,6 +5,11 @@ import { ocrImageBytes } from "../ocr/ocr.js";
 import { matchMedicinesFromText } from "../prescription/parse.js";
 import { normalizeQuery } from "../ai/normalize.js";
 import { matchLabTestsFromText } from "../labs/parse.js";
+import {
+  getPartnerPackageDetails,
+  isDiagnosticsPartnerEnabled,
+  searchPartnerPackages,
+} from "../integrations/diagnosticsPartner.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -24,6 +29,30 @@ function normalizeCitySlug(slug) {
     delhi: "new-delhi",
   };
   return alias[s] || s.replace(/\s+/g, "-");
+}
+
+function mapPartnerPackageToLabRow(pkg) {
+  return {
+    id: pkg.package_id,
+    heading: pkg.heading,
+    sub_heading: pkg.sub_heading,
+    category: pkg.category || "PATHOLOGY",
+    icon_url: null,
+    slug: pkg.slug || "",
+    report_tat_hours: pkg.report_tat_hours,
+    home_collection: pkg.home_collection !== false,
+    lab_name: pkg.lab_name || "Healthians",
+    price_inr: pkg.price_inr,
+    mrp_inr: pkg.mrp_inr,
+    provider: "healthians",
+    package_id: pkg.package_id,
+    deal_id: pkg.deal_id || pkg.package_id,
+    product_type: pkg.product_type || "",
+    product_type_id: pkg.product_type_id || "",
+    city_id: pkg.city_id || null,
+    city_name: pkg.city_name || "",
+    tests_included: pkg.tests_included || [],
+  };
 }
 
 router.get("/health", async (_req, res) => {
@@ -168,12 +197,35 @@ router.get(
   asyncHandler(async (req, res) => {
   const q = (req.query.q || "").toString().trim().slice(0, 120);
   const citySlug = normalizeCitySlug(req.query.city);
+  const pincode = (req.query.pincode || "").toString().trim().slice(0, 10);
   const category = (req.query.category || "").toString().trim().toUpperCase();
   if (!citySlug) {
     return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
   }
   if (!q || q.length < 2) {
     return res.json({ query: q, city: citySlug, items: [] });
+  }
+
+  if (isDiagnosticsPartnerEnabled()) {
+    try {
+      const partner = await searchPartnerPackages({
+        query: q,
+        city: citySlug,
+        category,
+        pincode,
+      });
+      const items = (partner.packages || []).map(mapPartnerPackageToLabRow);
+      return res.json({
+        query: q,
+        city: citySlug,
+        source: "partner",
+        partner: "healthians",
+        items,
+      });
+    } catch (e) {
+      // Fall back to local DB search if partner API is temporarily unavailable.
+      console.error("Diagnostics partner search failed, falling back to local catalog:", e?.message || e);
+    }
   }
 
   const like = `%${q.toLowerCase()}%`;
@@ -207,6 +259,55 @@ router.get(
   );
 
   res.json({ query: q, city: citySlug, items: rows });
+  })
+);
+
+router.get(
+  "/labs/package/:packageId",
+  asyncHandler(async (req, res) => {
+    const packageId = (req.params.packageId || "").toString().trim();
+    const citySlug = normalizeCitySlug(req.query.city);
+    const pincode = (req.query.pincode || "").toString().trim().slice(0, 10);
+    if (!packageId) return res.status(400).json({ error: "packageId is required" });
+    if (!citySlug) return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
+
+    if (isDiagnosticsPartnerEnabled()) {
+      const pkg = await getPartnerPackageDetails({ packageId, city: citySlug, pincode, category: "" });
+      if (!pkg) return res.status(404).json({ error: "Package not found" });
+      return res.json({
+        source: "partner",
+        partner: "healthians",
+        item: mapPartnerPackageToLabRow(pkg),
+      });
+    }
+
+    const numericId = Number(packageId);
+    if (!Number.isFinite(numericId) || numericId < 1) {
+      return res.status(404).json({ error: "Package not found" });
+    }
+
+    const { rows } = await pool.query(
+      `SELECT
+         t.id,
+         t.heading,
+         t.sub_heading,
+         t.category,
+         t.icon_url,
+         t.slug,
+         t.report_tat_hours,
+         t.home_collection,
+         p.lab_name,
+         p.price_inr,
+         p.mrp_inr
+       FROM lab_tests t
+       JOIN cities c ON c.slug = $2
+       JOIN lab_test_prices p ON p.test_id = t.id AND p.city_id = c.id
+       WHERE t.id = $1
+       LIMIT 1`,
+      [numericId, citySlug]
+    );
+    if (!rows.length) return res.status(404).json({ error: "Package not found" });
+    return res.json({ source: "local", item: rows[0] });
   })
 );
 

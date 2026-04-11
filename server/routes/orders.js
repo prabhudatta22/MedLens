@@ -2,6 +2,11 @@ import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireUser } from "../auth/middleware.js";
 import { sendTextMessage, isWhatsappConfigured } from "../integrations/whatsappCloud.js";
+import {
+  createPartnerDiagnosticsBooking,
+  getPartnerBookingStatus,
+  isDiagnosticsPartnerEnabled,
+} from "../integrations/diagnosticsPartner.js";
 
 const router = Router();
 router.use(requireUser);
@@ -35,11 +40,15 @@ async function ensureOrdersSchema() {
        CREATE TABLE IF NOT EXISTS orders (
          id SERIAL PRIMARY KEY,
          user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+         order_kind TEXT NOT NULL DEFAULT 'medicine',
          status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created','confirmed','packed','out_for_delivery','delivered','cancelled')),
          delivery_option TEXT NOT NULL DEFAULT 'normal' CHECK (delivery_option IN ('express_60','express_4_6','same_day','normal')),
          delivery_fee_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (delivery_fee_inr >= 0),
          scheduled_for TIMESTAMPTZ,
          address_id INTEGER REFERENCES user_addresses (id) ON DELETE SET NULL,
+         provider_name TEXT,
+         provider_order_ref TEXT,
+         provider_payload JSONB,
          notes TEXT,
          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
          updated_at TIMESTAMPTZ
@@ -60,6 +69,8 @@ async function ensureOrdersSchema() {
          pack_size INTEGER,
          quantity_units INTEGER NOT NULL DEFAULT 1 CHECK (quantity_units >= 1),
          tablets_per_day NUMERIC(8, 2),
+         provider_item_ref TEXT,
+         item_meta JSONB,
          unit_price_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (unit_price_inr >= 0),
          mrp_inr NUMERIC(12, 2),
          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -78,7 +89,14 @@ async function ensureOrdersSchema() {
        CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events (order_id, created_at ASC);
 
        ALTER TABLE purchase_reminders
-         ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders (id) ON DELETE SET NULL;`
+         ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders (id) ON DELETE SET NULL;
+
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_kind TEXT NOT NULL DEFAULT 'medicine';
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_name TEXT;
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_order_ref TEXT;
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_payload JSONB;
+       ALTER TABLE order_items ADD COLUMN IF NOT EXISTS provider_item_ref TEXT;
+       ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_meta JSONB;`
     );
   })().catch((e) => {
     ordersSchemaReadyPromise = null;
@@ -109,6 +127,119 @@ function quoteDelivery(delivery_option) {
 function toWaIdFromE164(phone_e164) {
   const d = String(phone_e164 || "").replace(/[^\d]/g, "");
   return d || null;
+}
+
+function normalizeGender(g) {
+  const x = String(g || "").trim().toLowerCase();
+  if (x === "male" || x === "m") return "male";
+  if (x === "female" || x === "f") return "female";
+  return "other";
+}
+
+function parseScheduledFor(value) {
+  if (!value) return null;
+  const d = new Date(String(value));
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function normalizeDiagnosticsPackages(body) {
+  const raw = Array.isArray(body?.packages) && body.packages.length
+    ? body.packages
+    : [
+        {
+          package_id: body?.package_id || body?.id || "",
+          deal_id: body?.deal_id || body?.package_id || body?.id || "",
+          package_name: body?.package_name || body?.heading || "",
+          city: body?.city || "",
+          price_inr: body?.price_inr,
+          mrp_inr: body?.mrp_inr,
+        },
+      ];
+  const out = [];
+  for (const p of raw) {
+    const packageId = String(p?.package_id || p?.id || "").trim();
+    const dealId = String(p?.deal_id || packageId).trim();
+    const packageName = String(p?.package_name || p?.heading || "").trim();
+    const city = String(p?.city || body?.city || "").trim().toLowerCase();
+    const priceInr = Number(p?.price_inr);
+    const mrpInr = p?.mrp_inr == null || p?.mrp_inr === "" ? null : Number(p.mrp_inr);
+    if (!packageId || !dealId || !packageName || !city || !Number.isFinite(priceInr) || priceInr <= 0) {
+      throw new Error("Each package needs package_id, deal_id, package_name, city, and valid price_inr");
+    }
+    out.push({
+      package_id: packageId,
+      deal_id: dealId,
+      package_name: packageName,
+      city,
+      price_inr: priceInr,
+      mrp_inr: Number.isFinite(mrpInr) ? mrpInr : null,
+    });
+  }
+  return out;
+}
+
+function sanitizePaymentMeta(meta) {
+  if (!meta || typeof meta !== "object") return null;
+  const method = String(meta.method || "").trim().toLowerCase();
+  if (method === "upi") {
+    const upi = String(meta.upi_id || "").trim();
+    if (!upi) return { method: "upi" };
+    const [left, right] = upi.split("@");
+    const masked = left ? `${left.slice(0, 2)}***@${right || "upi"}` : "upi";
+    return { method: "upi", upi_masked: masked };
+  }
+  if (method === "card") {
+    const last4 = String(meta.card_last4 || "").replace(/\D/g, "").slice(-4);
+    return {
+      method: "card",
+      card_last4: last4 || "****",
+      card_network: String(meta.card_network || "CARD").slice(0, 16),
+      card_holder_name: String(meta.card_holder_name || "").slice(0, 80),
+    };
+  }
+  return { method: "unknown" };
+}
+
+async function createDiagnosticReminder({ client, userId, orderId, packageName, scheduledFor }) {
+  const now = Date.now();
+  const at = new Date(scheduledFor).getTime();
+  if (!Number.isFinite(at) || at <= now + 15 * 60_000) return null;
+  let remindAt = at - 24 * 60 * 60_000;
+  if (remindAt <= now + 10 * 60_000) remindAt = at - 2 * 60 * 60_000;
+  if (remindAt <= now + 10 * 60_000) remindAt = at - 30 * 60_000;
+  if (remindAt <= now + 5 * 60_000) return null;
+
+  const label = `Diagnostic appointment · ${String(packageName || "Package").slice(0, 160)}`;
+  const note = `Auto reminder for order #${orderId} scheduled sample collection`;
+  await client.query(
+    `INSERT INTO purchase_reminders (user_id, medicine_id, medicine_label, remind_at, repeat_interval_days, notes, order_id)
+     VALUES ($1, NULL, $2, $3, NULL, $4, $5)`,
+    [userId, label, new Date(remindAt).toISOString(), note, orderId]
+  );
+  return new Date(remindAt).toISOString();
+}
+
+async function loadBookingAddress({ userId, addressId }) {
+  if (addressId) {
+    const fromId = await pool.query(
+      `SELECT id, address_line1, address_line2, landmark, city, state, pincode, lat, lng
+       FROM user_addresses
+       WHERE id = $1 AND user_id = $2
+       LIMIT 1`,
+      [addressId, userId]
+    );
+    if (fromId.rows.length) return fromId.rows[0];
+  }
+  const fallback = await pool.query(
+    `SELECT id, address_line1, address_line2, landmark, city, state, pincode, lat, lng
+     FROM user_addresses
+     WHERE user_id = $1
+     ORDER BY is_default DESC, created_at DESC
+     LIMIT 1`,
+    [userId]
+  );
+  return fallback.rows[0] || null;
 }
 
 async function maybeNotifyWhatsapp({ userPhoneE164, text }) {
@@ -242,7 +373,7 @@ router.get("/", async (req, res) => {
   await ensureOrdersSchema();
   const userId = req.user.id;
   const { rows } = await pool.query(
-    `SELECT id, status, delivery_option, delivery_fee_inr, scheduled_for, created_at, updated_at
+    `SELECT id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, provider_name, provider_order_ref, notes, created_at, updated_at
      FROM orders
      WHERE user_id = $1
      ORDER BY created_at DESC
@@ -250,6 +381,189 @@ router.get("/", async (req, res) => {
     [userId]
   );
   res.json({ orders: rows });
+});
+
+router.post("/diagnostics", async (req, res) => {
+  await ensureOrdersSchema();
+  const userId = req.user.id;
+  const role = req.user.role;
+  if (role === "service_provider") return res.status(403).json({ error: "Service provider cannot place consumer orders" });
+
+  let packages;
+  try {
+    packages = normalizeDiagnosticsPackages(req.body || {});
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  const primary = packages[0];
+  const packageId = primary.package_id;
+  const packageName = primary.package_name;
+  const city = primary.city;
+  const partnerEnabled = isDiagnosticsPartnerEnabled();
+  const priceInr = Number(primary.price_inr);
+  const paymentType = String(req.body?.payment_type || "cod").trim().toLowerCase() === "prepaid" ? "prepaid" : "cod";
+  const paymentMeta = sanitizePaymentMeta(req.body?.payment_meta);
+  const addressId = Number(req.body?.address_id);
+  const requestedSchedule = parseScheduledFor(req.body?.scheduled_for);
+  if (!requestedSchedule) return res.status(400).json({ error: "scheduled_for is required and must be a valid future date" });
+  if (requestedSchedule.getTime() < Date.now() + 10 * 60_000) {
+    return res.status(400).json({ error: "scheduled_for must be in the future" });
+  }
+  const maxSchedule = Date.now() + 30 * 24 * 60 * 60_000;
+  if (requestedSchedule.getTime() > maxSchedule) {
+    return res.status(400).json({ error: "scheduled_for can be at most 30 days in advance" });
+  }
+
+  if (!packageId || !packageName) return res.status(400).json({ error: "package_id and package_name are required" });
+  if (!city) return res.status(400).json({ error: "city is required" });
+  if (!Number.isFinite(priceInr) || priceInr <= 0) return res.status(400).json({ error: "price_inr must be greater than 0" });
+  if (paymentType === "prepaid" && !paymentMeta) return res.status(400).json({ error: "payment_meta is required for prepaid booking" });
+
+  const address = await loadBookingAddress({
+    userId,
+    addressId: Number.isFinite(addressId) && addressId > 0 ? addressId : null,
+  });
+  if (!address?.address_line1 || !address?.pincode) {
+    return res.status(400).json({ error: "Please add a valid address with pincode in Profile before booking diagnostics." });
+  }
+
+  const patient = req.body?.patient || {};
+  const patientName = String(patient.name || req.user.full_name || "").trim();
+  const patientAge = Number(patient.age || 30);
+  const patientGender = normalizeGender(patient.gender || req.user.gender);
+  const patientPhone = String(patient.phone || req.user.phone_e164 || "").trim();
+  const patientEmail = String(patient.email || req.user.email || "").trim();
+  if (!patientName || !patientPhone) {
+    return res.status(400).json({ error: "Patient name and phone are required. Update your profile and retry." });
+  }
+
+  let providerBooking;
+  if (partnerEnabled) {
+    try {
+      providerBooking = await createPartnerDiagnosticsBooking({
+        packageItems: packages.map((p) => ({
+          package_id: p.package_id,
+          deal_id: p.deal_id,
+          heading: p.package_name,
+          price_inr: p.price_inr,
+          mrp_inr: p.mrp_inr,
+        })),
+        customer: {
+          name: patientName,
+          age: Number.isFinite(patientAge) && patientAge > 0 ? patientAge : 30,
+          gender: patientGender,
+          phone: patientPhone,
+          email: patientEmail || null,
+          vendor_user_id: `medlens-${userId}`,
+        },
+        address: {
+          address_line1: address.address_line1,
+          address_line2: address.address_line2 || "",
+          locality: address.city || city,
+          landmark: address.landmark || "",
+          city: address.city || city,
+          state: address.state || "",
+          pincode: String(address.pincode || "").trim(),
+          lat: address.lat,
+          lng: address.lng,
+        },
+        city,
+        paymentType,
+        preferredDate: requestedSchedule.toISOString(),
+      });
+    } catch (e) {
+      return res.status(502).json({ error: e?.message || "Diagnostics partner booking failed" });
+    }
+  } else {
+    providerBooking = {
+      booking_ref: `LOCAL-${Date.now()}`,
+      slot: null,
+      freeze_ref: null,
+      provider_response: { mode: "local_fallback", note: "Partner integration is disabled" },
+    };
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const scheduledIso = requestedSchedule.toISOString();
+    const orderRes = await client.query(
+      `INSERT INTO orders
+         (user_id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, provider_name, provider_order_ref, provider_payload, notes, updated_at)
+       VALUES
+         ($1,'diagnostics','confirmed','normal',0,$2,$3,$4,$5,$6,$7, now())
+       RETURNING id, order_kind, status, scheduled_for, provider_name, provider_order_ref, created_at`,
+      [
+        userId,
+        scheduledIso,
+        address.id,
+        partnerEnabled ? "healthians" : "medlens-local",
+        providerBooking.booking_ref || null,
+        JSON.stringify(providerBooking.provider_response || {}),
+        `Diagnostics package booking in ${city} (${paymentType.toUpperCase()}) · ${packages.length} test(s)`,
+      ]
+    );
+    const order = orderRes.rows[0];
+    for (const pkg of packages) {
+      await client.query(
+        `INSERT INTO order_items
+          (order_id, source, item_label, quantity_units, unit_price_inr, mrp_inr, provider_item_ref, item_meta)
+         VALUES
+          ($1,'catalog',$2,1,$3,$4,$5,$6)`,
+        [
+          order.id,
+          pkg.package_name,
+          pkg.price_inr,
+          pkg.mrp_inr,
+          pkg.package_id,
+          JSON.stringify({
+            package_id: pkg.package_id,
+            deal_id: pkg.deal_id,
+            city: pkg.city,
+            patient_name: patientName,
+            patient_age: Number.isFinite(patientAge) ? patientAge : null,
+            patient_gender: patientGender,
+            slot: providerBooking.slot || null,
+            freeze_ref: providerBooking.freeze_ref || null,
+            payment_type: paymentType,
+            payment_meta: paymentMeta,
+            scheduled_for: scheduledIso,
+          }),
+        ]
+      );
+    }
+    await client.query(
+      `INSERT INTO order_events (order_id, status, message)
+       VALUES ($1, 'confirmed', $2)`,
+      [
+        order.id,
+        providerBooking.booking_ref
+          ? `Partner booking confirmed (${packages.length} test(s)). Ref: ${providerBooking.booking_ref}`
+          : `Partner booking confirmed (${packages.length} test(s)).`,
+      ]
+    );
+    const reminderAt = await createDiagnosticReminder({
+      client,
+      userId,
+      orderId: order.id,
+      packageName: packages.length > 1 ? `${packages[0].package_name} +${packages.length - 1} more` : packageName,
+      scheduledFor: scheduledIso,
+    });
+    await client.query("COMMIT");
+    res.status(201).json({
+      ok: true,
+      order: {
+        ...order,
+        partner_booking_ref: providerBooking.booking_ref || null,
+        reminder_scheduled_for: reminderAt,
+      },
+    });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ ok: false, error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
 router.get("/:id", async (req, res) => {
@@ -285,7 +599,16 @@ router.get("/:id", async (req, res) => {
     [id]
   );
 
-  res.json({ order: orderRes.rows[0], items: itemsRes.rows, events: eventsRes.rows });
+  let partnerStatus = null;
+  if (orderRes.rows[0]?.order_kind === "diagnostics" && orderRes.rows[0]?.provider_order_ref) {
+    try {
+      partnerStatus = await getPartnerBookingStatus({ bookingId: orderRes.rows[0].provider_order_ref });
+    } catch (_e) {
+      partnerStatus = null;
+    }
+  }
+
+  res.json({ order: orderRes.rows[0], items: itemsRes.rows, events: eventsRes.rows, partner_status: partnerStatus });
 });
 
 // MVP: user can cancel only if not yet out_for_delivery/delivered

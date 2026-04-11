@@ -9,10 +9,12 @@ const SUGGEST_MIN_QUERY_LEN = 3;
 const SUGGEST_DEBOUNCE_MS = 180;
 const RECENT_KEY = "medlens_recent_lab_searches_v1";
 const RECENT_MAX = 6;
+const DIAG_PREPAID_KEY = "medlens_diag_prepaid_payload_v1";
 
 let cities = [];
 let selectedCategory = "";
 let t = null;
+let selectedDiagPackages = new Map();
 
 const DEFAULT_METRO_CITIES = [
   { slug: "mumbai", name: "Mumbai", state: "Maharashtra" },
@@ -32,10 +34,264 @@ function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
+function cleanPincode(v) {
+  return String(v || "").replace(/[^\d]/g, "").slice(0, 6);
+}
+
 function fmtINR(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return "—";
   return `₹${x.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+}
+
+async function getJson(url, options) {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+function localDateInputValue(date = new Date()) {
+  const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 10);
+}
+
+function toStartOfLocalDayIso(dateInput) {
+  const v = String(dateInput || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const d = new Date(`${v}T09:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function modalEls() {
+  return {
+    wrap: $("labPkgModal"),
+    closeBtn: $("labPkgModalClose"),
+    backdrop: $("labPkgModalBackdrop"),
+    title: $("labPkgModalTitle"),
+    sub: $("labPkgModalSub"),
+    provider: $("labPkgModalProvider"),
+    tat: $("labPkgModalTat"),
+    price: $("labPkgModalPrice"),
+    mrp: $("labPkgModalMrp"),
+    tests: $("labPkgModalTests"),
+  };
+}
+
+function bookModalEls() {
+  return {
+    wrap: $("labBookModal"),
+    backdrop: $("labBookModalBackdrop"),
+    closeBtn: $("labBookModalClose"),
+    cancelBtn: $("labBookCancel"),
+    confirmBtn: $("labBookConfirm"),
+    sub: $("labBookModalSub"),
+    hint: $("labBookHint"),
+    selectedWrap: $("labBookSelectedWrap"),
+    total: $("labBookTotal"),
+    dateInput: $("labBookDate"),
+    paymentSelect: $("labBookPayment"),
+  };
+}
+
+function pkgKey(pkg) {
+  return String(pkg?.dealId || pkg?.packageId || "").trim();
+}
+
+function addSelectedPackage(pkg) {
+  const key = pkgKey(pkg);
+  if (!key) return;
+  selectedDiagPackages.set(key, {
+    city: pkg.city,
+    packageId: String(pkg.packageId || ""),
+    dealId: String(pkg.dealId || pkg.packageId || ""),
+    packageName: String(pkg.packageName || ""),
+    priceInr: Number(pkg.priceInr) || 0,
+    mrpInr: pkg.mrpInr == null ? null : Number(pkg.mrpInr),
+  });
+}
+
+function selectedPackagesList() {
+  return [...selectedDiagPackages.values()];
+}
+
+function renderBookSelection() {
+  const m = bookModalEls();
+  if (!m.selectedWrap || !m.total) return;
+  const packs = selectedPackagesList();
+  if (!packs.length) {
+    m.selectedWrap.innerHTML = `<p class="muted">No tests selected.</p>`;
+    m.total.textContent = "";
+    return;
+  }
+  m.selectedWrap.innerHTML = packs
+    .map(
+      (p) => `
+      <div class="dx-book-selected-item">
+        <span>${escapeHtml(p.packageName)} <span class="muted">(${escapeHtml(fmtINR(p.priceInr))})</span></span>
+        <button type="button" class="btn btn-sm btn-ghost" data-remove-pkg="${escapeAttr(pkgKey(p))}">Remove</button>
+      </div>`
+    )
+    .join("");
+  const total = packs.reduce((s, p) => s + (Number(p.priceInr) || 0), 0);
+  m.total.textContent = `Total for ${packs.length} test(s): ${fmtINR(total)}`;
+}
+
+function closePackageModal() {
+  const m = modalEls();
+  if (!m.wrap) return;
+  m.wrap.classList.add("hidden");
+  m.wrap.setAttribute("aria-hidden", "true");
+}
+
+function closeBookModal() {
+  const m = bookModalEls();
+  if (!m.wrap) return;
+  m.wrap.classList.add("hidden");
+  m.wrap.setAttribute("aria-hidden", "true");
+  pendingBookCtx = null;
+  if (m.confirmBtn) m.confirmBtn.disabled = false;
+}
+
+function openPackageModal(item) {
+  const m = modalEls();
+  if (!m.wrap) return;
+  const tests = Array.isArray(item.tests_included) ? item.tests_included.slice(0, 15) : [];
+  if (m.title) m.title.textContent = item.heading || "Diagnostics package";
+  if (m.sub) m.sub.textContent = item.sub_heading || "";
+  if (m.provider) m.provider.textContent = item.lab_name || "—";
+  if (m.tat) m.tat.textContent = item.report_tat_hours != null ? `${item.report_tat_hours} hrs` : "—";
+  if (m.price) m.price.textContent = item.price_inr != null ? fmtINR(item.price_inr) : "—";
+  if (m.mrp) m.mrp.textContent = item.mrp_inr != null ? fmtINR(item.mrp_inr) : "—";
+  if (m.tests) {
+    if (tests.length) {
+      m.tests.innerHTML = tests.map((t) => `<li>${escapeHtml(String(t))}</li>`).join("");
+    } else {
+      m.tests.innerHTML = `<li class="muted">Test list not available for this package.</li>`;
+    }
+  }
+  m.wrap.classList.remove("hidden");
+  m.wrap.setAttribute("aria-hidden", "false");
+}
+
+let pendingBookCtx = null;
+function openBookModal(ctx) {
+  const m = bookModalEls();
+  if (!m.wrap) return;
+  addSelectedPackage(ctx);
+  pendingBookCtx = ctx;
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() + 1);
+  const min = localDateInputValue(minDate);
+  const maxDate = new Date(minDate.getTime());
+  maxDate.setDate(maxDate.getDate() + 30);
+  const max = localDateInputValue(maxDate);
+  const packs = selectedPackagesList();
+  if (m.sub) m.sub.textContent = `${packs.length} test(s) selected for scheduled booking`;
+  if (m.dateInput) {
+    m.dateInput.min = min;
+    m.dateInput.max = max;
+    m.dateInput.value = min;
+  }
+  if (m.paymentSelect) m.paymentSelect.value = "cod";
+  if (m.hint) m.hint.textContent = "A reminder will be added automatically before your scheduled sample collection.";
+  renderBookSelection();
+  m.wrap.classList.remove("hidden");
+  m.wrap.setAttribute("aria-hidden", "false");
+}
+
+function initPackageModalHandlers() {
+  const m = modalEls();
+  if (!m.wrap) return;
+  m.closeBtn?.addEventListener("click", () => closePackageModal());
+  m.backdrop?.addEventListener("click", () => closePackageModal());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && m.wrap && !m.wrap.classList.contains("hidden")) closePackageModal();
+  });
+}
+
+function initBookModalHandlers() {
+  const m = bookModalEls();
+  if (!m.wrap) return;
+  const close = () => closeBookModal();
+  m.closeBtn?.addEventListener("click", close);
+  m.cancelBtn?.addEventListener("click", close);
+  m.backdrop?.addEventListener("click", close);
+  m.wrap?.addEventListener("click", (e) => {
+    const btn = e.target.closest?.("[data-remove-pkg]");
+    if (!btn) return;
+    const id = btn.getAttribute("data-remove-pkg") || "";
+    if (!id) return;
+    selectedDiagPackages.delete(id);
+    renderBookSelection();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && m.wrap && !m.wrap.classList.contains("hidden")) closeBookModal();
+  });
+  m.confirmBtn?.addEventListener("click", async () => {
+    const selected = selectedPackagesList();
+    if (!selected.length) {
+      if (m.hint) m.hint.textContent = "Select at least one test before booking.";
+      return;
+    }
+    const scheduledForIso = toStartOfLocalDayIso(m.dateInput?.value);
+    if (!scheduledForIso) {
+      if (m.hint) m.hint.textContent = "Please choose a valid future booking date.";
+      return;
+    }
+    const statusEl = $("labStatus");
+    m.confirmBtn.disabled = true;
+    const bookingPayload = {
+      package_id: selected[0].packageId,
+      deal_id: selected[0].dealId,
+      package_name: selected[0].packageName,
+      city: selected[0].city,
+      price_inr: selected[0].priceInr,
+      mrp_inr: Number.isFinite(selected[0].mrpInr) ? selected[0].mrpInr : null,
+      packages: selected.map((p) => ({
+        package_id: p.packageId,
+        deal_id: p.dealId,
+        package_name: p.packageName,
+        city: p.city,
+        price_inr: p.priceInr,
+        mrp_inr: Number.isFinite(p.mrpInr) ? p.mrpInr : null,
+      })),
+      payment_type: m.paymentSelect?.value || "cod",
+      scheduled_for: scheduledForIso,
+    };
+    if (statusEl) statusEl.textContent = "Booking package with diagnostics partner…";
+    try {
+      if (bookingPayload.payment_type === "prepaid") {
+        localStorage.setItem(DIAG_PREPAID_KEY, JSON.stringify(bookingPayload));
+        closeBookModal();
+        window.location.assign("/diagnostics-payment.html");
+        return;
+      }
+      const booked = await getJson("/api/orders/diagnostics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingPayload),
+      });
+      if (!booked.ok) {
+        if (m.hint) m.hint.textContent = booked.data?.error || `Booking failed (${booked.status})`;
+        if (statusEl) statusEl.textContent = booked.data?.error || `Booking failed (${booked.status})`;
+        m.confirmBtn.disabled = false;
+        return;
+      }
+      const ord = booked.data?.order || {};
+      if (statusEl) {
+        statusEl.textContent = `Booking confirmed. Order #${ord.id}${ord.partner_booking_ref ? ` · Ref ${ord.partner_booking_ref}` : ""}`;
+      }
+      selectedDiagPackages = new Map();
+      closeBookModal();
+      window.location.assign(`/order.html?id=${encodeURIComponent(ord.id)}`);
+    } catch (e) {
+      const msg = String(e?.message || e);
+      if (m.hint) m.hint.textContent = msg;
+      if (statusEl) statusEl.textContent = msg;
+      m.confirmBtn.disabled = false;
+    }
+  });
 }
 
 function loadRecent() {
@@ -293,8 +549,11 @@ function render(items) {
       const pct = hasDiscount ? Math.round(((mrp - price) / mrp) * 100) : null;
       const tat = it.report_tat_hours != null ? `${escapeHtml(it.report_tat_hours)} hrs` : "—";
       const home = it.home_collection ? "Home collection" : "Lab visit";
-      const slug = it.slug || "";
-      const openUrl = slug ? `https://www.1mg.com${slug}` : "#";
+      const provider = String(it.provider || "").toLowerCase();
+      const packageId = String(it.package_id || it.id || "");
+      const dealId = String(it.deal_id || packageId || "");
+      const hasExternalOpen = provider !== "healthians" && !!it.slug;
+      const openUrl = hasExternalOpen ? `https://www.1mg.com${it.slug}` : "#";
 
       return `
       <article class="lab-card">
@@ -319,19 +578,84 @@ function render(items) {
             <div class="lab-price-was muted">${hasDiscount ? `<s>${escapeHtml(fmtINR(mrp))}</s>` : ""}</div>
           </div>
           <div class="lab-actions">
-            <a class="btn btn-sm btn-ghost" href="${escapeHtml(openUrl)}" target="_blank" rel="noopener noreferrer">Open</a>
-            <button type="button" class="btn btn-sm btn-primary" data-book="${escapeHtml(it.id)}">Book</button>
+            ${
+              hasExternalOpen
+                ? `<a class="btn btn-sm btn-ghost" href="${escapeHtml(openUrl)}" target="_blank" rel="noopener noreferrer">Open</a>`
+                : `<button type="button" class="btn btn-sm btn-ghost" data-view="${escapeAttr(packageId)}">View</button>`
+            }
+            <button
+              type="button"
+              class="btn btn-sm btn-ghost"
+              data-add="${escapeAttr(packageId)}"
+              data-deal-id="${escapeAttr(dealId)}"
+              data-heading="${escapeAttr(it.heading || "")}"
+              data-price="${escapeAttr(it.price_inr)}"
+              data-mrp="${escapeAttr(it.mrp_inr ?? "")}"
+            >Add</button>
+            <button
+              type="button"
+              class="btn btn-sm btn-primary"
+              data-book="${escapeAttr(packageId)}"
+              data-deal-id="${escapeAttr(dealId)}"
+              data-heading="${escapeAttr(it.heading || "")}"
+              data-price="${escapeAttr(it.price_inr)}"
+              data-mrp="${escapeAttr(it.mrp_inr ?? "")}"
+            >Book</button>
           </div>
         </div>
       </article>`;
     })
     .join("");
 
-  // Demo action
+  grid.querySelectorAll("button[data-view]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const packageId = btn.getAttribute("data-view") || "";
+      const city = $("labCity")?.value || "";
+      const pincode = cleanPincode($("labPincode")?.value || "");
+      if (!packageId || !city) return;
+      const out = await getJson(
+        `/api/labs/package/${encodeURIComponent(packageId)}?city=${encodeURIComponent(city)}&pincode=${encodeURIComponent(pincode)}`
+      );
+      if (!out.ok) {
+        setStatus(out.data?.error || `Failed to load package details (${out.status})`);
+        return;
+      }
+      const item = out.data?.item || {};
+      openPackageModal(item);
+    });
+  });
+
   grid.querySelectorAll("button[data-book]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const city = $("labCity")?.value || "";
+      const packageId = btn.getAttribute("data-book") || "";
+      const dealId = btn.getAttribute("data-deal-id") || packageId;
+      const packageName = btn.getAttribute("data-heading") || "";
+      const priceInr = Number(btn.getAttribute("data-price"));
+      const mrpRaw = btn.getAttribute("data-mrp");
+      const mrpInr = mrpRaw === "" || mrpRaw == null ? null : Number(mrpRaw);
+      if (!city || !packageId || !packageName || !Number.isFinite(priceInr)) return;
+      if (!currentUser) {
+        alert("Please login first to book diagnostics packages.");
+        window.location.assign("/login.html");
+        return;
+      }
+      openBookModal({ city, packageId, dealId, packageName, priceInr, mrpInr });
+    });
+  });
+
+  grid.querySelectorAll("button[data-add]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const name = btn.closest(".lab-card")?.querySelector(".lab-title")?.textContent || "Test";
-      alert(`Demo: booking flow not implemented.\n\nSelected: ${name}\n\nNext: patient profile, slots, payment, and partner lab integration.`);
+      const city = $("labCity")?.value || "";
+      const packageId = btn.getAttribute("data-add") || "";
+      const dealId = btn.getAttribute("data-deal-id") || packageId;
+      const packageName = btn.getAttribute("data-heading") || "";
+      const priceInr = Number(btn.getAttribute("data-price"));
+      const mrpRaw = btn.getAttribute("data-mrp");
+      const mrpInr = mrpRaw === "" || mrpRaw == null ? null : Number(mrpRaw);
+      if (!city || !packageId || !packageName || !Number.isFinite(priceInr)) return;
+      addSelectedPackage({ city, packageId, dealId, packageName, priceInr, mrpInr });
+      setStatus(`Added ${selectedPackagesList().length} test(s) for scheduled booking.`);
     });
   });
 }
@@ -339,6 +663,7 @@ function render(items) {
 async function runSearch() {
   const q = $("labQ").value.trim();
   const city = $("labCity").value;
+  const pincode = cleanPincode($("labPincode")?.value || "");
 
   if (!q) {
     setStatus("Type a test name to search (e.g. CBC).");
@@ -354,7 +679,7 @@ async function runSearch() {
   setStatus("Searching…");
   saveRecent(q);
 
-  const params = new URLSearchParams({ q, city });
+  const params = new URLSearchParams({ q, city, pincode });
   if (selectedCategory) params.set("category", selectedCategory);
 
   try {
@@ -407,12 +732,15 @@ let intentTimer;
 async function refreshIntentHints() {
   const q = $("labQ")?.value?.trim() || "";
   const city = $("labCity")?.value || "";
+  const pincode = cleanPincode($("labPincode")?.value || "");
   if (!city || q.length < 2) {
     renderIntents([]);
     return;
   }
   try {
-    const res = await fetch(`/api/labs/intent?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}`);
+    const res = await fetch(
+      `/api/labs/intent?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&pincode=${encodeURIComponent(pincode)}`
+    );
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       renderIntents([]);
@@ -538,7 +866,8 @@ async function runSuggestSearch() {
   const signal = suggestAbort.signal;
 
   const city = $("labCity")?.value || "";
-  const params = new URLSearchParams({ q, city });
+  const pincode = cleanPincode($("labPincode")?.value || "");
+  const params = new URLSearchParams({ q, city, pincode });
   if (selectedCategory) params.set("category", selectedCategory);
 
   try {
@@ -597,6 +926,12 @@ $("labQ").addEventListener("input", () => {
 $("labQ").addEventListener("blur", () => setTimeout(() => closeSuggestions(), 120));
 
 $("labCity").addEventListener("change", runSearch);
+$("labPincode")?.addEventListener("input", (e) => {
+  const el = e.currentTarget;
+  if (!el) return;
+  el.value = cleanPincode(el.value);
+  scheduleSearch();
+});
 
 async function initLabsPage() {
   await loadCities();
@@ -622,14 +957,20 @@ async function initLabsPage() {
   });
 
   $("labRxUploadBtn")?.addEventListener("click", () => uploadDiagnosticsPrescriptionAndExtract());
+  initPackageModalHandlers();
+  initBookModalHandlers();
 
   // Support deep-link from home page: /labs.html?q=...&city=...&category=...
   const params = new URLSearchParams(window.location.search);
   const q0 = (params.get("q") || "").trim();
   const city0 = (params.get("city") || "").trim();
+  const pin0 = cleanPincode(params.get("pincode") || "");
   const cat0 = (params.get("category") || "").trim().toUpperCase();
   if (city0 && $("labCity") && [...$("labCity").options].some((o) => o.value === city0)) {
     $("labCity").value = city0;
+  }
+  if (pin0 && $("labPincode")) {
+    $("labPincode").value = pin0;
   }
   if (cat0 === "PATHOLOGY" || cat0 === "RADIOLOGY") {
     selectedCategory = cat0;

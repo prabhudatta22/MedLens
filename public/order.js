@@ -14,6 +14,16 @@ function fmtTs(s) {
   return d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 }
 
+function parseJsonLoose(v) {
+  if (!v) return null;
+  if (typeof v === "object") return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return null;
+  }
+}
+
 function readId() {
   const params = new URLSearchParams(window.location.search);
   const id = Number(params.get("id"));
@@ -67,20 +77,32 @@ async function load() {
 
   const o = data.order;
   if (meta) {
-    meta.textContent = `${o.status} · ${o.delivery_option}${o.scheduled_for ? ` · scheduled ${fmtTs(o.scheduled_for)}` : ""}`;
+    const kind = o.order_kind === "diagnostics" ? "Diagnostics" : "Medicines";
+    const providerRef = o.provider_order_ref ? ` · Ref ${o.provider_order_ref}` : "";
+    meta.textContent = `${kind} · ${o.status} · ${o.delivery_option}${o.scheduled_for ? ` · scheduled ${fmtTs(o.scheduled_for)}` : ""}${providerRef}`;
   }
-  status.textContent = `Status: ${o.status}`;
+  const partnerStatus = data.partner_status?.booking_status ? ` · Partner stage ${data.partner_status.booking_status}` : "";
+  status.textContent = `Status: ${o.status}${partnerStatus}`;
 
   const items = data.items || [];
   itemsTbody.innerHTML = items
-    .map(
-      (it) => `
+    .map((it) => {
+      const m = parseJsonLoose(it.item_meta);
+      const diagBits = [
+        m?.patient_name ? `Patient: ${m.patient_name}` : "",
+        m?.patient_age ? `Age: ${m.patient_age}` : "",
+        m?.payment_type ? `Payment: ${String(m.payment_type).toUpperCase()}` : "",
+        m?.slot?.label ? `Slot: ${m.slot.label}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      return `
       <tr>
         <td>${escapeHtml(it.item_label)}${it.strength ? ` <span class="muted">${escapeHtml(it.strength)}</span>` : ""}</td>
         <td class="muted">${escapeHtml(it.quantity_units)}</td>
-        <td class="muted">${escapeHtml(it.pharmacy_name || "—")}</td>
-      </tr>`
-    )
+        <td class="muted">${escapeHtml(it.pharmacy_name || (diagBits || "—"))}</td>
+      </tr>`;
+    })
     .join("");
 
   renderTimeline(data.events || []);

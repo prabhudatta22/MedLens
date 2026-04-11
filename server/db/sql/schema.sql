@@ -293,11 +293,15 @@ CREATE INDEX IF NOT EXISTS idx_user_payment_methods_user ON user_payment_methods
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  order_kind TEXT NOT NULL DEFAULT 'medicine',
   status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created','confirmed','packed','out_for_delivery','delivered','cancelled')),
   delivery_option TEXT NOT NULL DEFAULT 'normal' CHECK (delivery_option IN ('express_60','express_4_6','same_day','normal')),
   delivery_fee_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (delivery_fee_inr >= 0),
   scheduled_for TIMESTAMPTZ,
   address_id INTEGER REFERENCES user_addresses (id) ON DELETE SET NULL,
+  provider_name TEXT,
+  provider_order_ref TEXT,
+  provider_payload JSONB,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ
@@ -318,6 +322,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   pack_size INTEGER,
   quantity_units INTEGER NOT NULL DEFAULT 1 CHECK (quantity_units >= 1),
   tablets_per_day NUMERIC(8, 2),
+  provider_item_ref TEXT,
+  item_meta JSONB,
   unit_price_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (unit_price_inr >= 0),
   mrp_inr NUMERIC(12, 2),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -337,6 +343,13 @@ CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events (order_id, cre
 
 ALTER TABLE purchase_reminders
   ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders (id) ON DELETE SET NULL;
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_kind TEXT NOT NULL DEFAULT 'medicine';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_name TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_order_ref TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_payload JSONB;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS provider_item_ref TEXT;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_meta JSONB;
 
 -- Diagnostics / lab tests (demo dataset; extend with partner integrations)
 CREATE TABLE IF NOT EXISTS lab_tests (

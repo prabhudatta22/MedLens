@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — diagnostics payment</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="shell">
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2 style="margin-bottom: 0.25rem">Diagnostics payment</h2>
+            <p class="muted section-sub">Complete prepaid payment to confirm your scheduled diagnostics booking.</p>
+          </div>
+        </div>
+        <div id="dxPayStatus" class="muted" style="margin-bottom: 0.7rem"></div>
+        <div id="dxPaySummary" class="rx-matches"></div>
+
+        <div class="dx-book-grid" style="margin-top: 0.75rem">
+          <label class="field" style="margin: 0">
+            <span>Payment method</span>
+            <select id="dxPayMethod">
+              <option value="upi">UPI</option>
+              <option value="card">Card</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="dxUpiForm" class="form-grid" style="margin-top: 0.75rem">
+          <label class="field">
+            <span>UPI ID</span>
+            <input id="dxUpiId" type="text" placeholder="name@bank" />
+          </label>
+        </div>
+
+        <div id="dxCardForm" class="form-grid hidden" style="margin-top: 0.75rem">
+          <label class="field">
+            <span>Card number</span>
+            <input id="dxCardNumber" type="text" inputmode="numeric" maxlength="19" placeholder="1234 5678 9012 3456" />
+          </label>
+          <label class="field">
+            <span>Expiry (MM/YY)</span>
+            <input id="dxCardExp" type="text" maxlength="5" placeholder="MM/YY" />
+          </label>
+          <label class="field">
+            <span>CVV</span>
+            <input id="dxCardCvv" type="password" inputmode="numeric" maxlength="4" placeholder="123" />
+          </label>
+          <label class="field">
+            <span>Card holder</span>
+            <input id="dxCardHolder" type="text" placeholder="Name on card" />
+          </label>
+        </div>
+
+        <div class="search-actions" style="margin-top: 0.85rem; justify-content: flex-end">
+          <a class="btn btn-ghost" href="/labs.html">Back to diagnostics</a>
+          <button type="button" id="dxPayBtn" class="btn btn-primary">Pay and confirm booking</button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/diagnostics-payment.js"></script>
+  </body>
+  </html>

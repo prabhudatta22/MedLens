@@ -45,12 +45,16 @@ async function loadOrders() {
   status.textContent = `Showing last ${orders.length} order(s).`;
   tbody.innerHTML = orders
     .map((o) => {
+      const typeLabel = o.order_kind === "diagnostics" ? "Diagnostics" : "Medicines";
+      const providerBits = [o.provider_name || "", o.provider_order_ref ? `Ref ${o.provider_order_ref}` : ""]
+        .filter(Boolean)
+        .join(" · ");
       return `
         <tr>
           <td><strong>#${escapeHtml(o.id)}</strong></td>
-          <td>${escapeHtml(o.status)}</td>
+          <td>${escapeHtml(o.status)}<div class="muted">${escapeHtml(typeLabel)}</div></td>
           <td class="muted">${escapeHtml(o.delivery_option)}${o.scheduled_for ? ` · ${escapeHtml(fmtTs(o.scheduled_for))}` : ""}</td>
-          <td class="price-cell">${fmtInr(o.delivery_fee_inr)}</td>
+          <td class="price-cell">${o.order_kind === "diagnostics" ? (providerBits ? escapeHtml(providerBits) : "—") : fmtInr(o.delivery_fee_inr)}</td>
           <td class="muted">${escapeHtml(fmtTs(o.created_at))}</td>
           <td><a href="/order.html?id=${encodeURIComponent(o.id)}">Track</a></td>
         </tr>`;

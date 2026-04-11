@@ -1239,3 +1239,101 @@ body {
   color: var(--text);
   font: inherit;
 }
+
+/* Diagnostics package details modal */
+.dx-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.dx-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 17, 32, 0.58);
+}
+
+.dx-modal-card {
+  position: relative;
+  width: min(680px, 96vw);
+  max-height: 85vh;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid rgba(21, 32, 58, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(19, 29, 53, 0.24);
+  padding: 1rem 1rem 1.1rem;
+}
+
+.dx-modal-close {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(21, 32, 58, 0.24);
+  border-radius: 999px;
+  background: #fff;
+  color: #20314f;
+  cursor: pointer;
+}
+
+.dx-modal-title {
+  margin: 0 2.1rem 0.2rem 0;
+}
+
+.dx-modal-sub {
+  margin: 0 0 0.75rem;
+}
+
+.dx-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.dx-modal-grid div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.dx-modal-tests {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.dx-book-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.dx-book-selected {
+  border: 1px solid rgba(208, 218, 230, 0.75);
+  border-radius: 10px;
+  padding: 0.55rem 0.6rem;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.dx-book-selected-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+@media (max-width: 700px) {
+  .dx-modal-grid,
+  .dx-book-grid {
+    grid-template-columns: 1fr;
+  }
+}
