@@ -1137,6 +1137,9 @@ function updateReminderHint() {
 window.addEventListener("storage", (e) => {
   if (e.key === STORAGE_KEY) refreshCartBadge();
 });
+window.addEventListener("pageshow", () => {
+  refreshCartBadge();
+});
 
 // Logout from header (user + service provider)
 $("navLogout")?.addEventListener("click", async (e) => {

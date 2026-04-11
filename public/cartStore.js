@@ -1,4 +1,5 @@
 export const STORAGE_KEY = "medlens_multi_checkout_v1";
+const FALLBACK_SESSION_KEY = "medlens_multi_checkout_session_v1";
 
 function safeParse(raw) {
   try {
@@ -10,15 +11,38 @@ function safeParse(raw) {
 }
 
 export function getCartItems() {
-  if (typeof localStorage === "undefined") return [];
-  return safeParse(localStorage.getItem(STORAGE_KEY));
+  if (typeof window === "undefined") return [];
+  let items = [];
+  try {
+    if (typeof localStorage !== "undefined") {
+      items = safeParse(localStorage.getItem(STORAGE_KEY));
+    }
+  } catch {
+    items = [];
+  }
+  if (items.length) return items;
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      return safeParse(sessionStorage.getItem(FALLBACK_SESSION_KEY));
+    }
+  } catch {
+    /* ignore */
+  }
+  return [];
 }
 
 function saveItems(items) {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ items, updated_at: Date.now() })
-  );
+  const raw = JSON.stringify({ items, updated_at: Date.now() });
+  try {
+    localStorage.setItem(STORAGE_KEY, raw);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.setItem(FALLBACK_SESSION_KEY, raw);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function cartLineCount() {

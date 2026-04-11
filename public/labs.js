@@ -938,6 +938,7 @@ async function initLabsPage() {
   await refreshAuth();
   await loadCategories();
   refreshCartBadge();
+  window.addEventListener("pageshow", () => refreshCartBadge());
   renderRecent();
 
   $("navLogout")?.addEventListener("click", async (e) => {
