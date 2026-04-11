@@ -1,5 +1,8 @@
+import { removeLine } from "./cartStore.js";
+
 const $ = (id) => document.getElementById(id);
 const DIAG_PREPAID_KEY = "medlens_diag_prepaid_payload_v1";
+const ORDER_SUCCESS_KEY = "medlens_order_success_message_v1";
 
 function fmtINR(n) {
   const x = Number(n);
@@ -82,8 +85,18 @@ async function placePrepaidOrder(pending) {
       return;
     }
     localStorage.removeItem(DIAG_PREPAID_KEY);
+    const lineIds = Array.isArray(pending?.cart_line_ids) ? pending.cart_line_ids : [];
+    lineIds.forEach((id) => removeLine(id));
     const id = data?.order?.id;
-    window.location.assign(`/order.html?id=${encodeURIComponent(id)}`);
+    try {
+      sessionStorage.setItem(ORDER_SUCCESS_KEY, "Successfully order placed");
+    } catch {
+      /* ignore */
+    }
+    status.textContent = "Successfully order placed. Redirecting to order details…";
+    setTimeout(() => {
+      window.location.assign(`/order.html?id=${encodeURIComponent(id)}`);
+    }, 900);
   } catch (e) {
     status.textContent = String(e?.message || e);
     btn.disabled = false;

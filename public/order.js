@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const ORDER_SUCCESS_KEY = "medlens_order_success_message_v1";
 
 function escapeHtml(s) {
   return String(s)
@@ -82,7 +83,14 @@ async function load() {
     meta.textContent = `${kind} · ${o.status} · ${o.delivery_option}${o.scheduled_for ? ` · scheduled ${fmtTs(o.scheduled_for)}` : ""}${providerRef}`;
   }
   const partnerStatus = data.partner_status?.booking_status ? ` · Partner stage ${data.partner_status.booking_status}` : "";
-  status.textContent = `Status: ${o.status}${partnerStatus}`;
+  let successFlash = "";
+  try {
+    successFlash = sessionStorage.getItem(ORDER_SUCCESS_KEY) || "";
+    if (successFlash) sessionStorage.removeItem(ORDER_SUCCESS_KEY);
+  } catch {
+    successFlash = "";
+  }
+  status.textContent = `${successFlash ? `${successFlash} · ` : ""}Status: ${o.status}${partnerStatus}`;
 
   const items = data.items || [];
   itemsTbody.innerHTML = items

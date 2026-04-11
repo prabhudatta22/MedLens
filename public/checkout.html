@@ -28,7 +28,7 @@
         <a href="/profile.html">Profile</a>
       </nav>
       <p class="disclaimer">
-        You can either open external retailer/pharmacy links, or place a MedLens home-delivery order (MVP supports <strong>local pharmacy</strong> items only).
+        You can open external retailer/pharmacy links, place a MedLens home-delivery order for medicines, or complete diagnostics booking for tests added to cart.
       </p>
     </header>
 
@@ -100,6 +100,30 @@
           <div class="online-checkout-actions" style="margin-top: 0.9rem">
             <button type="button" class="btn btn-primary" id="placeOrderBtn">Place delivery order</button>
             <span class="muted hint">Order tracking + WhatsApp updates included.</span>
+          </div>
+        </section>
+
+        <section class="panel hidden" style="margin-top: 1rem" id="diagnosticsPanel">
+          <div class="online-head">
+            <h2 style="margin: 0">Diagnostics booking</h2>
+          </div>
+          <p class="muted" style="margin-top: 0.5rem">Book all diagnostics tests currently in cart in one order.</p>
+          <div id="diagnosticsStatus" class="muted" style="margin-top: 0.5rem"></div>
+          <div class="form-grid" style="margin-top: 0.75rem">
+            <label class="field">
+              <span>Preferred date</span>
+              <input id="diagDate" type="date" />
+            </label>
+            <label class="field">
+              <span>Payment type</span>
+              <select id="diagPaymentType">
+                <option value="cod">Cash on collection</option>
+                <option value="prepaid">Prepaid</option>
+              </select>
+            </label>
+          </div>
+          <div class="online-checkout-actions" style="margin-top: 0.9rem">
+            <button type="button" class="btn btn-primary" id="placeDiagnosticsBtn">Book diagnostics now</button>
           </div>
         </section>
 

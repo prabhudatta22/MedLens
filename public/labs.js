@@ -1,4 +1,4 @@
-import { cartLineCount } from "./cartStore.js";
+import { addCartLine, cartLineCount } from "./cartStore.js";
 import { clearCachedUser, fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
 
 const $ = (id) => document.getElementById(id);
@@ -280,7 +280,9 @@ function initBookModalHandlers() {
       }
       const ord = booked.data?.order || {};
       if (statusEl) {
-        statusEl.textContent = `Booking confirmed. Order #${ord.id}${ord.partner_booking_ref ? ` · Ref ${ord.partner_booking_ref}` : ""}`;
+        statusEl.textContent = `Successfully order placed. Order #${ord.id}${
+          ord.partner_booking_ref ? ` · Ref ${ord.partner_booking_ref}` : ""
+        }`;
       }
       selectedDiagPackages = new Map();
       closeBookModal();
@@ -655,7 +657,21 @@ function render(items) {
       const mrpInr = mrpRaw === "" || mrpRaw == null ? null : Number(mrpRaw);
       if (!city || !packageId || !packageName || !Number.isFinite(priceInr)) return;
       addSelectedPackage({ city, packageId, dealId, packageName, priceInr, mrpInr });
-      setStatus(`Added ${selectedPackagesList().length} test(s) for scheduled booking.`);
+      addCartLine({
+        source: "diagnostics",
+        packageId,
+        dealId,
+        city,
+        providerName: "Healthians",
+        medicineLabel: packageName,
+        unitPriceInr: priceInr,
+        mrpInr: Number.isFinite(mrpInr) ? mrpInr : null,
+        quantity: 1,
+      });
+      refreshCartBadge();
+      setStatus(
+        `Added to cart. ${cartLineCount()} total cart item(s) · ${selectedPackagesList().length} test(s) selected for scheduler.`
+      );
     });
   });
 }

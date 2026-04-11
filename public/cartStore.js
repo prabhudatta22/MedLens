@@ -51,6 +51,12 @@ export function cartLineCount() {
 
 function sameCartLine(i, line) {
   if (i.source !== line.source) return false;
+  if (line.source === "diagnostics") {
+    return (
+      String(i.dealId || i.packageId || "") === String(line.dealId || line.packageId || "") &&
+      String(i.city || "").toLowerCase() === String(line.city || "").toLowerCase()
+    );
+  }
   if (line.source === "local") {
     return (
       Number(i.medicineId) === Number(line.medicineId) &&
@@ -70,7 +76,7 @@ function sameCartLine(i, line) {
 }
 
 /**
- * @param {object} line — must include source, medicineId, unitPriceInr, checkoutUrl, plus local/online fields
+ * @param {object} line — must include source and pricing fields
  */
 export function addCartLine(line) {
   const items = getCartItems();
@@ -106,10 +112,12 @@ export function clearCart() {
 
 export function bucketKey(line) {
   if (line.source === "local") return `local:${line.pharmacyId}`;
+  if (line.source === "diagnostics") return `diagnostics:${line.city || "unknown"}`;
   return `online:${line.onlineProviderId}`;
 }
 
 export function bucketTitle(line) {
   if (line.source === "local") return line.pharmacyName || `Pharmacy #${line.pharmacyId}`;
+  if (line.source === "diagnostics") return line.providerName || "Diagnostics";
   return line.onlineLabel || line.onlineProviderId || "Online";
 }
