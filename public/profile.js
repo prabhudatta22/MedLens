@@ -46,12 +46,14 @@ function renderNav(user) {
   const navUser = $("navUser");
   const navLogin = $("navLogin");
   const navLogout = $("navLogout");
+  const navProfile = $("navProfile");
   const logged = Boolean(user);
   navLogin?.classList.toggle("hidden", logged);
   navLogout?.classList.toggle("hidden", !logged);
-  navUser?.classList.toggle("hidden", !logged);
-  if (!navUser || !logged) return;
-  navUser.textContent = user.email || user.phone_e164 || user.full_name || "Account";
+  // Keep header consistent with other pages: show only "Profile" link post-login.
+  navUser?.classList.add("hidden");
+  if (navUser) navUser.textContent = "";
+  navProfile?.classList.toggle("hidden", !logged);
 }
 
 function fillBasicForm(profile) {

@@ -1,3 +1,5 @@
+import { fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
+
 const $ = (id) => document.getElementById(id);
 
 function escapeHtml(s) {
@@ -18,6 +20,18 @@ function fmtTs(s) {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function renderAuthNav(user) {
+  const logged = Boolean(user);
+  $("navLogin")?.classList.toggle("hidden", logged);
+  $("navProfile")?.classList.toggle("hidden", !logged);
+}
+
+async function refreshAuthNav() {
+  renderAuthNav(loadCachedUser());
+  const fresh = await fetchAndCacheUser();
+  renderAuthNav(fresh);
 }
 
 async function loadOrders() {
@@ -62,7 +76,7 @@ async function loadOrders() {
     .join("");
 }
 
-loadOrders().catch((e) => {
+Promise.all([refreshAuthNav(), loadOrders()]).catch((e) => {
   const status = $("ordersStatus");
   if (status) status.textContent = String(e?.message || e);
 });

@@ -448,6 +448,7 @@ function renderAuthNav() {
   const loginEl = $("navLogin");
   const logoutEl = $("navLogout");
   const ordersEl = $("navOrders");
+  const profileEl = $("navProfile");
   const profileWrapEl = $("navProfileWrap");
   const profileNameEl = $("navProfileName");
   const profileLogoutEl = $("navProfileLogout");
@@ -461,8 +462,11 @@ function renderAuthNav() {
   // Keep standalone user badge hidden; name is shown inside Profile dropdown.
   userEl.classList.add("hidden");
   // Orders are for consumer users only (OTP/Google). Hide for logged-out and service providers.
-  if (ordersEl) ordersEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
-  if (profileWrapEl) profileWrapEl.classList.toggle("hidden", !(isLogged && u?.role !== "service_provider"));
+  const isConsumer = isLogged && u?.role !== "service_provider";
+  if (ordersEl) ordersEl.classList.toggle("hidden", !isConsumer);
+  if (profileWrapEl) profileWrapEl.classList.toggle("hidden", !isConsumer);
+  // Keep bare "Profile" link behavior aligned across pages.
+  if (profileEl) profileEl.classList.toggle("hidden", !isConsumer);
   if (profileLogoutEl) profileLogoutEl.classList.toggle("hidden", !isLogged);
 
   if (!isLogged) {
