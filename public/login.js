@@ -1,6 +1,24 @@
 import { cacheUser, clearCachedUser } from "./authProfile.js";
 const $ = (id) => document.getElementById(id);
 
+/** Same-origin path only; used after login / OAuth. */
+function safeReturnToPath(raw) {
+  const s = String(raw || "").trim();
+  if (!s.startsWith("/")) return "";
+  if (s.startsWith("//")) return "";
+  if (/[\0\r\n]/.test(s)) return "";
+  return s;
+}
+
+function postLoginDestination() {
+  try {
+    const p = new URLSearchParams(window.location.search).get("returnTo");
+    return safeReturnToPath(p) || "/";
+  } catch {
+    return "/";
+  }
+}
+
 function pretty(x) {
   return JSON.stringify(x, null, 2);
 }
@@ -82,6 +100,13 @@ if (modeSel) {
 syncGoogleButtonForMode();
 modeSel?.addEventListener("change", syncGoogleButtonForMode);
 
+(function wireGoogleReturnTo() {
+  const btn = $("googleLoginBtn");
+  if (!btn) return;
+  const dest = safeReturnToPath(new URLSearchParams(window.location.search).get("returnTo"));
+  btn.setAttribute("href", dest ? `/api/auth/google/start?returnTo=${encodeURIComponent(dest)}` : "/api/auth/google/start");
+})();
+
 async function handleProviderLogin(e) {
   e?.preventDefault?.();
   try {
@@ -110,7 +135,7 @@ async function handleProviderLogin(e) {
     cacheUser(me.json.user);
     $("passOut").textContent = "Logged in successfully. Redirecting…";
     if (btn) btn.disabled = false;
-    window.location.assign("/");
+    window.location.assign(postLoginDestination());
   } catch (e) {
     setStatus("");
     if ($("passOut")) $("passOut").textContent = String(e?.message || e);
@@ -167,7 +192,7 @@ async function handleOtpVerify(e) {
       const me = await get("/api/auth/me");
       if (me.ok && me.json?.user) {
         cacheUser(me.json.user);
-        window.location.assign("/");
+        window.location.assign(postLoginDestination());
         return;
       }
     }

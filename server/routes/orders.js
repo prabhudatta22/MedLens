@@ -685,9 +685,15 @@ async function createRefillRemindersFromOrder({ orderId, userId }) {
   }
 }
 
-// MVP: allow service_provider to update status for now (in real life: scoped to their pharmacy)
+// Fulfillment status updates: service-provider (pharmacy dashboard) sessions only — not consumers.
 router.post("/:id/events", async (req, res) => {
   await ensureOrdersSchema();
+  if (req.user?.role !== "service_provider") {
+    return res.status(403).json({
+      error: "Order status can only be updated by a pharmacy partner session (service provider login).",
+    });
+  }
+
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid id" });
 

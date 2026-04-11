@@ -183,6 +183,19 @@ async function fetchMe() {
   return fetchAndCacheUser();
 }
 
+function renderAuthNav(user) {
+  const logged = Boolean(user && user.role !== "service_provider");
+  $("navLogin")?.classList.toggle("hidden", logged);
+  $("navProfile")?.classList.toggle("hidden", !logged);
+  $("navOrders")?.classList.toggle("hidden", !logged);
+}
+
+async function refreshAuthNav() {
+  renderAuthNav(loadCachedUser());
+  const fresh = await fetchAndCacheUser();
+  renderAuthNav(fresh);
+}
+
 function onlyLocalItems(items) {
   return (items || []).filter((x) => x && x.source === "local");
 }
@@ -464,13 +477,14 @@ $("openAllBtn")?.addEventListener("click", () => {
 
 render();
 
-// Wire delivery checkout
-fetchMe().then((u) => {
+const returnToCheckout = `${window.location.pathname}${window.location.search || ""}`;
+const loginReturn = `/login.html?returnTo=${encodeURIComponent(returnToCheckout || "/checkout.html")}`;
+$("loginToOrderLink")?.setAttribute("href", loginReturn);
+$("navLogin")?.setAttribute("href", loginReturn);
+
+Promise.all([refreshAuthNav(), fetchMe()]).then(([, u]) => {
   const loginLink = $("loginToOrderLink");
-  if (!loginLink) return;
-  loginLink.classList.toggle("hidden", Boolean(u));
-  const ordersNav = $("navOrders");
-  if (ordersNav) ordersNav.classList.toggle("hidden", !(u && u.role !== "service_provider"));
+  if (loginLink) loginLink.classList.toggle("hidden", Boolean(u && u.role !== "service_provider"));
 });
 $("placeOrderBtn")?.addEventListener("click", () => placeDeliveryOrder());
 $("placeDiagnosticsBtn")?.addEventListener("click", () => placeDiagnosticsOrder());

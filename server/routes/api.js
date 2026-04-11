@@ -583,6 +583,11 @@ router.get("/carts/:id/compare", async (req, res) => {
     return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
   }
 
+  const cartExists = await pool.query(`SELECT 1 FROM carts WHERE id = $1 LIMIT 1`, [cartId]);
+  if (!cartExists.rows.length) {
+    return res.status(404).json({ error: "not found" });
+  }
+
   // For each cart item, compute min/max across pharmacies in the city,
   // and also return the cheapest (rank=1) pharmacy row.
   const { rows } = await pool.query(

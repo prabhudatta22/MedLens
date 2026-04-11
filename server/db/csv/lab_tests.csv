@@ -4,206 +4,206 @@ id,heading,sub_heading,category,icon_url,slug,report_tat_hours,home_collection,s
 3,Lipid Profile,Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lipid-profile,7,TRUE,lipid profile contains 8 tests
 4,Comprehensive Gold Full Body Checkup,Contains 86 tests · Smart Report,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/gold-full-body,18,TRUE,comprehensive gold full body checkup contains 86 tests · smart report
 5,Senior Citizen Health Checkup,Contains 83 tests · Smart Report,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,TRUE,senior citizen health checkup contains 83 tests · smart report
-6,Fasting Glucose,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,TRUE,
-7,Vitamin B,Contains 14 tests,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,TRUE,
-8,Vitamin D,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,TRUE,
-9,Erythrocyte Sedimentation Rate (ESR),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/esr,7,TRUE,
-10,Peripheral Blood Smear,Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/peripheral-smear,12,TRUE,
-11,Reticulocyte Count,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/reticulocyte-count,7,TRUE,
-12,Haemoglobin Electrophoresis,Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/haemoglobin-electrophoresis,24,TRUE,
-13,Prothrombin Time (PT / INR),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pt-inr,7,TRUE,
-14,Activated Partial Thromboplastin Time (aPTT),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/aptt,7,TRUE,
-15,D-Dimer,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/d-dimer,7,TRUE,
-16,Fibrinogen Level,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fibrinogen,12,TRUE,
-17,Bleeding Time & Clotting Time,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bt-ct,4,TRUE,
-18,Platelet Aggregation Study,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/platelet-aggregation,24,TRUE,
-19,Liver Function Test (LFT),Contains 11 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lft,7,TRUE,
-20,Kidney Function Test (KFT),Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/kft,7,TRUE,
-21,Blood Urea Nitrogen (BUN),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bun,6,TRUE,
-22,Serum Creatinine,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-creatinine,6,TRUE,
-23,Uric Acid,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/uric-acid,6,TRUE,
-24,Serum Calcium,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-calcium,6,TRUE,
-25,Serum Phosphorus,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-phosphorus,6,TRUE,
-26,Serum Magnesium,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-magnesium,6,TRUE,
-27,"Electrolytes Panel (Na, K, Cl, CO2)",Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/electrolytes,6,TRUE,
-28,Serum Iron & TIBC,Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/iron-tibc,7,TRUE,
-29,Ferritin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ferritin,7,TRUE,
-30,C-Reactive Protein (CRP),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/crp,6,TRUE,
-31,High Sensitivity CRP (hsCRP),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hscrp,7,TRUE,
-32,Homocysteine,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/homocysteine,12,TRUE,
-33,Serum Albumin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-albumin,6,TRUE,
-34,Total Protein,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/total-protein,6,TRUE,
-35,Bilirubin Total & Direct,Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bilirubin,6,TRUE,
-36,SGOT / AST,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/sgot,6,TRUE,
-37,SGPT / ALT,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/sgpt,6,TRUE,
-38,Alkaline Phosphatase (ALP),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/alp,6,TRUE,
-39,Gamma GT (GGT),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ggt,6,TRUE,
-40,Amylase,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/amylase,6,TRUE,
-41,Lipase,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lipase,6,TRUE,
-42,LDH (Lactate Dehydrogenase),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ldh,7,TRUE,
-43,CPK / CK Total,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cpk,7,TRUE,
-44,CPK-MB (Cardiac Fraction),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cpk-mb,7,TRUE,
-45,Troponin I (High Sensitivity),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/troponin-i,4,TRUE,
-46,Troponin T,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/troponin-t,4,TRUE,
-47,BNP / NT-proBNP,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bnp,12,TRUE,
-48,Myoglobin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/myoglobin,6,TRUE,
-49,HbA1c (Glycated Haemoglobin),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hba1c,7,TRUE,
-50,Fasting Insulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fasting-insulin,12,TRUE,
-51,C-Peptide,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/c-peptide,12,TRUE,
-52,HOMA-IR (Insulin Resistance),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/homa-ir,12,TRUE,
-53,Post Prandial Blood Glucose (PPBS),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ppbs,4,TRUE,
-54,Oral Glucose Tolerance Test (OGTT),Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ogtt,4,TRUE,
-55,Free T3 (FT3),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-t3,7,TRUE,
-56,Free T4 (FT4),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-t4,7,TRUE,
-57,TSH Ultra-Sensitive,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/tsh,7,TRUE,
-58,Anti-TPO Antibodies,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-tpo,12,TRUE,
-59,Anti-Thyroglobulin Antibody,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-tg,12,TRUE,
-60,Thyroglobulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/thyroglobulin,12,TRUE,
-61,Cortisol (Morning),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cortisol,7,TRUE,
-62,ACTH (Adrenocorticotropic Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/acth,24,TRUE,
-63,Growth Hormone (GH),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/growth-hormone,24,TRUE,
-64,IGF-1 (Insulin-like Growth Factor),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/igf1,24,TRUE,
-65,Prolactin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/prolactin,7,TRUE,
-66,LH (Luteinizing Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lh,7,TRUE,
-67,FSH (Follicle Stimulating Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fsh,7,TRUE,
-68,Estradiol (E2),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/estradiol,7,TRUE,
-69,Progesterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/progesterone,7,TRUE,
-70,Testosterone Total,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/testosterone-total,7,TRUE,
-71,Free Testosterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-testosterone,12,TRUE,
-72,DHEA-S,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/dhea-s,12,TRUE,
-73,17-OH Progesterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/17-oh-progesterone,24,TRUE,
-74,AMH (Anti-M�llerian Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/amh,24,TRUE,
-75,PTH (Parathyroid Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pth,12,TRUE,
-76,Aldosterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/aldosterone,24,TRUE,
-77,Renin Activity,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/renin,24,TRUE,
-78,Insulin-like Growth Factor Binding Protein 3,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/igfbp3,24,TRUE,
-79,ANA (Antinuclear Antibody),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ana,24,TRUE,
-80,Anti-dsDNA Antibody,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-dsdna,24,TRUE,
-81,Rheumatoid Factor (RF),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/rf,7,TRUE,
-82,Anti-CCP Antibody,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-ccp,24,TRUE,
-83,Complement C3 & C4,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/complement-c3-c4,24,TRUE,
-84,ANCA (cANCA & pANCA),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anca,48,TRUE,
-85,"Immunoglobulin Panel (IgG, IgA, IgM, IgE)",Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/immunoglobulins,24,TRUE,
-86,Serum Protein Electrophoresis (SPEP),Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/spep,24,TRUE,
-87,Cryoglobulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cryoglobulin,48,TRUE,
-88,Beta-2 Microglobulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/b2m,24,TRUE,
-89,PSA (Prostate Specific Antigen),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/psa,7,TRUE,
-90,Free PSA & PSA Ratio,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-psa,7,TRUE,
-91,CA 125 (Ovarian Cancer Marker),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ca-125,12,TRUE,
-92,CA 19-9 (Pancreatic Cancer Marker),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ca-19-9,12,TRUE,
-93,CA 15-3 (Breast Cancer Marker),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ca-15-3,12,TRUE,
-94,CEA (Carcinoembryonic Antigen),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cea,12,TRUE,
-95,AFP (Alpha-Fetoprotein),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/afp,12,TRUE,
-96,HCG (Human Chorionic Gonadotropin),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hcg,7,TRUE,
-97,Beta-HCG Quantitative,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/beta-hcg,7,TRUE,
-98,Neuron Specific Enolase (NSE),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/nse,24,TRUE,
-99,S100 Protein,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/s100,48,TRUE,
-100,Calcitonin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/calcitonin,24,TRUE,
-101,Chromogranin A,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/chromogranin-a,48,TRUE,
-102,CYFRA 21-1,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cyfra-21-1,24,TRUE,
-103,Widal Test (Typhoid),Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/widal,12,TRUE,
-104,Blood Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/blood-culture,96,TRUE,
-105,Urine Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-culture,72,TRUE,
-106,Stool Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-culture,96,TRUE,
-107,Sputum Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/sputum-culture,96,TRUE,
-108,MRSA Screening,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/mrsa,72,TRUE,
-109,HIV 1 & 2 (Ag/Ab Combo),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hiv,6,TRUE,
-110,Hepatitis B Surface Antigen (HBsAg),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hbsag,6,TRUE,
-111,Hepatitis B Core Antibody (Anti-HBc),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-hbc,7,TRUE,
-112,Hepatitis B e-Antigen (HBeAg),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hbeag,12,TRUE,
-113,Hepatitis B Viral Load (HBV DNA),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hbv-dna,24,TRUE,
-114,Hepatitis C Antibody (Anti-HCV),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-hcv,6,TRUE,
-115,Hepatitis C Viral Load (HCV RNA),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hcv-rna,24,TRUE,
-116,Hepatitis A IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hav-igm,12,TRUE,
-117,Hepatitis E IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hev-igm,12,TRUE,
-118,Dengue NS1 Antigen,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/dengue-ns1,6,TRUE,
-119,Dengue IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/dengue-igg-igm,6,TRUE,
-120,Malaria Antigen (PfHRP2 & pLDH),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/malaria-antigen,4,TRUE,
-121,Malaria MP (Smear),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/malaria-smear,4,TRUE,
-122,Typhoid IgG & IgM (Rapid),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/typhoid-rapid,4,TRUE,
-123,Leptospira IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/leptospira,12,TRUE,
-124,Scrub Typhus IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/scrub-typhus,12,TRUE,
-125,COVID-19 RT-PCR,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/covid-rt-pcr,12,TRUE,
-126,COVID-19 Antibody (IgG),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/covid-igg,7,TRUE,
-127,Influenza A & B Rapid Antigen,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/influenza-rapid,4,TRUE,
-128,RSV Antigen,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/rsv,6,TRUE,
-129,Chickenpox (VZV) IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vzv,12,TRUE,
-130,Herpes Simplex Virus (HSV) 1 & 2 IgG,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hsv,12,TRUE,
-131,CMV IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cmv,12,TRUE,
-132,EBV (Epstein Barr Virus) Panel,Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ebv,24,TRUE,
-133,Rubella IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/rubella,12,TRUE,
-134,VDRL / RPR (Syphilis Screening),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vdrl,7,TRUE,
-135,TPHA (Treponema Pallidum),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/tpha,12,TRUE,
-136,Toxoplasma IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/toxoplasma,12,TRUE,
-137,H. Pylori Antigen (Stool),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/h-pylori-stool,12,TRUE,
-138,H. Pylori Antibody (Blood),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/h-pylori-blood,7,TRUE,
-139,Brucella IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/brucella,24,TRUE,
-140,Filaria Antigen Test,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/filaria,12,TRUE,
-141,KOH Mount & Culture (Fungal),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/koh-fungal,72,TRUE,
-142,Urine Routine & Microscopy,Contains 12 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-routine,4,TRUE,
-143,24-Hour Urine Protein,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/24hr-urine-protein,7,TRUE,
-144,Microalbumin / Creatinine Ratio (Urine),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/microalbumin,7,TRUE,
-145,Urine Calcium (24hr),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-calcium,7,TRUE,
-146,Urine Uric Acid (24hr),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-uric-acid,7,TRUE,
-147,Urine Oxalate,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-oxalate,12,TRUE,
-148,Kidney Stone Analysis,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/kidney-stone,48,TRUE,
-149,Stool Routine & Microscopy,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-routine,6,TRUE,
-150,Stool Occult Blood (FOB),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-fob,6,TRUE,
-151,Reducing Substances in Stool,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-reducing,6,TRUE,
-152,BRCA1 & BRCA2 Gene Mutation,Contains 2 tests � Next-Gen Sequencing,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/brca,336,TRUE,
-153,KRAS / NRAS / BRAF Mutation Panel,Contains 3 tests � Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/kras-nras-braf,120,TRUE,
-154,JAK2 V617F Mutation,Contains 1 test � Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/jak2,72,TRUE,
-155,BCR-ABL Quantitative (CML Monitoring),Contains 1 test � Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bcr-abl,72,TRUE,
-156,Factor V Leiden Mutation,Contains 1 test � Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/factor-v-leiden,72,TRUE,
-157,Prothrombin Gene Mutation G20210A,Contains 1 test � Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/prothrombin-mutation,72,TRUE,
-158,MTHFR Gene Mutation,Contains 2 tests � Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/mthfr,72,TRUE,
-159,G6PD Enzyme Activity,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/g6pd,7,TRUE,
-160,Karyotype (Chromosomal Analysis),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/karyotype,336,TRUE,
-161,Chromosomal Microarray,Contains 1 test � Next-Gen Sequencing,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/chromosomal-microarray,504,TRUE,
-162,Total IgE (Allergy Screening),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/total-ige,12,TRUE,
-163,Allergen-Specific IgE (Food Panel),Contains 20 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/food-allergy-panel,48,TRUE,
-164,Allergen-Specific IgE (Respiratory Panel),Contains 20 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/respiratory-allergy,48,TRUE,
-165,Skin Prick Test Interpretation,Contains 30 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/skin-prick,48,TRUE,
-166,Folate (Folic Acid),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/folate,12,TRUE,
-167,Vitamin B12 (Cobalamin),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-b12,7,TRUE,
-168,Vitamin A (Retinol),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-a,24,TRUE,
-169,Vitamin E (Tocopherol),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-e,24,TRUE,
-170,Vitamin K,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-k,24,TRUE,
-171,Zinc,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/zinc,24,TRUE,
-172,Copper,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/copper,24,TRUE,
-173,Selenium,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/selenium,48,TRUE,
-174,Iodine (Urine),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/iodine,24,TRUE,
-175,TORCH Panel (ToRCH Infections),Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/torch,24,TRUE,
-176,Fever Panel (Dengue+Malaria+Typhoid),Contains 7 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/fever-panel,6,TRUE,
-177,Cardiac Risk Marker Panel,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/cardiac-risk,7,TRUE,
-178,Pre-Operative Fitness Panel,Contains 14 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/pre-op,12,TRUE,
-179,Antenatal Care Package,Contains 22 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/antenatal,12,TRUE,
-180,PCOS Hormone Panel,Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/pcos,12,TRUE,
-181,Male Fertility Panel,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/male-fertility,24,TRUE,
-182,Female Fertility Panel,Contains 9 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/female-fertility,24,TRUE,
-183,Semen Analysis (Sperm Count & Morphology),Contains 12 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/semen-analysis,24,TRUE,
-184,Bone Health Panel,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/bone-health,12,TRUE,
-185,Arthritis Panel,Contains 7 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/arthritis,24,TRUE,
-186,Autoimmune Liver Panel,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/autoimmune-liver,48,TRUE,
-187,Autoimmune Kidney Panel,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/autoimmune-kidney,48,TRUE,
-188,Renal Stone Risk Panel,Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/renal-stone,12,TRUE,
-189,Paediatric Wellness Package,Contains 18 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/paediatric-wellness,12,TRUE,
-190,Executive Health Checkup (Platinum),Contains 102 tests � Smart Report,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/executive-platinum,18,TRUE,
-191,Women's Health Checkup,Contains 78 tests � Smart Report,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/womens-health,18,TRUE,
-192,Men's Health Checkup,Contains 72 tests � Smart Report,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/mens-health,18,TRUE,
-193,Diabetes Monitoring Package,Contains 12 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/diabetes-monitoring,12,TRUE,
-194,Heart Health Package,Contains 10 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/heart-health,7,TRUE,
-195,Liver Health Package,Contains 13 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/liver-health,7,TRUE,
-196,Kidney Health Package,Contains 11 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/kidney-health,7,TRUE,
-197,Cancer Screening Package (Male),Contains 9 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/cancer-screen-male,12,TRUE,
-198,Cancer Screening Package (Female),Contains 10 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/cancer-screen-female,12,TRUE,
-199,FNAC (Fine Needle Aspiration Cytology),Contains 1 test � Histopathology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fnac,48,TRUE,
-200,Biopsy � Trucut / Core Needle,Contains 1 test � Histopathology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/biopsy-core,72,TRUE,
-201,Excision Biopsy with IHC,Contains 1 test � Histopathology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/excision-biopsy,120,TRUE,
-202,Cervical Pap Smear (Conventional),Contains 1 test � Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pap-smear,24,TRUE,
-203,Liquid-Based Cytology (LBC) + HPV DNA,Contains 2 tests � Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lbc-hpv,24,TRUE,
-204,HPV DNA Genotyping (16 & 18),Contains 2 tests � Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hpv-genotyping,48,TRUE,
-205,Pleural Fluid Analysis,Contains 8 tests � Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pleural-fluid,12,TRUE,
-206,Ascitic Fluid Analysis,Contains 8 tests � Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ascitic-fluid,12,TRUE,
-207,CSF (Cerebrospinal Fluid) Analysis,Contains 9 tests � Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/csf-analysis,6,TRUE,
-208,Synovial Fluid Analysis,Contains 7 tests � Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/synovial-fluid,12,TRUE,
+6,Fasting Glucose,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,TRUE,fasting glucose contains 2 tests
+7,Vitamin B,Contains 14 tests,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,TRUE,vitamin b contains 14 tests
+8,Vitamin D,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/2026-03%2F1774354424_Labs-Strip.webp,/labs/package/senior-citizen,18,TRUE,vitamin d contains 1 test
+9,Erythrocyte Sedimentation Rate (ESR),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/esr,7,TRUE,erythrocyte sedimentation rate (esr) contains 1 test
+10,Peripheral Blood Smear,Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/peripheral-smear,12,TRUE,peripheral blood smear contains 3 tests
+11,Reticulocyte Count,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/reticulocyte-count,7,TRUE,reticulocyte count contains 1 test
+12,Haemoglobin Electrophoresis,Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/haemoglobin-electrophoresis,24,TRUE,haemoglobin electrophoresis contains 4 tests
+13,Prothrombin Time (PT / INR),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pt-inr,7,TRUE,prothrombin time (pt / inr) contains 2 tests
+14,Activated Partial Thromboplastin Time (aPTT),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/aptt,7,TRUE,activated partial thromboplastin time (aptt) contains 1 test
+15,D-Dimer,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/d-dimer,7,TRUE,d-dimer contains 1 test
+16,Fibrinogen Level,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fibrinogen,12,TRUE,fibrinogen level contains 1 test
+17,Bleeding Time & Clotting Time,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bt-ct,4,TRUE,bleeding time & clotting time contains 2 tests
+18,Platelet Aggregation Study,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/platelet-aggregation,24,TRUE,platelet aggregation study contains 5 tests
+19,Liver Function Test (LFT),Contains 11 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lft,7,TRUE,liver function test (lft) contains 11 tests
+20,Kidney Function Test (KFT),Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/kft,7,TRUE,kidney function test (kft) contains 8 tests
+21,Blood Urea Nitrogen (BUN),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bun,6,TRUE,blood urea nitrogen (bun) contains 1 test
+22,Serum Creatinine,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-creatinine,6,TRUE,serum creatinine contains 1 test
+23,Uric Acid,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/uric-acid,6,TRUE,uric acid contains 1 test
+24,Serum Calcium,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-calcium,6,TRUE,serum calcium contains 1 test
+25,Serum Phosphorus,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-phosphorus,6,TRUE,serum phosphorus contains 1 test
+26,Serum Magnesium,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-magnesium,6,TRUE,serum magnesium contains 1 test
+27,"Electrolytes Panel (Na, K, Cl, CO2)",Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/electrolytes,6,TRUE,"electrolytes panel (na, k, cl, co2) contains 4 tests"
+28,Serum Iron & TIBC,Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/iron-tibc,7,TRUE,serum iron & tibc contains 3 tests
+29,Ferritin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ferritin,7,TRUE,ferritin contains 1 test
+30,C-Reactive Protein (CRP),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/crp,6,TRUE,c-reactive protein (crp) contains 1 test
+31,High Sensitivity CRP (hsCRP),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hscrp,7,TRUE,high sensitivity crp (hscrp) contains 1 test
+32,Homocysteine,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/homocysteine,12,TRUE,homocysteine contains 1 test
+33,Serum Albumin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/serum-albumin,6,TRUE,serum albumin contains 1 test
+34,Total Protein,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/total-protein,6,TRUE,total protein contains 2 tests
+35,Bilirubin Total & Direct,Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bilirubin,6,TRUE,bilirubin total & direct contains 3 tests
+36,SGOT / AST,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/sgot,6,TRUE,sgot / ast contains 1 test
+37,SGPT / ALT,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/sgpt,6,TRUE,sgpt / alt contains 1 test
+38,Alkaline Phosphatase (ALP),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/alp,6,TRUE,alkaline phosphatase (alp) contains 1 test
+39,Gamma GT (GGT),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ggt,6,TRUE,gamma gt (ggt) contains 1 test
+40,Amylase,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/amylase,6,TRUE,amylase contains 1 test
+41,Lipase,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lipase,6,TRUE,lipase contains 1 test
+42,LDH (Lactate Dehydrogenase),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ldh,7,TRUE,ldh (lactate dehydrogenase) contains 1 test
+43,CPK / CK Total,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cpk,7,TRUE,cpk / ck total contains 1 test
+44,CPK-MB (Cardiac Fraction),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cpk-mb,7,TRUE,cpk-mb (cardiac fraction) contains 1 test
+45,Troponin I (High Sensitivity),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/troponin-i,4,TRUE,troponin i (high sensitivity) contains 1 test
+46,Troponin T,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/troponin-t,4,TRUE,troponin t contains 1 test
+47,BNP / NT-proBNP,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bnp,12,TRUE,bnp / nt-probnp contains 1 test
+48,Myoglobin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/myoglobin,6,TRUE,myoglobin contains 1 test
+49,HbA1c (Glycated Haemoglobin),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hba1c,7,TRUE,hba1c (glycated haemoglobin) contains 1 test
+50,Fasting Insulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fasting-insulin,12,TRUE,fasting insulin contains 1 test
+51,C-Peptide,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/c-peptide,12,TRUE,c-peptide contains 1 test
+52,HOMA-IR (Insulin Resistance),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/homa-ir,12,TRUE,homa-ir (insulin resistance) contains 2 tests
+53,Post Prandial Blood Glucose (PPBS),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ppbs,4,TRUE,post prandial blood glucose (ppbs) contains 1 test
+54,Oral Glucose Tolerance Test (OGTT),Contains 3 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ogtt,4,TRUE,oral glucose tolerance test (ogtt) contains 3 tests
+55,Free T3 (FT3),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-t3,7,TRUE,free t3 (ft3) contains 1 test
+56,Free T4 (FT4),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-t4,7,TRUE,free t4 (ft4) contains 1 test
+57,TSH Ultra-Sensitive,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/tsh,7,TRUE,tsh ultra-sensitive contains 1 test
+58,Anti-TPO Antibodies,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-tpo,12,TRUE,anti-tpo antibodies contains 1 test
+59,Anti-Thyroglobulin Antibody,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-tg,12,TRUE,anti-thyroglobulin antibody contains 1 test
+60,Thyroglobulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/thyroglobulin,12,TRUE,thyroglobulin contains 1 test
+61,Cortisol (Morning),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cortisol,7,TRUE,cortisol (morning) contains 1 test
+62,ACTH (Adrenocorticotropic Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/acth,24,TRUE,acth (adrenocorticotropic hormone) contains 1 test
+63,Growth Hormone (GH),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/growth-hormone,24,TRUE,growth hormone (gh) contains 1 test
+64,IGF-1 (Insulin-like Growth Factor),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/igf1,24,TRUE,igf-1 (insulin-like growth factor) contains 1 test
+65,Prolactin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/prolactin,7,TRUE,prolactin contains 1 test
+66,LH (Luteinizing Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lh,7,TRUE,lh (luteinizing hormone) contains 1 test
+67,FSH (Follicle Stimulating Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fsh,7,TRUE,fsh (follicle stimulating hormone) contains 1 test
+68,Estradiol (E2),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/estradiol,7,TRUE,estradiol (e2) contains 1 test
+69,Progesterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/progesterone,7,TRUE,progesterone contains 1 test
+70,Testosterone Total,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/testosterone-total,7,TRUE,testosterone total contains 1 test
+71,Free Testosterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-testosterone,12,TRUE,free testosterone contains 1 test
+72,DHEA-S,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/dhea-s,12,TRUE,dhea-s contains 1 test
+73,17-OH Progesterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/17-oh-progesterone,24,TRUE,17-oh progesterone contains 1 test
+74,AMH (Anti-Müllerian Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/amh,24,TRUE,amh (anti-müllerian hormone) contains 1 test
+75,PTH (Parathyroid Hormone),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pth,12,TRUE,pth (parathyroid hormone) contains 1 test
+76,Aldosterone,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/aldosterone,24,TRUE,aldosterone contains 1 test
+77,Renin Activity,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/renin,24,TRUE,renin activity contains 1 test
+78,Insulin-like Growth Factor Binding Protein 3,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/igfbp3,24,TRUE,insulin-like growth factor binding protein 3 contains 1 test
+79,ANA (Antinuclear Antibody),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ana,24,TRUE,ana (antinuclear antibody) contains 1 test
+80,Anti-dsDNA Antibody,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-dsdna,24,TRUE,anti-dsdna antibody contains 1 test
+81,Rheumatoid Factor (RF),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/rf,7,TRUE,rheumatoid factor (rf) contains 1 test
+82,Anti-CCP Antibody,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-ccp,24,TRUE,anti-ccp antibody contains 1 test
+83,Complement C3 & C4,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/complement-c3-c4,24,TRUE,complement c3 & c4 contains 2 tests
+84,ANCA (cANCA & pANCA),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anca,48,TRUE,anca (canca & panca) contains 2 tests
+85,"Immunoglobulin Panel (IgG, IgA, IgM, IgE)",Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/immunoglobulins,24,TRUE,"immunoglobulin panel (igg, iga, igm, ige) contains 4 tests"
+86,Serum Protein Electrophoresis (SPEP),Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/spep,24,TRUE,serum protein electrophoresis (spep) contains 5 tests
+87,Cryoglobulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cryoglobulin,48,TRUE,cryoglobulin contains 1 test
+88,Beta-2 Microglobulin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/b2m,24,TRUE,beta-2 microglobulin contains 1 test
+89,PSA (Prostate Specific Antigen),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/psa,7,TRUE,psa (prostate specific antigen) contains 1 test
+90,Free PSA & PSA Ratio,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/free-psa,7,TRUE,free psa & psa ratio contains 2 tests
+91,CA 125 (Ovarian Cancer Marker),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ca-125,12,TRUE,ca 125 (ovarian cancer marker) contains 1 test
+92,CA 19-9 (Pancreatic Cancer Marker),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ca-19-9,12,TRUE,ca 19-9 (pancreatic cancer marker) contains 1 test
+93,CA 15-3 (Breast Cancer Marker),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ca-15-3,12,TRUE,ca 15-3 (breast cancer marker) contains 1 test
+94,CEA (Carcinoembryonic Antigen),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cea,12,TRUE,cea (carcinoembryonic antigen) contains 1 test
+95,AFP (Alpha-Fetoprotein),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/afp,12,TRUE,afp (alpha-fetoprotein) contains 1 test
+96,HCG (Human Chorionic Gonadotropin),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hcg,7,TRUE,hcg (human chorionic gonadotropin) contains 1 test
+97,Beta-HCG Quantitative,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/beta-hcg,7,TRUE,beta-hcg quantitative contains 1 test
+98,Neuron Specific Enolase (NSE),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/nse,24,TRUE,neuron specific enolase (nse) contains 1 test
+99,S100 Protein,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/s100,48,TRUE,s100 protein contains 1 test
+100,Calcitonin,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/calcitonin,24,TRUE,calcitonin contains 1 test
+101,Chromogranin A,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/chromogranin-a,48,TRUE,chromogranin a contains 1 test
+102,CYFRA 21-1,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cyfra-21-1,24,TRUE,cyfra 21-1 contains 1 test
+103,Widal Test (Typhoid),Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/widal,12,TRUE,widal test (typhoid) contains 4 tests
+104,Blood Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/blood-culture,96,TRUE,blood culture & sensitivity contains 2 tests
+105,Urine Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-culture,72,TRUE,urine culture & sensitivity contains 2 tests
+106,Stool Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-culture,96,TRUE,stool culture & sensitivity contains 2 tests
+107,Sputum Culture & Sensitivity,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/sputum-culture,96,TRUE,sputum culture & sensitivity contains 2 tests
+108,MRSA Screening,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/mrsa,72,TRUE,mrsa screening contains 2 tests
+109,HIV 1 & 2 (Ag/Ab Combo),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hiv,6,TRUE,hiv 1 & 2 (ag/ab combo) contains 1 test
+110,Hepatitis B Surface Antigen (HBsAg),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hbsag,6,TRUE,hepatitis b surface antigen (hbsag) contains 1 test
+111,Hepatitis B Core Antibody (Anti-HBc),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-hbc,7,TRUE,hepatitis b core antibody (anti-hbc) contains 1 test
+112,Hepatitis B e-Antigen (HBeAg),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hbeag,12,TRUE,hepatitis b e-antigen (hbeag) contains 1 test
+113,Hepatitis B Viral Load (HBV DNA),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hbv-dna,24,TRUE,hepatitis b viral load (hbv dna) contains 1 test
+114,Hepatitis C Antibody (Anti-HCV),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/anti-hcv,6,TRUE,hepatitis c antibody (anti-hcv) contains 1 test
+115,Hepatitis C Viral Load (HCV RNA),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hcv-rna,24,TRUE,hepatitis c viral load (hcv rna) contains 1 test
+116,Hepatitis A IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hav-igm,12,TRUE,hepatitis a igm contains 1 test
+117,Hepatitis E IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hev-igm,12,TRUE,hepatitis e igm contains 1 test
+118,Dengue NS1 Antigen,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/dengue-ns1,6,TRUE,dengue ns1 antigen contains 1 test
+119,Dengue IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/dengue-igg-igm,6,TRUE,dengue igg & igm contains 2 tests
+120,Malaria Antigen (PfHRP2 & pLDH),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/malaria-antigen,4,TRUE,malaria antigen (pfhrp2 & pldh) contains 2 tests
+121,Malaria MP (Smear),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/malaria-smear,4,TRUE,malaria mp (smear) contains 1 test
+122,Typhoid IgG & IgM (Rapid),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/typhoid-rapid,4,TRUE,typhoid igg & igm (rapid) contains 2 tests
+123,Leptospira IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/leptospira,12,TRUE,leptospira igm contains 1 test
+124,Scrub Typhus IgM,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/scrub-typhus,12,TRUE,scrub typhus igm contains 1 test
+125,COVID-19 RT-PCR,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/covid-rt-pcr,12,TRUE,covid-19 rt-pcr contains 1 test
+126,COVID-19 Antibody (IgG),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/covid-igg,7,TRUE,covid-19 antibody (igg) contains 1 test
+127,Influenza A & B Rapid Antigen,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/influenza-rapid,4,TRUE,influenza a & b rapid antigen contains 2 tests
+128,RSV Antigen,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/rsv,6,TRUE,rsv antigen contains 1 test
+129,Chickenpox (VZV) IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vzv,12,TRUE,chickenpox (vzv) igg & igm contains 2 tests
+130,Herpes Simplex Virus (HSV) 1 & 2 IgG,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hsv,12,TRUE,herpes simplex virus (hsv) 1 & 2 igg contains 2 tests
+131,CMV IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/cmv,12,TRUE,cmv igg & igm contains 2 tests
+132,EBV (Epstein Barr Virus) Panel,Contains 4 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ebv,24,TRUE,ebv (epstein barr virus) panel contains 4 tests
+133,Rubella IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/rubella,12,TRUE,rubella igg & igm contains 2 tests
+134,VDRL / RPR (Syphilis Screening),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vdrl,7,TRUE,vdrl / rpr (syphilis screening) contains 1 test
+135,TPHA (Treponema Pallidum),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/tpha,12,TRUE,tpha (treponema pallidum) contains 1 test
+136,Toxoplasma IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/toxoplasma,12,TRUE,toxoplasma igg & igm contains 2 tests
+137,H. Pylori Antigen (Stool),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/h-pylori-stool,12,TRUE,h. pylori antigen (stool) contains 1 test
+138,H. Pylori Antibody (Blood),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/h-pylori-blood,7,TRUE,h. pylori antibody (blood) contains 1 test
+139,Brucella IgG & IgM,Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/brucella,24,TRUE,brucella igg & igm contains 2 tests
+140,Filaria Antigen Test,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/filaria,12,TRUE,filaria antigen test contains 1 test
+141,KOH Mount & Culture (Fungal),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/koh-fungal,72,TRUE,koh mount & culture (fungal) contains 2 tests
+142,Urine Routine & Microscopy,Contains 12 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-routine,4,TRUE,urine routine & microscopy contains 12 tests
+143,24-Hour Urine Protein,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/24hr-urine-protein,7,TRUE,24-hour urine protein contains 1 test
+144,Microalbumin / Creatinine Ratio (Urine),Contains 2 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/microalbumin,7,TRUE,microalbumin / creatinine ratio (urine) contains 2 tests
+145,Urine Calcium (24hr),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-calcium,7,TRUE,urine calcium (24hr) contains 1 test
+146,Urine Uric Acid (24hr),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-uric-acid,7,TRUE,urine uric acid (24hr) contains 1 test
+147,Urine Oxalate,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/urine-oxalate,12,TRUE,urine oxalate contains 1 test
+148,Kidney Stone Analysis,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/kidney-stone,48,TRUE,kidney stone analysis contains 5 tests
+149,Stool Routine & Microscopy,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-routine,6,TRUE,stool routine & microscopy contains 6 tests
+150,Stool Occult Blood (FOB),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-fob,6,TRUE,stool occult blood (fob) contains 1 test
+151,Reducing Substances in Stool,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/stool-reducing,6,TRUE,reducing substances in stool contains 1 test
+152,BRCA1 & BRCA2 Gene Mutation,Contains 2 tests · Next-Gen Sequencing,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/brca,336,TRUE,brca1 & brca2 gene mutation contains 2 tests · next-gen sequencing
+153,KRAS / NRAS / BRAF Mutation Panel,Contains 3 tests · Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/kras-nras-braf,120,TRUE,kras / nras / braf mutation panel contains 3 tests · molecular
+154,JAK2 V617F Mutation,Contains 1 test · Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/jak2,72,TRUE,jak2 v617f mutation contains 1 test · molecular
+155,BCR-ABL Quantitative (CML Monitoring),Contains 1 test · Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/bcr-abl,72,TRUE,bcr-abl quantitative (cml monitoring) contains 1 test · molecular
+156,Factor V Leiden Mutation,Contains 1 test · Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/factor-v-leiden,72,TRUE,factor v leiden mutation contains 1 test · molecular
+157,Prothrombin Gene Mutation G20210A,Contains 1 test · Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/prothrombin-mutation,72,TRUE,prothrombin gene mutation g20210a contains 1 test · molecular
+158,MTHFR Gene Mutation,Contains 2 tests · Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/mthfr,72,TRUE,mthfr gene mutation contains 2 tests · molecular
+159,G6PD Enzyme Activity,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/g6pd,7,TRUE,g6pd enzyme activity contains 1 test
+160,Karyotype (Chromosomal Analysis),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/karyotype,336,TRUE,karyotype (chromosomal analysis) contains 1 test
+161,Chromosomal Microarray,Contains 1 test · Next-Gen Sequencing,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/chromosomal-microarray,504,TRUE,chromosomal microarray contains 1 test · next-gen sequencing
+162,Total IgE (Allergy Screening),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/total-ige,12,TRUE,total ige (allergy screening) contains 1 test
+163,Allergen-Specific IgE (Food Panel),Contains 20 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/food-allergy-panel,48,TRUE,allergen-specific ige (food panel) contains 20 tests
+164,Allergen-Specific IgE (Respiratory Panel),Contains 20 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/respiratory-allergy,48,TRUE,allergen-specific ige (respiratory panel) contains 20 tests
+165,Skin Prick Test Interpretation,Contains 30 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/skin-prick,48,TRUE,skin prick test interpretation contains 30 tests
+166,Folate (Folic Acid),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/folate,12,TRUE,folate (folic acid) contains 1 test
+167,Vitamin B12 (Cobalamin),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-b12,7,TRUE,vitamin b12 (cobalamin) contains 1 test
+168,Vitamin A (Retinol),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-a,24,TRUE,vitamin a (retinol) contains 1 test
+169,Vitamin E (Tocopherol),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-e,24,TRUE,vitamin e (tocopherol) contains 1 test
+170,Vitamin K,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/vitamin-k,24,TRUE,vitamin k contains 1 test
+171,Zinc,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/zinc,24,TRUE,zinc contains 1 test
+172,Copper,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/copper,24,TRUE,copper contains 1 test
+173,Selenium,Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/selenium,48,TRUE,selenium contains 1 test
+174,Iodine (Urine),Contains 1 test,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/iodine,24,TRUE,iodine (urine) contains 1 test
+175,TORCH Panel (ToRCH Infections),Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/torch,24,TRUE,torch panel (torch infections) contains 8 tests
+176,Fever Panel (Dengue+Malaria+Typhoid),Contains 7 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/fever-panel,6,TRUE,fever panel (dengue+malaria+typhoid) contains 7 tests
+177,Cardiac Risk Marker Panel,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/cardiac-risk,7,TRUE,cardiac risk marker panel contains 6 tests
+178,Pre-Operative Fitness Panel,Contains 14 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/pre-op,12,TRUE,pre-operative fitness panel contains 14 tests
+179,Antenatal Care Package,Contains 22 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/antenatal,12,TRUE,antenatal care package contains 22 tests
+180,PCOS Hormone Panel,Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/pcos,12,TRUE,pcos hormone panel contains 8 tests
+181,Male Fertility Panel,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/male-fertility,24,TRUE,male fertility panel contains 6 tests
+182,Female Fertility Panel,Contains 9 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/female-fertility,24,TRUE,female fertility panel contains 9 tests
+183,Semen Analysis (Sperm Count & Morphology),Contains 12 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/semen-analysis,24,TRUE,semen analysis (sperm count & morphology) contains 12 tests
+184,Bone Health Panel,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/bone-health,12,TRUE,bone health panel contains 5 tests
+185,Arthritis Panel,Contains 7 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/arthritis,24,TRUE,arthritis panel contains 7 tests
+186,Autoimmune Liver Panel,Contains 6 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/autoimmune-liver,48,TRUE,autoimmune liver panel contains 6 tests
+187,Autoimmune Kidney Panel,Contains 5 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/autoimmune-kidney,48,TRUE,autoimmune kidney panel contains 5 tests
+188,Renal Stone Risk Panel,Contains 8 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/renal-stone,12,TRUE,renal stone risk panel contains 8 tests
+189,Paediatric Wellness Package,Contains 18 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/paediatric-wellness,12,TRUE,paediatric wellness package contains 18 tests
+190,Executive Health Checkup (Platinum),Contains 102 tests · Smart Report,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/executive-platinum,18,TRUE,executive health checkup (platinum) contains 102 tests · smart report
+191,Women's Health Checkup,Contains 78 tests · Smart Report,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/womens-health,18,TRUE,women's health checkup contains 78 tests · smart report
+192,Men's Health Checkup,Contains 72 tests · Smart Report,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/mens-health,18,TRUE,men's health checkup contains 72 tests · smart report
+193,Diabetes Monitoring Package,Contains 12 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/diabetes-monitoring,12,TRUE,diabetes monitoring package contains 12 tests
+194,Heart Health Package,Contains 10 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/heart-health,7,TRUE,heart health package contains 10 tests
+195,Liver Health Package,Contains 13 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/liver-health,7,TRUE,liver health package contains 13 tests
+196,Kidney Health Package,Contains 11 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/kidney-health,7,TRUE,kidney health package contains 11 tests
+197,Cancer Screening Package (Male),Contains 9 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/cancer-screen-male,12,TRUE,cancer screening package (male) contains 9 tests
+198,Cancer Screening Package (Female),Contains 10 tests,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/package/cancer-screen-female,12,TRUE,cancer screening package (female) contains 10 tests
+199,FNAC (Fine Needle Aspiration Cytology),Contains 1 test · Histopathology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/fnac,48,TRUE,fnac (fine needle aspiration cytology) contains 1 test · histopathology
+200,Biopsy – Trucut / Core Needle,Contains 1 test · Histopathology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/biopsy-core,72,TRUE,biopsy – trucut / core needle contains 1 test · histopathology
+201,Excision Biopsy with IHC,Contains 1 test · Histopathology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/excision-biopsy,120,TRUE,excision biopsy with ihc contains 1 test · histopathology
+202,Cervical Pap Smear (Conventional),Contains 1 test · Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pap-smear,24,TRUE,cervical pap smear (conventional) contains 1 test · cytology
+203,Liquid-Based Cytology (LBC) + HPV DNA,Contains 2 tests · Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/lbc-hpv,24,TRUE,liquid-based cytology (lbc) + hpv dna contains 2 tests · cytology
+204,HPV DNA Genotyping (16 & 18),Contains 2 tests · Molecular,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/hpv-genotyping,48,TRUE,hpv dna genotyping (16 & 18) contains 2 tests · molecular
+205,Pleural Fluid Analysis,Contains 8 tests · Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/pleural-fluid,12,TRUE,pleural fluid analysis contains 8 tests · cytology
+206,Ascitic Fluid Analysis,Contains 8 tests · Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/ascitic-fluid,12,TRUE,ascitic fluid analysis contains 8 tests · cytology
+207,CSF (Cerebrospinal Fluid) Analysis,Contains 9 tests · Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/csf-analysis,6,TRUE,csf (cerebrospinal fluid) analysis contains 9 tests · cytology
+208,Synovial Fluid Analysis,Contains 7 tests · Cytology,PATHOLOGY,https://onemg.gumlet.io/assets/6d2f9d7c-694c-11ec-98c6-0219de0cd346.png,/labs/test/synovial-fluid,12,TRUE,synovial fluid analysis contains 7 tests · cytology

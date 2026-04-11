@@ -126,11 +126,14 @@ async function main() {
     };
     if (medicine_id != null && Number.isFinite(medicine_id)) body.medicine_id = medicine_id;
 
+    const statusEl = $("reminderFormStatus");
+    if (statusEl) statusEl.textContent = "";
     const r = await api("/api/reminders", { method: "POST", body: JSON.stringify(body) });
     if (!r.ok) {
-      alert(r.json?.error || "Failed");
+      if (statusEl) statusEl.textContent = r.json?.error || "Could not save reminder.";
       return;
     }
+    if (statusEl) statusEl.textContent = "";
     $("medicine_id").value = "";
     $("repeat_days").value = "";
     $("notes").value = "";

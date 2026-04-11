@@ -1,3 +1,5 @@
+import { fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
+
 const $ = (id) => document.getElementById(id);
 const ORDER_SUCCESS_KEY = "medlens_order_success_message_v1";
 
@@ -29,6 +31,18 @@ function readId() {
   const params = new URLSearchParams(window.location.search);
   const id = Number(params.get("id"));
   return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function renderAuthNav(user) {
+  const logged = Boolean(user && user.role !== "service_provider");
+  $("navLogin")?.classList.toggle("hidden", logged);
+  $("navProfile")?.classList.toggle("hidden", !logged);
+}
+
+async function refreshAuthNav() {
+  renderAuthNav(loadCachedUser());
+  const fresh = await fetchAndCacheUser();
+  renderAuthNav(fresh);
 }
 
 function renderTimeline(events) {
@@ -68,7 +82,8 @@ async function load() {
   const res = await fetch(`/api/orders/${encodeURIComponent(id)}`, { credentials: "same-origin" });
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
-    status.innerHTML = `Please <a href="/login.html">login</a> to view this order.`;
+    const returnTo = `${window.location.pathname}${window.location.search || ""}`;
+    status.innerHTML = `Please <a href="/login.html?returnTo=${encodeURIComponent(returnTo)}">log in</a> to view this order.`;
     return;
   }
   if (!res.ok) {
@@ -116,7 +131,10 @@ async function load() {
   renderTimeline(data.events || []);
 }
 
-load().catch((e) => {
+const returnToOrder = `${window.location.pathname}${window.location.search || ""}`;
+$("navLogin")?.setAttribute("href", `/login.html?returnTo=${encodeURIComponent(returnToOrder)}`);
+
+Promise.all([refreshAuthNav(), load()]).catch((e) => {
   const status = $("orderStatus");
   if (status) status.textContent = String(e?.message || e);
 });

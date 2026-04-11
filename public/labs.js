@@ -642,8 +642,8 @@ function render(items) {
       const mrpInr = mrpRaw === "" || mrpRaw == null ? null : Number(mrpRaw);
       if (!city || !packageId || !packageName || !Number.isFinite(priceInr)) return;
       if (!currentUser) {
-        alert("Please login first to book diagnostics packages.");
-        window.location.assign("/login.html");
+        setStatus("Please log in to book diagnostics. Redirecting to sign-in…");
+        window.location.assign(`/login.html?returnTo=${encodeURIComponent("/labs.html")}`);
         return;
       }
       openBookModal({ city, packageId, dealId, packageName, priceInr, mrpInr });

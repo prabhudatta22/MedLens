@@ -1,4 +1,5 @@
 import { removeLine } from "./cartStore.js";
+import { fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
 
 const $ = (id) => document.getElementById(id);
 const DIAG_PREPAID_KEY = "medlens_diag_prepaid_payload_v1";
@@ -103,7 +104,23 @@ async function placePrepaidOrder(pending) {
   }
 }
 
+function renderAuthNav(user) {
+  const logged = Boolean(user && user.role !== "service_provider");
+  $("navLogin")?.classList.toggle("hidden", logged);
+  $("navProfile")?.classList.toggle("hidden", !logged);
+  $("navOrders")?.classList.toggle("hidden", !logged);
+}
+
+async function refreshAuthNav() {
+  renderAuthNav(loadCachedUser());
+  const fresh = await fetchAndCacheUser();
+  renderAuthNav(fresh);
+}
+
 function init() {
+  const returnTo = `${window.location.pathname}${window.location.search || ""}`;
+  $("navLogin")?.setAttribute("href", `/login.html?returnTo=${encodeURIComponent(returnTo)}`);
+
   const pending = loadPending();
   const status = $("dxPayStatus");
   const summary = $("dxPaySummary");
@@ -136,4 +153,5 @@ function init() {
   $("dxPayBtn")?.addEventListener("click", () => placePrepaidOrder(pending));
 }
 
+refreshAuthNav().catch(() => {});
 init();

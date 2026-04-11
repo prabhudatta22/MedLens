@@ -14,6 +14,14 @@ const router = Router();
 const DUMMY_OTP_PHONE = "+919100946364";
 const DUMMY_OTP_CODE = "12345";
 
+function safeInternalRedirectPath(raw, fallback = "/") {
+  const s = String(raw || "").trim();
+  if (!s.startsWith("/")) return fallback;
+  if (s.startsWith("//")) return fallback;
+  if (/[\0\r\n]/.test(s)) return fallback;
+  return s;
+}
+
 function otpPepper() {
   return process.env.OTP_PEPPER || "dev-only-pepper-change-me";
 }
@@ -184,11 +192,22 @@ router.get("/me", async (req, res) => {
 });
 
 // --- Google OAuth (Gmail login) ---
-router.get("/google/start", async (_req, res) => {
+router.get("/google/start", async (req, res) => {
   if (!googleEnabled()) return res.status(503).json({ error: "Google login is not configured" });
   const state = newState();
   // Store state in short-lived cookie (MVP). In production: server-side store.
   res.cookie("gstate", state, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 10 * 60_000 });
+  const returnTo = safeInternalRedirectPath(req.query?.returnTo, "");
+  if (returnTo) {
+    res.cookie("greturn", returnTo, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 10 * 60_000,
+    });
+  } else {
+    res.clearCookie("greturn");
+  }
   res.redirect(googleAuthUrl(state));
 });
 
@@ -250,8 +269,10 @@ router.get("/google/callback", async (req, res) => {
       expires: new Date(expiresAt),
     });
 
-    // Redirect to home (or orders)
-    return res.redirect("/orders.html");
+    const returnCookie = req.cookies?.greturn;
+    res.clearCookie("greturn");
+    const dest = safeInternalRedirectPath(returnCookie, "/orders.html");
+    return res.redirect(dest);
   } catch (e) {
     return res.status(500).send(`Google login failed: ${String(e?.message || e)}`);
   }
