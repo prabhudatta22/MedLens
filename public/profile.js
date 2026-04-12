@@ -180,6 +180,43 @@ function renderRecentOrders(orders) {
     .join("");
 }
 
+function renderPrescriptions(list) {
+  const host = $("rxList");
+  if (!host) return;
+  if (!list?.length) {
+    host.innerHTML = `<p class="muted">No prescriptions saved yet. Upload a photo or PDF — it will appear at checkout and on future orders.</p>`;
+    return;
+  }
+  host.innerHTML = list
+    .map(
+      (p) => `
+      <div class="rx-match">
+        <div>
+          <div class="rx-match-title">#${escapeHtml(String(p.id))} · ${escapeHtml(p.original_filename || p.mime_type || "file")}</div>
+          <div class="rx-match-sub muted">${escapeHtml(fmtTs(p.created_at))} · ${escapeHtml(p.source || "web")}</div>
+        </div>
+        <div class="auth-actions">
+          <a class="btn btn-sm btn-ghost" href="/api/prescriptions/${encodeURIComponent(p.id)}/file" target="_blank" rel="noopener">View</a>
+          <button type="button" class="btn btn-sm btn-ghost rx-delete" data-id="${escapeHtml(String(p.id))}">Delete</button>
+        </div>
+      </div>`
+    )
+    .join("");
+  host.querySelectorAll(".rx-delete").forEach((b) => {
+    b.addEventListener("click", async () => {
+      const id = Number(b.dataset.id);
+      const del = await fetch(`/api/prescriptions/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "same-origin" });
+      const j = await del.json().catch(() => ({}));
+      if (!del.ok) {
+        setStatus("rxStatus", j.error || "Could not delete");
+        return;
+      }
+      setStatus("rxStatus", "Deleted.");
+      await loadProfile();
+    });
+  });
+}
+
 async function loadProfile() {
   const r = await request("/api/profile");
   if (r.status === 401) {
@@ -196,6 +233,11 @@ async function loadProfile() {
   renderAddresses(r.data.addresses || []);
   renderPaymentMethods(r.data.payment_methods || []);
   renderRecentOrders(r.data.orders || []);
+
+  const rx = await fetch("/api/prescriptions", { credentials: "same-origin" });
+  const rxData = await rx.json().catch(() => ({}));
+  if (rx.ok) renderPrescriptions(rxData.prescriptions || []);
+  else renderPrescriptions([]);
 
   if (r.data?.profile) {
     cacheUser({
@@ -336,6 +378,22 @@ async function init() {
   renderNav(fresh);
 
   $("basicProfileForm")?.addEventListener("submit", saveBasicProfile);
+  $("rxProfileUpload")?.addEventListener("change", async (ev) => {
+    const f = ev.target?.files?.[0];
+    if (!f) return;
+    setStatus("rxStatus", "Uploading…");
+    const fd = new FormData();
+    fd.append("file", f);
+    const res = await fetch("/api/prescriptions", { method: "POST", body: fd, credentials: "same-origin" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setStatus("rxStatus", data.error || "Upload failed");
+      return;
+    }
+    ev.target.value = "";
+    setStatus("rxStatus", "Saved.");
+    await loadProfile();
+  });
   $("addressForm")?.addEventListener("submit", saveManualAddress);
   $("useLocationAddressBtn")?.addEventListener("click", saveCurrentLocationAddress);
   $("upiForm")?.addEventListener("submit", saveUpi);

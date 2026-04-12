@@ -66,3 +66,81 @@ GOOGLE_MAPS_API_KEY=your_key_here
 Without the key, Use my location returns a clear error from the API (503 + hint); the city dropdown still works as before.
 
 Note: Full address data comes from Google. Local pharmacy prices still use your Postgres city slug; if the user is outside the seeded cities, they’ll see the Google address but should pick the nearest demo city in the list.
+
+Product read (market lens)
+MedLens sits at the intersection of price transparency, local pharmacy discovery, online retailer comparison, and diagnostics / booking-adjacent flows—with home delivery orders, reminders, and WhatsApp hooks. That is a credible wedge in India, where users routinely compare MRP vs discount, check availability by area, and juggle apps (1mg, Apollo, Netmeds, Practo, local chemist WhatsApp).
+
+Below is a PM-style gap analysis: what the market expects vs where the product is thin or missing.
+
+What the market rewards (and incumbents already do well)
+Trust: licensed sellers, clear “who fulfils”, refund/cancellation policy, prescription handling, data privacy.
+Completeness: stock truth, pack size, generic substitutes, delivery ETA bands, COD vs prepaid.
+Habit: reorder, subscriptions, offers, wallet/cashback, push notifications.
+Diagnostics: slot booking, phlebotomist tracking, report storage, refunds for no-show.
+B2B / supply: pharmacy onboarding, catalog sync, margin tools (you have ERP import—market wants live sync and reconciliation).
+Strategic gaps (prioritized)
+1. Trust & compliance (P0 in India)
+
+Prescription capture, storage policy, Schedule H/X handling, age-restricted meds, and explicit pharmacy licence display per offer are table stakes for serious consumer traction.
+Gap: Positioning as “demo / compare” is fine for dev; for market you need a trust layer (seller verification, T&C, grievance, DPDP-aware consent).
+2. “Source of truth” for price & stock
+
+Aggregators win on freshness and coverage. Demo datasets and partial partner feeds risk wrong prices—users blame the product, not the data.
+Gap: SLA on price freshness, out-of-stock signals, and confidence labels (“verified 2h ago” vs “indicative”). Consider user-reported price or pharmacy-confirmed feed.
+3. Conversion path after compare
+
+You deep-link to retailers and support MedLens delivery for local—good. Market expects one-tap checkout or saved addresses + payment everywhere.
+Gap: Unified checkout only where you control fulfilment; elsewhere, track handoff (did user complete purchase?) and recover abandoned compare sessions.
+4. Retention & LTV
+
+One-off compare has low LTV. Incumbents own refills, diagnostics bundles, insurance, and chronic care.
+Gap: Chronic condition journeys (diabetes, BP, thyroid) with scheduled labs + medicine + reminders in one narrative—not just isolated reminders.
+5. Diagnostics as a full product
+
+Practo/Healthians/Orange set expectations: slots, partner SLAs, cancellations, report vault.
+Gap: Post-booking status surface (collection done, report ready), report upload/view, and dispute/refund flows. Partner enable/disable is fine; users need predictable outcomes.
+6. Geography & discovery
+
+India is PIN-first and hyperlocal.
+Gap: PIN-level default, “pharmacies near me” ranking, and coverage maps (“we have 12 stores in this PIN”). You have pieces; market wants confidence before travel.
+7. Monetization clarity
+
+Market assumes commission on redirect, listing fees for pharmacies, lead fees, or B2B SaaS.
+Gap: A clear business model shapes UX (sponsored ranking vs neutral sort). Neutrality is a brand asset but needs transparent ranking rules.
+8. B2B pharmacy story
+
+Marg/RetailGraph import is a strong India-specific hook.
+Gap: Partner portal (not just API keys): dashboards, SKU mapping, price push, order inbox from MedLens deliveries, settlements. Your service_provider order events are a start—market wants operational workflow.
+9. Mobile & notifications
+
+Flutter exists; market is app-first + WhatsApp.
+Gap: Push for order/reminder, deep links from WhatsApp to order tracking, and offline-friendly compare history on device.
+10. Content & SEO
+
+Medicine pages drive organic traffic (1mg-style content).
+Gap: SEO landing pages per molecule + city, Hindi/regional copy, and doctor-friendly printable compare summaries (B2B2C).
+11. Insurance & payments
+
+UPI is universal; insurance cashless and HSA/ corporate are differentiation at scale.
+Gap: Even a “insurance coming soon” roadmap item matters for enterprise buyers.
+12. Competitive differentiation (sharp positioning)
+
+“Compare everyone” is crowded. A sharper story: “Verified local + online in one PIN, with honest stock” or “ERP-connected indie pharmacies vs big apps.”
+Gap: One sentence that explains why to open MedLens instead of three retailer apps—then build features that only that story can claim.
+Summary table
+Theme	Market expectation	Likely gap
+Trust	Licences, Rx, policies	Needs production-grade trust packaging
+Data	Fresh, correct prices	Needs freshness signals + coverage honesty
+Conversion	Seamless buy	Needs post-click tracking + recovery
+Retention	Chronic + labs bundles	Needs journeys, not point features
+Diagnostics	Slots + reports	Needs post-test experience
+Geo	PIN-first hyperlocal	Needs stronger “near me” confidence
+Revenue	Clear model	Needs explicit ranking / monetization ethics
+B2B	Partner workflows	Needs portal + settlements narrative
+Mobile	App + WhatsApp depth	Needs push, deep links, parity with web
+Growth	SEO + regional	Needs content and language scale
+Suggested next step (PM prioritization)
+Pick one wedge for the next quarter—for example “PIN-accurate indie pharmacy prices via ERP + honest stock” or “chronic refill + lab bundle in one flow”—and align roadmap so every major feature reinforces that story. Competing “generic compare app” head-on with funded players is the riskiest path; owning a narrow job better than anyone is the safer market bet.
+
+If you tell me your target primary user (price-sensitive retail buyer, chronic patient, pharmacy chain, or diagnostics buyer), I can narrow this to a tighter backlog with 5–7 epics and acceptance criteria.
+

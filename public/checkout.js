@@ -11,6 +11,133 @@ import { fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
 const $ = (id) => document.getElementById(id);
 const DIAG_PREPAID_KEY = "medlens_diag_prepaid_payload_v1";
 const ORDER_SUCCESS_KEY = "medlens_order_success_message_v1";
+const PRESCRIPTION_LS = "medlens_checkout_prescription_id";
+
+let rxCheckoutWired = false;
+let rxPreviewUrl = null;
+
+function getSelectedPrescriptionId() {
+  const sel = $("rxCheckoutSelect");
+  if (!sel || !sel.value) return null;
+  const n = Number(sel.value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function releaseRxPreview() {
+  if (rxPreviewUrl) {
+    try {
+      URL.revokeObjectURL(rxPreviewUrl);
+    } catch {
+      /* ignore */
+    }
+    rxPreviewUrl = null;
+  }
+}
+
+async function updateRxCheckoutPreview() {
+  const host = $("rxCheckoutPreview");
+  if (!host) return;
+  releaseRxPreview();
+  host.innerHTML = "";
+  const id = getSelectedPrescriptionId();
+  if (!id) return;
+  const res = await fetch(`/api/prescriptions/${encodeURIComponent(id)}/file`, { credentials: "same-origin" });
+  if (!res.ok) {
+    host.innerHTML = `<p class="muted">Could not load preview.</p>`;
+    return;
+  }
+  const blob = await res.blob();
+  const mime = blob.type || "application/octet-stream";
+  if (mime.includes("pdf")) {
+    host.innerHTML = `<a class="btn btn-sm btn-ghost" href="/api/prescriptions/${encodeURIComponent(id)}/file" target="_blank" rel="noopener">Open PDF</a>`;
+    return;
+  }
+  rxPreviewUrl = URL.createObjectURL(blob);
+  host.innerHTML = `<img src="${rxPreviewUrl}" alt="Prescription preview" style="max-width: 100%; max-height: 220px; border-radius: 8px; object-fit: contain" />`;
+}
+
+async function refreshPrescriptionCheckoutPanel() {
+  const panel = $("prescriptionCheckoutPanel");
+  const st = $("rxCheckoutStatus");
+  if (!panel) return;
+  if (!rxCheckoutWired) {
+    rxCheckoutWired = true;
+    $("rxCheckoutUpload")?.addEventListener("change", onRxCheckoutUpload);
+    $("rxCheckoutSelect")?.addEventListener("change", async () => {
+      const v = $("rxCheckoutSelect")?.value || "";
+      try {
+        if (v) localStorage.setItem(PRESCRIPTION_LS, v);
+        else localStorage.removeItem(PRESCRIPTION_LS);
+      } catch {
+        /* ignore */
+      }
+      await updateRxCheckoutPreview();
+    });
+  }
+
+  const user = await fetchMe();
+  if (!user || user.role === "service_provider") {
+    panel.classList.add("hidden");
+    return;
+  }
+  panel.classList.remove("hidden");
+  if (st) st.textContent = "";
+
+  const res = await fetch("/api/prescriptions", { credentials: "same-origin" });
+  const data = await res.json().catch(() => ({}));
+  const list = data.prescriptions || [];
+  const sel = $("rxCheckoutSelect");
+  if (!sel) return;
+  let saved = "";
+  try {
+    saved = localStorage.getItem(PRESCRIPTION_LS) || "";
+  } catch {
+    saved = "";
+  }
+  sel.innerHTML = `<option value="">— None selected —</option>${list
+    .map(
+      (p) =>
+        `<option value="${escapeHtml(String(p.id))}">#${escapeHtml(String(p.id))} · ${escapeHtml(
+          p.original_filename || p.mime_type || "file"
+        )} · ${escapeHtml(fmtTs(p.created_at))}</option>`
+    )
+    .join("")}`;
+  if (saved && list.some((p) => String(p.id) === saved)) sel.value = saved;
+  else if (list.length) sel.value = String(list[0].id);
+  try {
+    if (sel.value) localStorage.setItem(PRESCRIPTION_LS, sel.value);
+  } catch {
+    /* ignore */
+  }
+  await updateRxCheckoutPreview();
+}
+
+async function onRxCheckoutUpload(ev) {
+  const input = ev.target;
+  const file = input?.files?.[0];
+  const st = $("rxCheckoutStatus");
+  if (!file) return;
+  if (st) st.textContent = "Uploading…";
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch("/api/prescriptions", { method: "POST", body: fd, credentials: "same-origin" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (st) st.textContent = data.error || `Upload failed (${res.status})`;
+    return;
+  }
+  if (st) st.textContent = "Saved. You can attach it to your order below.";
+  input.value = "";
+  const id = data.prescription?.id;
+  if (id) {
+    try {
+      localStorage.setItem(PRESCRIPTION_LS, String(id));
+    } catch {
+      /* ignore */
+    }
+  }
+  await refreshPrescriptionCheckoutPanel();
+}
 
 function escapeHtml(s) {
   return String(s)
@@ -24,6 +151,12 @@ function fmt(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return "—";
   return x.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+}
+
+function fmtTs(s) {
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 }
 
 function localDateInputValue(date = new Date()) {
@@ -96,6 +229,7 @@ async function placeDiagnosticsOrder() {
       });
     }
   });
+  const prescId = getSelectedPrescriptionId();
   const payload = {
     package_id: packages[0].package_id,
     deal_id: packages[0].deal_id,
@@ -108,6 +242,7 @@ async function placeDiagnosticsOrder() {
     scheduled_for: scheduledForIso,
     cart_line_ids: lines.map((L) => L.lineId),
   };
+  if (prescId) payload.prescription_id = prescId;
 
   if (!payload.package_id || !payload.city || !Number.isFinite(payload.price_inr) || payload.price_inr <= 0) {
     statusEl.textContent = "Diagnostics cart item is incomplete. Re-add the test and retry.";
@@ -275,6 +410,7 @@ async function placeDeliveryOrder() {
   const doseMap = collectDoseByLineId();
   const delivery_option = $("deliveryOption")?.value || "normal";
 
+  const prescId = getSelectedPrescriptionId();
   const payload = {
     delivery_option,
     address: {
@@ -297,6 +433,7 @@ async function placeDeliveryOrder() {
       tablets_per_day: doseMap.get(L.lineId) ?? null,
     })),
   };
+  if (prescId) payload.prescription_id = prescId;
 
   try {
     const res = await fetch("/api/orders", {
@@ -458,6 +595,8 @@ function render() {
     }
   }
   if (diagPay && !diagPay.value) diagPay.value = "cod";
+
+  void refreshPrescriptionCheckoutPanel();
 }
 
 $("clearBtn")?.addEventListener("click", () => {

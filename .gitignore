@@ -68,6 +68,9 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# User-uploaded prescriptions (local disk)
+uploads/
+
 # dotenv environment variable files
 .env
 .env.*

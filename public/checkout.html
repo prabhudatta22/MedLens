@@ -58,6 +58,28 @@
           </div>
         </section>
 
+        <section class="panel hidden" style="margin-top: 1rem" id="prescriptionCheckoutPanel" aria-labelledby="rxCheckoutHeading">
+          <div class="online-head">
+            <h2 style="margin: 0" id="rxCheckoutHeading">Prescription</h2>
+          </div>
+          <p class="muted" style="margin-top: 0.5rem">
+            Upload a clear photo or PDF. It is saved on your account, shown here at checkout, and attached to medicine or diagnostics orders for pharmacy verification. If you send a prescription via WhatsApp, it is saved when your WhatsApp number matches your login mobile.
+          </p>
+          <div class="form-grid" style="margin-top: 0.75rem">
+            <label class="field" style="margin: 0">
+              <span>Upload new</span>
+              <input id="rxCheckoutUpload" type="file" accept="image/*,application/pdf" capture="environment" />
+            </label>
+            <label class="field" style="margin: 0">
+              <span>Use saved</span>
+              <select id="rxCheckoutSelect"><option value="">— None selected —</option></select>
+            </label>
+          </div>
+          <div id="rxCheckoutPreview" class="rx-matches" style="margin-top: 0.75rem" aria-live="polite"></div>
+          <p id="rxCheckoutStatus" class="muted" style="margin-top: 0.35rem"></p>
+          <p class="muted hint" style="margin-top: 0.35rem"><a href="/profile.html#rxCard">Manage prescriptions</a></p>
+        </section>
+
         <section class="panel" style="margin-top: 1rem" id="deliveryPanel">
           <div class="online-head">
             <h2 style="margin: 0">Home delivery (MedLens)</h2>

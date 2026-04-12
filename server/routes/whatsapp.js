@@ -7,6 +7,8 @@ import {
 } from "../integrations/whatsappCloud.js";
 import { ocrImageBytes } from "../ocr/ocr.js";
 import { matchMedicinesFromText } from "../prescription/parse.js";
+import { ensureUserPrescriptionsSchema } from "../prescriptions/schema.js";
+import { savePrescriptionForUser } from "../prescriptions/store.js";
 
 const router = Router();
 
@@ -109,10 +111,41 @@ router.post("/", async (req, res) => {
       const ocrText = await ocrImageBytes(mediaBytes);
       const matches = await matchMedicinesFromText(ocrText);
 
+      await ensureUserPrescriptionsSchema();
+
+      const waDigits = String(waFrom).replace(/\D/g, "");
+      const tail10 = waDigits.length >= 10 ? waDigits.slice(-10) : waDigits;
+      const userRes = tail10
+        ? await pool.query(
+            `SELECT id FROM users
+             WHERE RIGHT(regexp_replace(phone_e164, '[^0-9]', '', 'g'), 10) = $1
+             ORDER BY last_login_at DESC NULLS LAST
+             LIMIT 1`,
+            [tail10]
+          )
+        : { rows: [] };
+
+      let prescriptionId = null;
+      if (userRes.rows.length) {
+        try {
+          const saved = await savePrescriptionForUser({
+            userId: userRes.rows[0].id,
+            buffer: mediaBytes,
+            mimeType: "image/jpeg",
+            originalFilename: "whatsapp-prescription.jpg",
+            source: "whatsapp",
+            ocrPreview: ocrText.slice(0, 500),
+          });
+          prescriptionId = saved.id;
+        } catch (e) {
+          console.error("WhatsApp prescription save:", e?.message || e);
+        }
+      }
+
       const sourceRef = `wa:${phoneNumberId || "unknown"}:${messageId}`;
       const cartRes = await pool.query(
-        `INSERT INTO carts (source, source_ref, wa_from, wa_message_id, status, ocr_text)
-         VALUES ('whatsapp', $1, $2, $3, $4, $5)
+        `INSERT INTO carts (source, source_ref, wa_from, wa_message_id, status, ocr_text, prescription_id)
+         VALUES ('whatsapp', $1, $2, $3, $4, $5, $6)
          RETURNING id`,
         [
           sourceRef,
@@ -120,6 +153,7 @@ router.post("/", async (req, res) => {
           messageId,
           matches.length ? "ready" : "failed",
           ocrText,
+          prescriptionId,
         ]
       );
       const cartId = cartRes.rows[0].id;
@@ -142,10 +176,16 @@ router.post("/", async (req, res) => {
         .map((m, i) => `${i + 1}. ${m.display_name} (match ${(m.score * 100).toFixed(0)}%)`)
         .join("\n");
 
+      const savedLine = prescriptionId
+        ? "\n\nYour prescription photo is saved on your MedLens account for checkout and future orders."
+        : userRes.rows.length
+          ? ""
+          : "\n\nTip: log in once on the website with the same mobile number so we can save your prescription to your account.";
+
       const reply =
         matches.length > 0
-          ? `I found these medicines from your prescription:\n${lines}\n\nOpen cart: ${cartUrl || `cart #${cartId}`}\n\nReply “edit” if anything looks off (handwritten prescriptions may need manual confirmation).`
-          : `I couldn’t confidently read medicines from that photo.\nTip: send a brighter, sharper image (no glare), or type the medicine names.\nCart: ${cartUrl || `#${cartId}`}`;
+          ? `I found these medicines from your prescription:\n${lines}\n\nOpen cart: ${cartUrl || `cart #${cartId}`}\n\nReply “edit” if anything looks off (handwritten prescriptions may need manual confirmation).${savedLine}`
+          : `I couldn’t confidently read medicines from that photo.\nTip: send a brighter, sharper image (no glare), or type the medicine names.\nCart: ${cartUrl || `#${cartId}`}${savedLine}`;
 
       await sendTextMessage({ toWaId: waFrom, text: reply }).catch(() => {});
     }

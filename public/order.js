@@ -107,6 +107,27 @@ async function load() {
   }
   status.textContent = `${successFlash ? `${successFlash} · ` : ""}Status: ${o.status}${partnerStatus}`;
 
+  const op = $("orderPrescription");
+  if (op) {
+    if (o.prescription_file_id) {
+      op.classList.remove("hidden");
+      const pid = o.prescription_file_id;
+      op.innerHTML = `
+        <div class="rx-match">
+          <div>
+            <div class="rx-match-title">Prescription on file</div>
+            <div class="rx-match-sub muted">${escapeHtml(o.prescription_filename || "Attachment")} · uploaded ${escapeHtml(
+        fmtTs(o.prescription_uploaded_at)
+      )}</div>
+          </div>
+          <a class="btn btn-sm btn-ghost" href="/api/prescriptions/${encodeURIComponent(pid)}/file" target="_blank" rel="noopener">View</a>
+        </div>`;
+    } else {
+      op.classList.add("hidden");
+      op.innerHTML = "";
+    }
+  }
+
   const items = data.items || [];
   itemsTbody.innerHTML = items
     .map((it) => {

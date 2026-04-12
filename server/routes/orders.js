@@ -96,7 +96,25 @@ async function ensureOrdersSchema() {
        ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_order_ref TEXT;
        ALTER TABLE orders ADD COLUMN IF NOT EXISTS provider_payload JSONB;
        ALTER TABLE order_items ADD COLUMN IF NOT EXISTS provider_item_ref TEXT;
-       ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_meta JSONB;`
+       ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_meta JSONB;
+
+       CREATE TABLE IF NOT EXISTS user_prescriptions (
+         id SERIAL PRIMARY KEY,
+         user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+         storage_key TEXT NOT NULL UNIQUE,
+         original_filename TEXT,
+         mime_type TEXT NOT NULL,
+         byte_size INTEGER NOT NULL CHECK (byte_size > 0 AND byte_size <= 10485760),
+         source TEXT NOT NULL DEFAULT 'web' CHECK (source IN ('web','whatsapp')),
+         ocr_preview TEXT,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       );
+
+       CREATE INDEX IF NOT EXISTS idx_user_prescriptions_user_created
+         ON user_prescriptions (user_id, created_at DESC);
+
+       ALTER TABLE carts ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE SET NULL;
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE RESTRICT;`
     );
   })().catch((e) => {
     ordersSchemaReadyPromise = null;
@@ -107,6 +125,19 @@ async function ensureOrdersSchema() {
 
 function nowPlusMinutes(min) {
   return new Date(Date.now() + min * 60_000);
+}
+
+async function resolvePrescriptionId(poolConn, userId, body) {
+  const rawPresc = body?.prescription_id ?? body?.prescriptionId;
+  if (rawPresc == null || rawPresc === "") return null;
+  const p = Number(rawPresc);
+  if (!Number.isFinite(p) || p < 1) throw new Error("Invalid prescription_id");
+  const pr = await poolConn.query(
+    `SELECT id FROM user_prescriptions WHERE id = $1 AND user_id = $2 LIMIT 1`,
+    [p, userId]
+  );
+  if (!pr.rows.length) throw new Error("Prescription not found for your account");
+  return p;
 }
 
 function quoteDelivery(delivery_option) {
@@ -268,6 +299,13 @@ router.post("/", async (req, res) => {
   const address_line1 = String(addr.address_line1 || "").trim().slice(0, 200);
   if (!address_line1) return res.status(400).json({ error: "address.address_line1 is required" });
 
+  let prescriptionId = null;
+  try {
+    prescriptionId = await resolvePrescriptionId(pool, userId, req.body);
+  } catch (e) {
+    return res.status(400).json({ error: e?.message || "Invalid prescription" });
+  }
+
   const delivery_option = String(req.body?.delivery_option || "normal");
   const q = quoteDelivery(delivery_option);
 
@@ -296,9 +334,9 @@ router.post("/", async (req, res) => {
     );
 
     const orderRes = await client.query(
-      `INSERT INTO orders (user_id, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, notes, updated_at)
-       VALUES ($1,'created',$2,$3,$4,$5,$6, now())
-       RETURNING id, status, delivery_option, delivery_fee_inr, scheduled_for, created_at`,
+      `INSERT INTO orders (user_id, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, notes, prescription_id, updated_at)
+       VALUES ($1,'created',$2,$3,$4,$5,$6,$7, now())
+       RETURNING id, status, delivery_option, delivery_fee_inr, scheduled_for, created_at, prescription_id`,
       [
         userId,
         q.delivery_option,
@@ -306,6 +344,7 @@ router.post("/", async (req, res) => {
         q.scheduled_for.toISOString(),
         addrRes.rows[0].id,
         req.body?.notes ? String(req.body.notes).trim().slice(0, 500) : null,
+        prescriptionId,
       ]
     );
     const order = orderRes.rows[0];
@@ -437,6 +476,13 @@ router.post("/diagnostics", async (req, res) => {
     return res.status(400).json({ error: "Patient name and phone are required. Update your profile and retry." });
   }
 
+  let diagPrescriptionId = null;
+  try {
+    diagPrescriptionId = await resolvePrescriptionId(pool, userId, req.body);
+  } catch (e) {
+    return res.status(400).json({ error: e?.message || "Invalid prescription" });
+  }
+
   let providerBooking;
   if (partnerEnabled) {
     try {
@@ -489,10 +535,10 @@ router.post("/diagnostics", async (req, res) => {
     const scheduledIso = requestedSchedule.toISOString();
     const orderRes = await client.query(
       `INSERT INTO orders
-         (user_id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, provider_name, provider_order_ref, provider_payload, notes, updated_at)
+         (user_id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, provider_name, provider_order_ref, provider_payload, notes, prescription_id, updated_at)
        VALUES
-         ($1,'diagnostics','confirmed','normal',0,$2,$3,$4,$5,$6,$7, now())
-       RETURNING id, order_kind, status, scheduled_for, provider_name, provider_order_ref, created_at`,
+         ($1,'diagnostics','confirmed','normal',0,$2,$3,$4,$5,$6,$7,$8, now())
+       RETURNING id, order_kind, status, scheduled_for, provider_name, provider_order_ref, created_at, prescription_id`,
       [
         userId,
         scheduledIso,
@@ -501,6 +547,7 @@ router.post("/diagnostics", async (req, res) => {
         providerBooking.booking_ref || null,
         JSON.stringify(providerBooking.provider_response || {}),
         `Diagnostics package booking in ${city} (${paymentType.toUpperCase()}) · ${packages.length} test(s)`,
+        diagPrescriptionId,
       ]
     );
     const order = orderRes.rows[0];
@@ -573,9 +620,14 @@ router.get("/:id", async (req, res) => {
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid id" });
 
   const orderRes = await pool.query(
-    `SELECT o.*, a.address_line1, a.address_line2, a.landmark, a.city, a.state, a.pincode
+    `SELECT o.*, a.address_line1, a.address_line2, a.landmark, a.city, a.state, a.pincode,
+            up.id AS prescription_file_id,
+            up.original_filename AS prescription_filename,
+            up.mime_type AS prescription_mime,
+            up.created_at AS prescription_uploaded_at
      FROM orders o
      LEFT JOIN user_addresses a ON a.id = o.address_id
+     LEFT JOIN user_prescriptions up ON up.id = o.prescription_id
      WHERE o.id = $1 AND o.user_id = $2
      LIMIT 1`,
     [id, userId]

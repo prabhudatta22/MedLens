@@ -54,6 +54,7 @@
 
           <div class="profile-side-block">
             <span class="profile-side-title">Account</span>
+            <a href="#rxCard" class="profile-side-link">Prescriptions</a>
             <a href="#addressCard" class="profile-side-link">Saved addresses</a>
             <a href="#paymentCard" class="profile-side-link">Saved payment methods</a>
           </div>
@@ -95,6 +96,23 @@
                 <button type="submit" class="btn btn-primary">Save profile</button>
               </div>
             </form>
+          </section>
+
+          <section id="rxCard" class="profile-card">
+            <div class="section-head">
+              <div>
+                <h3 style="margin-bottom: 0.25rem">Saved prescriptions</h3>
+                <p class="muted section-sub">
+                  Photos or PDFs for checkout and order history. Same files appear when you place home delivery or diagnostics orders.
+                </p>
+              </div>
+            </div>
+            <p class="muted" id="rxStatus" style="margin: 0 0 0.75rem"></p>
+            <label class="field" style="max-width: 22rem">
+              <span>Upload (camera or file)</span>
+              <input id="rxProfileUpload" type="file" accept="image/*,application/pdf" capture="environment" />
+            </label>
+            <div id="rxList" class="stack" style="margin-top: 0.75rem"></div>
           </section>
 
           <section id="addressCard" class="profile-card">

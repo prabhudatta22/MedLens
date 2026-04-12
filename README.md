@@ -140,6 +140,7 @@ The app can OCR a **printed** prescription/bill image and suggest likely matches
 - **Medicines OCR endpoint**: `POST /api/prescription/ocr` (multipart form-data, file field name `file`)
   - Returns `{ ok, text, matches }` where `matches[]` are best matches from `medicines`
   - UI: home page upload control (click **Extract medicines**)
+  - To **keep the same file** for checkout and orders, use **Saved prescriptions** (`/api/prescriptions` and Profile / Checkout UI) below.
 
 - **Diagnostics OCR endpoint**: `POST /api/labs/prescription/ocr?city=<citySlug>` (multipart form-data, file field name `file`)
   - Returns `{ ok, text, matches }` where `matches[]` are best matches from `lab_tests` (+ prices for that city)
@@ -214,6 +215,33 @@ After setup, a user can send a **photo of the prescription** to your WhatsApp nu
 ### Notes
 
 - OCR here uses `tesseract.js` and is best for **printed** text. Handwriting may fail; production setups usually use a Vision/LLM OCR provider.
+- If the sender’s WhatsApp number matches a logged-in user’s **India mobile** (last 10 digits vs `users.phone_e164`), the image is also **saved** to that account as a stored prescription and linked on the created cart (`carts.prescription_id`). The reply mentions this when applicable.
+
+## Saved prescriptions (account, checkout, orders)
+
+MedLens keeps **uploaded prescription files** on the user’s account for **checkout**, **order fulfilment** (pharmacy verification), and **future reference**. This complements the **OCR-only** flows above (`POST /api/prescription/ocr` does not persist the file by itself).
+
+### Behaviour
+
+- **Profile** (`/profile.html` → *Saved prescriptions*): upload a **photo or PDF** (camera-friendly on mobile). List, **View**, or **Delete** (delete is blocked if a row is still linked to an order).
+- **Checkout** (`/checkout.html`): when logged in, a **Prescription** panel lists saved files, supports a **new upload**, shows a **preview** (or PDF link), and attaches the selected file to **home delivery** (`POST /api/orders`) and **diagnostics** (`POST /api/orders/diagnostics`, including prepaid payloads). The last choice is remembered in the browser as `localStorage` key `medlens_checkout_prescription_id`.
+- **Order detail** (`/order.html?id=…`): if the order has a linked prescription, a **View** link appears (same authenticated file endpoint).
+- **Storage**: files live under **`uploads/prescriptions/<userId>/`** on the server; the directory is **gitignored** (`uploads/` in `.gitignore`). Run **`npm run db:migrate`** so `user_prescriptions` and `orders.prescription_id` / `carts.prescription_id` exist.
+
+### API (requires consumer `sid` session cookie)
+
+- `GET /api/prescriptions` — list metadata for the current user  
+- `POST /api/prescriptions` — multipart **form-data**, field name **`file`** (JPEG, PNG, WebP, or PDF; max 10 MB). Optional form field **`ocr_preview`** (short text). Returns `{ prescription: { id, … } }`.  
+- `GET /api/prescriptions/:id/file` — download / inline view (owner only)  
+- `DELETE /api/prescriptions/:id` — remove file and row if **no order** references it (`409` otherwise)  
+
+**Orders**
+
+- `POST /api/orders` — optional JSON **`prescription_id`** (must belong to the user); stored on the order.  
+- `POST /api/orders/diagnostics` — optional **`prescription_id`** (same rule).  
+- `GET /api/orders/:id` — includes joined fields when present: `prescription_file_id`, `prescription_filename`, `prescription_mime`, `prescription_uploaded_at`.
+
+Schema: `user_prescriptions` plus FKs from `orders` and `carts` — see `server/db/sql/schema.sql` and `server/routes/orders.js` (`ensureOrdersSchema`). Implementation: `server/routes/prescriptions.js`, `server/prescriptions/store.js`, `server/prescriptions/schema.js`.
 
 ## Import prices from Excel (.xlsx)
 
@@ -334,6 +362,8 @@ Retailer sites: [MedPlus Mart](https://www.medplusmart.com/), [Apollo Pharmacy](
 
 Open **`/checkout.html`** (header **Cart** or footer **Multi checkout** on the home page). Use **Add** on local pharmacy rows or online retailer rows to build one cart across multiple destinations. The cart lives in the browser (**`localStorage`** only); MedLens does **not** take payment—you complete each purchase on the pharmacy or retailer site. **Open all checkouts** opens tabs in a short stagger; some browsers block many pop-ups at once, so use per-row **Open** links if needed.
 
+When you are logged in, the **Prescription** section on checkout lets you attach a **saved or newly uploaded** prescription to **MedLens home delivery** and **diagnostics** orders (see **Saved prescriptions** above).
+
 ## Home search (live)
 
 The home page does **not** require picking a medicine from a database list first. After you type at least two characters (debounced), the UI calls **`GET /api/online/compare?q=...`** so each integrated retailer is queried in parallel with your search text, and **`GET /api/compare/search?q=...&city=...`** for matching rows in the PostgreSQL demo inventory. Configure partner env vars (or `ONLINE_USE_ILLUSTRATIVE_FALLBACK=true` for demo prices). Physical pharmacies only appear when they exist in your seeded data for that city.
@@ -390,6 +420,7 @@ Open `APP_BASE_URL/reminders.html` while logged in. You can set a **next reminde
 - `GET /api/compare/search?q=metformin&city=mumbai` — realtime local match (name/generic contains `q`, demo DB)  
 - `GET /api/carts/:id` — cart + extracted items  
 - `GET/POST/PATCH/DELETE /api/reminders` — purchase reminders (logged-in users)  
+- `GET/POST/DELETE /api/prescriptions` and `GET /api/prescriptions/:id/file` — saved prescription files for checkout and orders (logged-in **consumer** users; see **Saved prescriptions**)  
 
 ## Author
 
