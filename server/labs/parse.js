@@ -1,4 +1,5 @@
 import { pool } from "../db/pool.js";
+import { labPriceLateralSql } from "./priceJoin.js";
 
 function normalizeLine(line) {
   return line
@@ -79,7 +80,7 @@ export async function matchLabTestsFromText(ocrText, { limitItems = 8, citySlug 
        p.mrp_inr
      FROM lab_tests t
      JOIN cities c ON c.slug = $1
-     JOIN lab_test_prices p ON p.test_id = t.id AND p.city_id = c.id
+     ${labPriceLateralSql("$1")}
      WHERE t.id = ANY($2::int[])`,
     [citySlug, ids]
   );

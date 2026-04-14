@@ -31,7 +31,14 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, act
 INSERT INTO cities (name, state, slug) VALUES
   ('Mumbai', 'Maharashtra', 'mumbai'),
   ('Bengaluru', 'Karnataka', 'bengaluru'),
-  ('New Delhi', 'Delhi', 'new-delhi');
+  ('New Delhi', 'Delhi', 'new-delhi'),
+  ('Hyderabad', 'Telangana', 'hyderabad'),
+  ('Chennai', 'Tamil Nadu', 'chennai'),
+  ('Kolkata', 'West Bengal', 'kolkata'),
+  ('Pune', 'Maharashtra', 'pune'),
+  ('Ahmedabad', 'Gujarat', 'ahmedabad'),
+  ('Kochi', 'Kerala', 'kochi'),
+  ('Jaipur', 'Rajasthan', 'jaipur');
 
 -- Service provider businesses (UUID) for SKU catalog / provider_skus
 INSERT INTO service_providers (id, name, address, area, city, state, pincode) VALUES
@@ -179,6 +186,16 @@ INSERT INTO lab_test_prices (city_id, lab_name, test_id, price_inr, mrp_inr) VAL
   (3, 'Tata 1mg Labs', 3, 419.00, 450.00),
   (3, 'Tata 1mg Labs', 4, 2199.00, 4498.00),
   (3, 'Tata 1mg Labs', 5, 1899.00, 3998.00);
+
+-- Demo: copy Bengaluru list prices to any city that does not already have that test priced.
+INSERT INTO lab_test_prices (city_id, lab_name, test_id, price_inr, mrp_inr)
+SELECT c.id, brp.lab_name, brp.test_id, brp.price_inr, brp.mrp_inr
+FROM cities c
+CROSS JOIN lab_test_prices brp
+INNER JOIN cities br ON br.id = brp.city_id AND br.slug = 'bengaluru'
+WHERE NOT EXISTS (
+  SELECT 1 FROM lab_test_prices x WHERE x.city_id = c.id AND x.test_id = brp.test_id
+);
 
 -- SKU master + catalog consumer profiles + provider pricing (demo)
 INSERT INTO skus (id, name, details, category) VALUES

@@ -4,6 +4,7 @@ import multer from "multer";
 import { ocrImageBytes } from "../ocr/ocr.js";
 import { matchMedicinesFromText } from "../prescription/parse.js";
 import { normalizeQuery } from "../ai/normalize.js";
+import { labPriceLateralSql } from "../labs/priceJoin.js";
 import { matchLabTestsFromText } from "../labs/parse.js";
 import {
   getPartnerPackageDetails,
@@ -177,7 +178,7 @@ router.get(
         p.mrp_inr
        FROM lab_tests t
        JOIN cities c ON c.slug = $2
-       JOIN lab_test_prices p ON p.test_id = t.id AND p.city_id = c.id
+       ${labPriceLateralSql("$2")}
        WHERE t.search_vector LIKE $1
        ORDER BY p.price_inr ASC NULLS LAST
        LIMIT 8`,
@@ -251,7 +252,7 @@ router.get(
       p.mrp_inr
      FROM lab_tests t
      JOIN cities c ON c.slug = $2
-     JOIN lab_test_prices p ON p.test_id = t.id AND p.city_id = c.id
+     ${labPriceLateralSql("$2")}
      WHERE t.search_vector LIKE $1${catSql}
      ORDER BY p.price_inr ASC NULLS LAST
      LIMIT 60`,
@@ -301,7 +302,7 @@ router.get(
          p.mrp_inr
        FROM lab_tests t
        JOIN cities c ON c.slug = $2
-       JOIN lab_test_prices p ON p.test_id = t.id AND p.city_id = c.id
+       ${labPriceLateralSql("$2")}
        WHERE t.id = $1
        LIMIT 1`,
       [numericId, citySlug]
