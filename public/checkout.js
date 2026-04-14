@@ -7,9 +7,14 @@ import {
   bucketTitle,
 } from "./cartStore.js";
 import { fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
+import {
+  loadRazorpayScript,
+  fetchRazorpayStatus,
+  createRazorpayServerOrder,
+  totalInrFromPackages,
+} from "./diagnosticsRazorpay.js";
 
 const $ = (id) => document.getElementById(id);
-const DIAG_PREPAID_KEY = "medlens_diag_prepaid_payload_v1";
 const ORDER_SUCCESS_KEY = "medlens_order_success_message_v1";
 const PRESCRIPTION_LS = "medlens_checkout_prescription_id";
 
@@ -176,6 +181,13 @@ function onlyDiagnosticsItems(items) {
   return (items || []).filter((x) => x && x.source === "diagnostics");
 }
 
+function syncDiagPrepaidHint() {
+  const hint = $("diagPrepaidHint");
+  const pay = $("diagPaymentType");
+  if (!hint || !pay) return;
+  hint.classList.toggle("hidden", pay.value !== "prepaid");
+}
+
 function removeLinesById(lineIds) {
   const ids = new Set((lineIds || []).map((x) => String(x)));
   if (!ids.size) return;
@@ -250,9 +262,107 @@ async function placeDiagnosticsOrder() {
   }
 
   if (paymentType === "prepaid") {
-    localStorage.setItem(DIAG_PREPAID_KEY, JSON.stringify(payload));
-    statusEl.textContent = "Redirecting to payment page…";
-    window.location.assign("/diagnostics-payment.html");
+    $("diagPaySuccess")?.classList.add("hidden");
+    btn.disabled = true;
+    statusEl.textContent = "Preparing Razorpay checkout…";
+    try {
+      const rz = await fetchRazorpayStatus();
+      if (!rz.configured) {
+        statusEl.innerHTML =
+          "Razorpay is not configured on the server. Add <code>RAZORPAY_KEY_ID</code> and <code>RAZORPAY_KEY_SECRET</code> to <code>.env</code> and restart, or choose <strong>Cash on collection</strong>.";
+        btn.disabled = false;
+        return;
+      }
+      await loadRazorpayScript();
+      const totalInr = totalInrFromPackages(packages);
+      if (!(totalInr > 0)) {
+        statusEl.textContent = "Invalid cart total.";
+        btn.disabled = false;
+        return;
+      }
+      const ord = await createRazorpayServerOrder(totalInr);
+      let handlerDone = false;
+      const options = {
+        key: ord.key_id,
+        amount: String(ord.amount),
+        currency: ord.currency || "INR",
+        order_id: ord.order_id,
+        name: "MedLens",
+        description: `Diagnostics · ${packages.length} test(s)`,
+        theme: { color: "#0f766e" },
+        handler(response) {
+          handlerDone = true;
+          void (async () => {
+            statusEl.textContent = "Verifying payment and confirming booking…";
+            try {
+              const res = await fetch("/api/orders/diagnostics", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({
+                  ...payload,
+                  payment_type: "prepaid",
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                statusEl.textContent = data.error || `Booking failed (${res.status})`;
+                btn.disabled = false;
+                return;
+              }
+              removeLinesById(payload.cart_line_ids);
+              const o = data.order;
+              const oid = o?.id;
+              const tid = response.razorpay_payment_id || o?.razorpay_payment_id;
+              const rzOid = response.razorpay_order_id || o?.razorpay_order_id;
+              $("diagPaySuccess")?.classList.remove("hidden");
+              const elOrder = $("diagSuccessOrderId");
+              const elTxn = $("diagSuccessTxnId");
+              const elRz = $("diagSuccessRzOrderId");
+              if (elOrder) elOrder.textContent = String(oid ?? "—");
+              if (elTxn) elTxn.textContent = String(tid ?? "—");
+              if (elRz) elRz.textContent = String(rzOid ?? "—");
+              const link = $("diagSuccessViewOrder");
+              if (link && oid) link.href = `/order.html?id=${encodeURIComponent(oid)}`;
+              statusEl.textContent = "Booking confirmed. Details below.";
+              $("diagPaySuccess")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              try {
+                sessionStorage.setItem(ORDER_SUCCESS_KEY, "Order placed successfully");
+              } catch {
+                /* ignore */
+              }
+            } catch (e) {
+              statusEl.textContent = String(e?.message || e);
+            } finally {
+              btn.disabled = false;
+              render();
+            }
+          })();
+        },
+        modal: {
+          ondismiss() {
+            if (!handlerDone) {
+              statusEl.textContent = "Payment window closed. Choose Prepaid and try again, or pick Cash on collection.";
+              btn.disabled = false;
+            }
+          },
+        },
+      };
+      if (user?.phone_e164 || user?.email) {
+        options.prefill = {};
+        if (user.phone_e164) options.prefill.contact = user.phone_e164;
+        if (user.email) options.prefill.email = user.email;
+      }
+      statusEl.textContent = `Total ₹${fmt(totalInr)} — complete payment in the Razorpay window.`;
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (e) {
+      statusEl.textContent = String(e?.message || e);
+      btn.disabled = false;
+    }
     return;
   }
 
@@ -595,6 +705,7 @@ function render() {
     }
   }
   if (diagPay && !diagPay.value) diagPay.value = "cod";
+  syncDiagPrepaidHint();
 
   void refreshPrescriptionCheckoutPanel();
 }
@@ -627,3 +738,5 @@ Promise.all([refreshAuthNav(), fetchMe()]).then(([, u]) => {
 });
 $("placeOrderBtn")?.addEventListener("click", () => placeDeliveryOrder());
 $("placeDiagnosticsBtn")?.addEventListener("click", () => placeDiagnosticsOrder());
+$("diagPaymentType")?.addEventListener("change", syncDiagPrepaidHint);
+syncDiagPrepaidHint();

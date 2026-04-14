@@ -1,5 +1,11 @@
 import { removeLine } from "./cartStore.js";
 import { fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
+import {
+  loadRazorpayScript,
+  fetchRazorpayStatus,
+  createRazorpayServerOrder,
+  totalInrFromPackages,
+} from "./diagnosticsRazorpay.js";
 
 const $ = (id) => document.getElementById(id);
 const DIAG_PREPAID_KEY = "medlens_diag_prepaid_payload_v1";
@@ -31,73 +37,105 @@ function loadPending() {
   }
 }
 
-function paymentMeta() {
-  const method = $("dxPayMethod")?.value || "upi";
-  if (method === "upi") {
-    const upi = String($("dxUpiId")?.value || "").trim();
-    if (!/^[a-zA-Z0-9._-]{2,}@[a-zA-Z0-9.-]{2,}$/.test(upi)) return { ok: false, error: "Enter a valid UPI ID." };
-    return { ok: true, value: { method: "upi", upi_id: upi } };
-  }
-  const num = String($("dxCardNumber")?.value || "").replace(/\D/g, "");
-  const exp = String($("dxCardExp")?.value || "").trim();
-  const cvv = String($("dxCardCvv")?.value || "").replace(/\D/g, "");
-  const holder = String($("dxCardHolder")?.value || "").trim();
-  if (num.length < 12 || num.length > 19) return { ok: false, error: "Enter a valid card number." };
-  if (!/^\d{2}\/\d{2}$/.test(exp)) return { ok: false, error: "Enter expiry in MM/YY format." };
-  if (!(cvv.length === 3 || cvv.length === 4)) return { ok: false, error: "Enter a valid CVV." };
-  if (!holder) return { ok: false, error: "Enter card holder name." };
-  return {
-    ok: true,
-    value: {
-      method: "card",
-      card_last4: num.slice(-4),
-      card_network: "CARD",
-      card_holder_name: holder,
-    },
-  };
-}
-
-async function placePrepaidOrder(pending) {
+async function placePrepaidOrder(pending, rz) {
   const status = $("dxPayStatus");
   const btn = $("dxPayBtn");
-  const meta = paymentMeta();
-  if (!meta.ok) {
-    status.textContent = meta.error;
-    return;
-  }
-  btn.disabled = true;
-  status.textContent = "Processing payment and creating order…";
   const payload = {
     ...pending,
     payment_type: "prepaid",
-    payment_meta: meta.value,
+    razorpay_order_id: rz.razorpay_order_id,
+    razorpay_payment_id: rz.razorpay_payment_id,
+    razorpay_signature: rz.razorpay_signature,
   };
+  const res = await fetch("/api/orders/diagnostics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || `Payment/booking failed (${res.status})`);
+  }
+  localStorage.removeItem(DIAG_PREPAID_KEY);
+  const lineIds = Array.isArray(pending?.cart_line_ids) ? pending.cart_line_ids : [];
+  lineIds.forEach((id) => removeLine(id));
+  const id = data?.order?.id;
   try {
-    const res = await fetch("/api/orders/diagnostics", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      status.textContent = data?.error || `Payment/booking failed (${res.status})`;
+    sessionStorage.setItem(ORDER_SUCCESS_KEY, "Successfully order placed");
+  } catch {
+    /* ignore */
+  }
+  status.textContent = `Order #${id} · Transaction ${rz.razorpay_payment_id}. Redirecting…`;
+  btn.disabled = true;
+  setTimeout(() => {
+    window.location.assign(`/order.html?id=${encodeURIComponent(id)}`);
+  }, 900);
+}
+
+async function startRazorpayCheckout(pending) {
+  const status = $("dxPayStatus");
+  const btn = $("dxPayBtn");
+  const totalInr = totalInrFromPackages(pending.packages);
+  if (!(totalInr > 0)) {
+    status.textContent = "Invalid total amount.";
+    return;
+  }
+  btn.disabled = true;
+  status.textContent = "Opening Razorpay…";
+  try {
+    await loadRazorpayScript();
+    const st = await fetchRazorpayStatus();
+    if (!st.configured || !st.key_id) {
+      status.innerHTML =
+        "Razorpay is not configured. Use <a href=\"/checkout.html\">Cart</a> with <strong>Cash on collection</strong>, or set keys in <code>.env</code>.";
       btn.disabled = false;
       return;
     }
-    localStorage.removeItem(DIAG_PREPAID_KEY);
-    const lineIds = Array.isArray(pending?.cart_line_ids) ? pending.cart_line_ids : [];
-    lineIds.forEach((id) => removeLine(id));
-    const id = data?.order?.id;
-    try {
-      sessionStorage.setItem(ORDER_SUCCESS_KEY, "Successfully order placed");
-    } catch {
-      /* ignore */
+    const ord = await createRazorpayServerOrder(totalInr);
+    const user = (await fetchAndCacheUser()) || loadCachedUser();
+    let handlerDone = false;
+    const options = {
+      key: ord.key_id,
+      amount: String(ord.amount),
+      currency: ord.currency || "INR",
+      order_id: ord.order_id,
+      name: "MedLens",
+      description: `Diagnostics · ${pending.packages.length} test(s)`,
+      theme: { color: "#0f766e" },
+      handler(response) {
+        handlerDone = true;
+        void (async () => {
+          status.textContent = "Verifying payment and confirming booking…";
+          try {
+            await placePrepaidOrder(pending, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+          } catch (e) {
+            status.textContent = String(e?.message || e);
+            btn.disabled = false;
+          }
+        })();
+      },
+      modal: {
+        ondismiss() {
+          if (!handlerDone) {
+            status.textContent = "Payment window closed. Try again when ready.";
+            btn.disabled = false;
+          }
+        },
+      },
+    };
+    if (user?.phone_e164 || user?.email) {
+      options.prefill = {};
+      if (user.phone_e164) options.prefill.contact = user.phone_e164;
+      if (user.email) options.prefill.email = user.email;
     }
-    status.textContent = "Successfully order placed. Redirecting to order details…";
-    setTimeout(() => {
-      window.location.assign(`/order.html?id=${encodeURIComponent(id)}`);
-    }, 900);
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+    status.textContent = `Total payable: ${fmtINR(totalInr)} · complete payment in the Razorpay window.`;
   } catch (e) {
     status.textContent = String(e?.message || e);
     btn.disabled = false;
@@ -117,7 +155,7 @@ async function refreshAuthNav() {
   renderAuthNav(fresh);
 }
 
-function init() {
+async function init() {
   const returnTo = `${window.location.pathname}${window.location.search || ""}`;
   $("navLogin")?.setAttribute("href", `/login.html?returnTo=${encodeURIComponent(returnTo)}`);
 
@@ -125,12 +163,11 @@ function init() {
   const status = $("dxPayStatus");
   const summary = $("dxPaySummary");
   if (!pending) {
-    status.innerHTML = `No pending prepaid diagnostics booking found. <a href="/labs.html">Go back</a>.`;
+    status.innerHTML = `No pending prepaid payload. Prepaid checkout runs on <a href="/checkout.html">Cart</a> when you choose <strong>Prepaid</strong>.`;
     $("dxPayBtn")?.setAttribute("disabled", "true");
     return;
   }
 
-  const total = pending.packages.reduce((s, p) => s + (Number(p.price_inr) || 0), 0);
   summary.innerHTML = pending.packages
     .map(
       (p) => `
@@ -143,15 +180,20 @@ function init() {
       </div>`
     )
     .join("");
-  status.textContent = `Total payable: ${fmtINR(total)} · Scheduled: ${new Date(pending.scheduled_for).toLocaleString("en-IN")}`;
 
-  $("dxPayMethod")?.addEventListener("change", () => {
-    const m = $("dxPayMethod")?.value || "upi";
-    $("dxUpiForm")?.classList.toggle("hidden", m !== "upi");
-    $("dxCardForm")?.classList.toggle("hidden", m !== "card");
-  });
-  $("dxPayBtn")?.addEventListener("click", () => placePrepaidOrder(pending));
+  const rz = await fetchRazorpayStatus();
+  if (!rz.configured) {
+    status.innerHTML = `Total: ${fmtINR(totalInrFromPackages(pending.packages))} · <strong>Razorpay not configured</strong>. Complete prepaid from <a href="/checkout.html">Cart</a> after setting keys, or use COD.`;
+    $("dxPayBtn")?.setAttribute("disabled", "true");
+    return;
+  }
+  status.textContent = `Total payable: ${fmtINR(totalInrFromPackages(pending.packages))} · Scheduled: ${new Date(pending.scheduled_for).toLocaleString("en-IN")}`;
+
+  $("dxPayBtn")?.addEventListener("click", () => startRazorpayCheckout(pending));
 }
 
 refreshAuthNav().catch(() => {});
-init();
+init().catch((e) => {
+  const st = $("dxPayStatus");
+  if (st) st.textContent = String(e?.message || e);
+});

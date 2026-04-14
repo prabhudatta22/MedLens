@@ -38,51 +38,19 @@
         <div class="section-head">
           <div>
             <h2 style="margin-bottom: 0.25rem">Diagnostics payment</h2>
-            <p class="muted section-sub">Complete prepaid payment to confirm your scheduled diagnostics booking.</p>
+            <p class="muted section-sub">Legacy page: prepaid usually completes on <a href="/checkout.html">Cart</a>. If you still have a saved prepaid session here, you can pay with Razorpay below.</p>
           </div>
         </div>
         <div id="dxPayStatus" class="muted" style="margin-bottom: 0.7rem"></div>
         <div id="dxPaySummary" class="rx-matches"></div>
 
-        <div class="dx-book-grid" style="margin-top: 0.75rem">
-          <label class="field" style="margin: 0">
-            <span>Payment method</span>
-            <select id="dxPayMethod">
-              <option value="upi">UPI</option>
-              <option value="card">Card</option>
-            </select>
-          </label>
-        </div>
-
-        <div id="dxUpiForm" class="form-grid" style="margin-top: 0.75rem">
-          <label class="field">
-            <span>UPI ID</span>
-            <input id="dxUpiId" type="text" placeholder="name@bank" />
-          </label>
-        </div>
-
-        <div id="dxCardForm" class="form-grid hidden" style="margin-top: 0.75rem">
-          <label class="field">
-            <span>Card number</span>
-            <input id="dxCardNumber" type="text" inputmode="numeric" maxlength="19" placeholder="1234 5678 9012 3456" />
-          </label>
-          <label class="field">
-            <span>Expiry (MM/YY)</span>
-            <input id="dxCardExp" type="text" maxlength="5" placeholder="MM/YY" />
-          </label>
-          <label class="field">
-            <span>CVV</span>
-            <input id="dxCardCvv" type="password" inputmode="numeric" maxlength="4" placeholder="123" />
-          </label>
-          <label class="field">
-            <span>Card holder</span>
-            <input id="dxCardHolder" type="text" placeholder="Name on card" />
-          </label>
-        </div>
+        <p class="muted" style="margin-top: 0.75rem; line-height: 1.5">
+          Prepaid bookings use <strong>Razorpay Checkout</strong> (UPI, cards, netbanking). Your card or UPI details are entered only on Razorpay’s secure page — MedLens never collects them.
+        </p>
 
         <div class="search-actions" style="margin-top: 0.85rem; justify-content: flex-end">
           <a class="btn btn-ghost" href="/labs.html">Back to diagnostics</a>
-          <button type="button" id="dxPayBtn" class="btn btn-primary">Pay and confirm booking</button>
+          <button type="button" id="dxPayBtn" class="btn btn-primary">Pay with Razorpay</button>
         </div>
       </section>
     </main>

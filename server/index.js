@@ -14,6 +14,8 @@ import catalogRoutes from "./routes/catalog.js";
 import ordersRoutes from "./routes/orders.js";
 import profileRoutes from "./routes/profile.js";
 import prescriptionsRoutes from "./routes/prescriptions.js";
+import paymentsRazorpayRoutes from "./routes/paymentsRazorpay.js";
+import razorpayWebhook from "./routes/razorpayWebhook.js";
 import cookieParser from "cookie-parser";
 import { attachUser } from "./auth/middleware.js";
 
@@ -23,6 +25,11 @@ const publicDir = join(__dirname, "..", "public");
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
+app.use(
+  "/webhook/razorpay",
+  express.raw({ type: "application/json", limit: "2mb" }),
+  razorpayWebhook
+);
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 app.use(attachUser);
@@ -38,6 +45,7 @@ app.use("/api/partner", partnerRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/prescriptions", prescriptionsRoutes);
+app.use("/api/payments/razorpay", paymentsRazorpayRoutes);
 app.use("/webhook/whatsapp", whatsapp);
 
 app.get("*", (_req, res) => {

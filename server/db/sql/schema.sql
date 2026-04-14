@@ -397,3 +397,5 @@ CREATE INDEX IF NOT EXISTS idx_user_prescriptions_user_created ON user_prescript
 
 ALTER TABLE carts ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE SET NULL;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE RESTRICT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id TEXT;

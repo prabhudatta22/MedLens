@@ -145,9 +145,25 @@
               <span>Payment type</span>
               <select id="diagPaymentType">
                 <option value="cod">Cash on collection</option>
-                <option value="prepaid">Prepaid</option>
+                <option value="prepaid">Prepaid (Razorpay on this page)</option>
               </select>
             </label>
+          </div>
+          <p id="diagPrepaidHint" class="muted" style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.45">
+            With <strong>Prepaid</strong>, clicking Book opens <strong>Razorpay Checkout</strong> here (UPI, cards, netbanking). After payment succeeds, your MedLens order ID and Razorpay transaction ID appear below and are saved to your order.
+          </p>
+          <div id="diagPaySuccess" class="panel hidden" style="margin-top: 1rem; border-radius: 12px">
+            <h3 style="margin: 0 0 0.5rem">Payment successful</h3>
+            <p class="muted" style="margin: 0.15rem 0">MedLens order ID</p>
+            <p style="margin: 0 0 0.65rem"><strong id="diagSuccessOrderId">—</strong></p>
+            <p class="muted" style="margin: 0.15rem 0">Razorpay transaction ID</p>
+            <p style="margin: 0 0 0.65rem"><strong id="diagSuccessTxnId">—</strong></p>
+            <p class="muted" style="margin: 0.15rem 0">Razorpay order ID</p>
+            <p style="margin: 0 0 0.85rem"><strong id="diagSuccessRzOrderId">—</strong></p>
+            <div class="online-checkout-actions" style="margin-top: 0.25rem; justify-content: flex-start">
+              <a class="btn btn-primary" id="diagSuccessViewOrder" href="#">View full order</a>
+              <a class="btn btn-ghost" href="/checkout.html">Cart</a>
+            </div>
           </div>
           <div class="online-checkout-actions" style="margin-top: 0.9rem">
             <button type="button" class="btn btn-primary" id="placeDiagnosticsBtn">Book diagnostics now</button>

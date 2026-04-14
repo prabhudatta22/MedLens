@@ -107,6 +107,27 @@ async function load() {
   }
   status.textContent = `${successFlash ? `${successFlash} · ` : ""}Status: ${o.status}${partnerStatus}`;
 
+  const payRef = $("orderPaymentRef");
+  if (payRef) {
+    if (o.razorpay_payment_id || o.razorpay_order_id) {
+      payRef.classList.remove("hidden");
+      payRef.innerHTML = `
+        <div class="rx-match" style="justify-content: flex-start">
+          <div>
+            <div class="rx-match-title">Prepaid · Razorpay</div>
+            <div class="rx-match-sub muted">MedLens order <strong>#${escapeHtml(String(o.id))}</strong></div>
+            <div class="rx-match-sub muted" style="margin-top: 0.35rem">Transaction ID: <code>${escapeHtml(
+              String(o.razorpay_payment_id || "—")
+            )}</code></div>
+            <div class="rx-match-sub muted">Razorpay order: <code>${escapeHtml(String(o.razorpay_order_id || "—"))}</code></div>
+          </div>
+        </div>`;
+    } else {
+      payRef.classList.add("hidden");
+      payRef.innerHTML = "";
+    }
+  }
+
   const op = $("orderPrescription");
   if (op) {
     if (o.prescription_file_id) {

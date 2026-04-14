@@ -7,6 +7,10 @@ import {
   getPartnerBookingStatus,
   isDiagnosticsPartnerEnabled,
 } from "../integrations/diagnosticsPartner.js";
+import {
+  assertCapturedDiagnosticsPayment,
+  isRazorpayConfigured,
+} from "../payments/razorpayClient.js";
 
 const router = Router();
 router.use(requireUser);
@@ -114,7 +118,10 @@ async function ensureOrdersSchema() {
          ON user_prescriptions (user_id, created_at DESC);
 
        ALTER TABLE carts ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE SET NULL;
-       ALTER TABLE orders ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE RESTRICT;`
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE RESTRICT;
+
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id TEXT;`
     );
   })().catch((e) => {
     ordersSchemaReadyPromise = null;
@@ -441,7 +448,6 @@ router.post("/diagnostics", async (req, res) => {
   const partnerEnabled = isDiagnosticsPartnerEnabled();
   const priceInr = Number(primary.price_inr);
   const paymentType = String(req.body?.payment_type || "cod").trim().toLowerCase() === "prepaid" ? "prepaid" : "cod";
-  const paymentMeta = sanitizePaymentMeta(req.body?.payment_meta);
   const addressId = Number(req.body?.address_id);
   const requestedSchedule = parseScheduledFor(req.body?.scheduled_for);
   if (!requestedSchedule) return res.status(400).json({ error: "scheduled_for is required and must be a valid future date" });
@@ -456,7 +462,41 @@ router.post("/diagnostics", async (req, res) => {
   if (!packageId || !packageName) return res.status(400).json({ error: "package_id and package_name are required" });
   if (!city) return res.status(400).json({ error: "city is required" });
   if (!Number.isFinite(priceInr) || priceInr <= 0) return res.status(400).json({ error: "price_inr must be greater than 0" });
-  if (paymentType === "prepaid" && !paymentMeta) return res.status(400).json({ error: "payment_meta is required for prepaid booking" });
+
+  const totalPaise = packages.reduce((sum, p) => sum + Math.round(Number(p.price_inr) * 100), 0);
+  let paymentMeta = null;
+  if (paymentType === "prepaid") {
+    const rzOrder = String(req.body?.razorpay_order_id || "").trim();
+    const rzPay = String(req.body?.razorpay_payment_id || "").trim();
+    const rzSig = String(req.body?.razorpay_signature || "").trim();
+    if (rzOrder && rzPay && rzSig) {
+      try {
+        await assertCapturedDiagnosticsPayment({
+          razorpayOrderId: rzOrder,
+          razorpayPaymentId: rzPay,
+          razorpaySignature: rzSig,
+          expectedAmountPaise: totalPaise,
+        });
+        paymentMeta = {
+          provider: "razorpay",
+          razorpay_order_id: rzOrder,
+          razorpay_payment_id: rzPay,
+          verified: true,
+        };
+      } catch (e) {
+        return res.status(400).json({ error: e?.message || "Razorpay payment verification failed" });
+      }
+    } else if (isRazorpayConfigured()) {
+      return res.status(400).json({
+        error: "Prepaid requires Razorpay checkout: send razorpay_order_id, razorpay_payment_id, and razorpay_signature after payment.",
+      });
+    } else {
+      paymentMeta = sanitizePaymentMeta(req.body?.payment_meta);
+      if (!paymentMeta) {
+        return res.status(400).json({ error: "payment_meta is required for prepaid booking (or configure Razorpay)" });
+      }
+    }
+  }
 
   const address = await loadBookingAddress({
     userId,
@@ -533,12 +573,14 @@ router.post("/diagnostics", async (req, res) => {
   try {
     await client.query("BEGIN");
     const scheduledIso = requestedSchedule.toISOString();
+    const rzOrderId = paymentMeta?.razorpay_order_id ? String(paymentMeta.razorpay_order_id) : null;
+    const rzPaymentId = paymentMeta?.razorpay_payment_id ? String(paymentMeta.razorpay_payment_id) : null;
     const orderRes = await client.query(
       `INSERT INTO orders
-         (user_id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, provider_name, provider_order_ref, provider_payload, notes, prescription_id, updated_at)
+         (user_id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, provider_name, provider_order_ref, provider_payload, notes, prescription_id, razorpay_order_id, razorpay_payment_id, updated_at)
        VALUES
-         ($1,'diagnostics','confirmed','normal',0,$2,$3,$4,$5,$6,$7,$8, now())
-       RETURNING id, order_kind, status, scheduled_for, provider_name, provider_order_ref, created_at, prescription_id`,
+         ($1,'diagnostics','confirmed','normal',0,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())
+       RETURNING id, order_kind, status, scheduled_for, provider_name, provider_order_ref, created_at, prescription_id, razorpay_order_id, razorpay_payment_id`,
       [
         userId,
         scheduledIso,
@@ -548,6 +590,8 @@ router.post("/diagnostics", async (req, res) => {
         JSON.stringify(providerBooking.provider_response || {}),
         `Diagnostics package booking in ${city} (${paymentType.toUpperCase()}) · ${packages.length} test(s)`,
         diagPrescriptionId,
+        rzOrderId,
+        rzPaymentId,
       ]
     );
     const order = orderRes.rows[0];
@@ -601,6 +645,8 @@ router.post("/diagnostics", async (req, res) => {
       ok: true,
       order: {
         ...order,
+        razorpay_order_id: order.razorpay_order_id || null,
+        razorpay_payment_id: order.razorpay_payment_id || null,
         partner_booking_ref: providerBooking.booking_ref || null,
         reminder_scheduled_for: reminderAt,
       },
