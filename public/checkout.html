@@ -152,6 +152,30 @@
           <p id="diagPrepaidHint" class="muted" style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.45">
             With <strong>Prepaid</strong>, clicking Book opens <strong>Razorpay Checkout</strong> here (UPI, cards, netbanking). After payment succeeds, your MedLens order ID and Razorpay transaction ID appear below and are saved to your order.
           </p>
+          <div id="razorpayTrustBadge" class="razorpay-trust hidden" aria-label="Payments processed securely by Razorpay">
+            <a
+              class="razorpay-trust-link"
+              href="https://razorpay.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="razorpay-trust-logo-wrap" aria-hidden="true">
+                <img
+                  class="razorpay-trust-logo"
+                  src="https://razorpay.com/favicon.ico"
+                  width="26"
+                  height="26"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+              </span>
+              <span class="razorpay-trust-copy">
+                <span class="razorpay-trust-line1">Secure checkout</span>
+                <span class="razorpay-trust-line2">Powered by <strong>Razorpay</strong></span>
+              </span>
+            </a>
+          </div>
           <div id="diagPaySuccess" class="panel hidden" style="margin-top: 1rem; border-radius: 12px">
             <h3 style="margin: 0 0 0.5rem">Payment successful</h3>
             <p class="muted" style="margin: 0.15rem 0">MedLens order ID</p>

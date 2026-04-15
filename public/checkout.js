@@ -184,8 +184,11 @@ function onlyDiagnosticsItems(items) {
 function syncDiagPrepaidHint() {
   const hint = $("diagPrepaidHint");
   const pay = $("diagPaymentType");
-  if (!hint || !pay) return;
-  hint.classList.toggle("hidden", pay.value !== "prepaid");
+  const badge = $("razorpayTrustBadge");
+  if (!pay) return;
+  const prepaid = pay.value === "prepaid";
+  if (hint) hint.classList.toggle("hidden", !prepaid);
+  if (badge) badge.classList.toggle("hidden", !prepaid);
 }
 
 function removeLinesById(lineIds) {

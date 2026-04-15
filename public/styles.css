@@ -575,6 +575,71 @@ body {
   margin-top: 0.5rem;
 }
 
+/* Razorpay trust strip (checkout / diagnostics payment) */
+.razorpay-trust {
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(15, 118, 110, 0.07);
+}
+
+.razorpay-trust-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: inherit;
+  max-width: 100%;
+}
+
+.razorpay-trust-link:hover .razorpay-trust-line2 strong {
+  text-decoration: underline;
+}
+
+.razorpay-trust-logo-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.razorpay-trust-logo {
+  display: block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.razorpay-trust-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.razorpay-trust-line1 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.razorpay-trust-line2 {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.razorpay-trust-line2 strong {
+  color: #0c2451;
+  font-weight: 700;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
