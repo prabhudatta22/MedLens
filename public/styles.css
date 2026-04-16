@@ -1236,8 +1236,51 @@ body {
 }
 
 .profile-main {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.profile-breadcrumb {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.profile-view-panel {
+  display: flex;
+  flex-direction: column;
   gap: 0.95rem;
+  min-width: 0;
+}
+
+.profile-side-link.is-active {
+  color: var(--accent);
+  border-left: 3px solid var(--accent);
+  padding-left: 0.35rem;
+  margin-left: -0.38rem;
+}
+
+/* Profile shell: embedded section pages (iframe) */
+body.profile-embed-page {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.profile-embed-inner {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-embed-iframe {
+  display: block;
+  width: 100%;
+  min-height: min(75vh, 720px);
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .profile-card {

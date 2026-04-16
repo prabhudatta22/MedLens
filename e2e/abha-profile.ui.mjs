@@ -83,7 +83,7 @@ async function main() {
       (res) => res.url().includes("/api/auth/request-otp") && res.request().method() === "POST",
     );
 
-    await page.goto(`${BASE}/login.html?returnTo=${encodeURIComponent("/profile.html")}`, {
+    await page.goto(`${BASE}/login.html?returnTo=${encodeURIComponent("/profile.html?view=abha")}`, {
       waitUntil: "domcontentloaded",
     });
 
@@ -100,22 +100,23 @@ async function main() {
     await page.locator("#verify").click();
     await page.waitForURL(/profile\.html/, { timeout: 30_000 });
 
-    await page.locator("#abhaCard").scrollIntoViewIfNeeded();
+    const frame = page.frameLocator("#profileSectionFrame");
+    await frame.locator("#abhaIdentifierInput").waitFor({ state: "visible", timeout: 20_000 });
 
     const abhaInit = page.waitForResponse(
       (r) => r.url().includes("/api/abha/aadhaar/initiate") && r.request().method() === "POST",
     );
-    await page.locator("#abhaIdentifierInput").fill("91001010101010");
-    await page.locator("#abhaInitOtpBtn").click();
+    await frame.locator("#abhaIdentifierInput").fill("91001010101010");
+    await frame.locator("#abhaInitOtpBtn").click();
     const initBody = await (await abhaInit).json();
     if (!initBody.txn_id) throw new Error(`initiate failed: ${JSON.stringify(initBody)}`);
 
-    await page.locator("#abhaOtpPanel").waitFor({ state: "visible", timeout: 10_000 });
-    await page.locator("#abhaOtpInput").fill("123456");
+    await frame.locator("#abhaOtpPanel").waitFor({ state: "visible", timeout: 10_000 });
+    await frame.locator("#abhaOtpInput").fill("123456");
     const complete = page.waitForResponse(
       (r) => r.url().includes("/api/abha/aadhaar/complete") && r.request().method() === "POST",
     );
-    await page.locator("#abhaCompleteBtn").click();
+    await frame.locator("#abhaCompleteBtn").click();
     const completeRes = await complete;
     if (!completeRes.ok()) {
       throw new Error(`complete HTTP ${completeRes.status()}: ${await completeRes.text()}`);
@@ -123,12 +124,9 @@ async function main() {
     const completeJson = await completeRes.json();
     if (!completeJson.linked) throw new Error(`complete body: ${JSON.stringify(completeJson)}`);
 
-    await page.waitForFunction(() => {
-      const el = document.getElementById("abhaLinkedPanel");
-      return el && !el.classList.contains("hidden");
-    });
+    await frame.locator("#abhaLinkedPanel").waitFor({ state: "visible", timeout: 15_000 });
 
-    const masked = await page.locator("#abhaMaskedDisplay").innerText();
+    const masked = await frame.locator("#abhaMaskedDisplay").innerText();
     if (!masked.includes("*")) {
       throw new Error(`Expected masked ABHA in UI, got: ${masked}`);
     }
@@ -136,7 +134,7 @@ async function main() {
     const sync = page.waitForResponse(
       (r) => r.url().includes("/api/abha/sync-from-abha") && r.request().method() === "POST",
     );
-    await page.locator("#abhaSyncFromBtn").click();
+    await frame.locator("#abhaSyncFromBtn").click();
     const syncRes = await sync;
     if (!syncRes.ok()) throw new Error(`sync-from-abha failed: ${await syncRes.text()}`);
 

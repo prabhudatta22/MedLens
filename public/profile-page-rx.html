@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — Prescriptions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="profile-embed-page">
+    <main class="profile-embed-inner">
+      <section id="rxCard" class="profile-card">
+        <div class="section-head">
+          <div>
+            <h3 style="margin-bottom: 0.25rem">Saved prescriptions</h3>
+            <p class="muted section-sub">
+              Photos or PDFs for checkout and order history. Same files appear when you place home delivery or diagnostics
+              orders.
+            </p>
+          </div>
+        </div>
+        <p class="muted" id="rxStatus" style="margin: 0 0 0.75rem"></p>
+        <label class="field" style="max-width: 22rem">
+          <span>Upload (camera or file)</span>
+          <input id="rxProfileUpload" type="file" accept="image/*,application/pdf" capture="environment" />
+        </label>
+        <div id="rxList" class="stack" style="margin-top: 0.75rem"></div>
+      </section>
+    </main>
+    <script type="module" src="/profile-page-rx.js"></script>
+  </body>
+</html>

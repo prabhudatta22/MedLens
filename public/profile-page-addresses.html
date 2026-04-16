@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — Addresses</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="profile-embed-page">
+    <main class="profile-embed-inner">
+      <section id="addressCard" class="profile-card">
+        <div class="section-head">
+          <div>
+            <h3 style="margin-bottom: 0.25rem">Saved addresses</h3>
+            <p class="muted section-sub">Save multiple addresses manually or auto-save from your current location.</p>
+          </div>
+        </div>
+        <p class="muted" id="addressStatus" style="margin: 0 0 0.75rem"></p>
+        <div id="addressList" class="stack"></div>
+        <form id="addressForm" class="form-grid" novalidate style="margin-top: 0.75rem">
+          <label class="field">
+            <span>Label</span>
+            <input id="addrLabel" type="text" placeholder="Home / Office" />
+          </label>
+          <label class="field">
+            <span>Address line</span>
+            <input id="addrLine1" type="text" placeholder="Flat / house, street" />
+          </label>
+          <label class="field">
+            <span>Landmark</span>
+            <input id="addrLandmark" type="text" placeholder="Near..." />
+          </label>
+          <label class="field">
+            <span>City</span>
+            <input id="addrCity" type="text" placeholder="City" />
+          </label>
+          <label class="field">
+            <span>State</span>
+            <input id="addrState" type="text" placeholder="State" />
+          </label>
+          <label class="field">
+            <span>Pincode</span>
+            <input id="addrPin" type="text" placeholder="6-digit PIN" />
+          </label>
+          <div class="auth-actions">
+            <button type="button" class="btn btn-ghost" id="useLocationAddressBtn">Use my location</button>
+            <button type="submit" class="btn btn-primary">Save address</button>
+          </div>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="/profile-page-addresses.js"></script>
+  </body>
+</html>

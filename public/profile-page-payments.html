@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — Payment methods</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="profile-embed-page">
+    <main class="profile-embed-inner">
+      <section id="paymentCard" class="profile-card">
+        <div class="section-head">
+          <div>
+            <h3 style="margin-bottom: 0.25rem">Saved payment methods</h3>
+            <p class="muted section-sub">Save multiple UPI/Card methods (Razorpay-backed).</p>
+          </div>
+        </div>
+        <p class="muted" id="paymentStatus" style="margin: 0 0 0.75rem"></p>
+        <div id="paymentList" class="stack"></div>
+
+        <div class="form-grid" style="margin-top: 0.75rem">
+          <form id="upiForm" novalidate>
+            <label class="field">
+              <span>UPI ID</span>
+              <input id="upiId" type="text" placeholder="name@bank" />
+            </label>
+            <label class="field">
+              <span>Label</span>
+              <input id="upiLabel" type="text" placeholder="Primary UPI" />
+            </label>
+            <div class="auth-actions">
+              <button type="submit" class="btn btn-primary">Save UPI</button>
+            </div>
+          </form>
+
+          <form id="cardForm" novalidate>
+            <label class="field">
+              <span>Card last 4 digits</span>
+              <input id="cardLast4" type="text" maxlength="4" placeholder="1234" />
+            </label>
+            <label class="field">
+              <span>Network</span>
+              <input id="cardNetwork" type="text" placeholder="Visa / MasterCard" />
+            </label>
+            <label class="field">
+              <span>Card holder name</span>
+              <input id="cardHolder" type="text" placeholder="Name on card" />
+            </label>
+            <label class="field">
+              <span>Label</span>
+              <input id="cardLabel" type="text" placeholder="Primary card" />
+            </label>
+            <div class="auth-actions">
+              <button type="submit" class="btn btn-primary">Save card</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/profile-page-payments.js"></script>
+  </body>
+</html>

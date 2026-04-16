@@ -28,7 +28,7 @@
           <a href="/labs.html" class="nav-link">Diagnostics</a>
           <a href="/checkout.html" class="nav-link">Cart</a>
           <a href="/orders.html" class="nav-link">Orders</a>
-          <a href="/profile.html" id="navProfile" class="nav-link active">Profile</a>
+          <a href="/profile.html?view=details" id="navProfile" class="nav-link active">Profile</a>
           <span id="navUser" class="nav-pill hidden" aria-live="polite"></span>
           <a href="/login.html" id="navLogin" class="nav-link">Login</a>
           <a href="#" id="navLogout" class="nav-link hidden">Logout</a>
@@ -44,24 +44,28 @@
 
           <div class="profile-side-block">
             <span class="profile-side-title">Overview</span>
-            <a href="#profileCard" class="profile-side-link">Profile details</a>
+            <a href="/profile.html?view=details" class="profile-side-link" data-profile-view="details">Profile details</a>
           </div>
 
           <div class="profile-side-block">
             <span class="profile-side-title">Orders</span>
-            <a href="/orders.html" class="profile-side-link">Order history (last 10)</a>
+            <a href="/orders.html" class="profile-side-link">All orders</a>
+            <a href="/profile.html?view=orders" class="profile-side-link" data-profile-view="orders">Recent snapshot</a>
           </div>
 
           <div class="profile-side-block">
             <span class="profile-side-title">Account</span>
-            <a href="#abhaCard" class="profile-side-link">ABHA (Health ID)</a>
-            <a href="#rxCard" class="profile-side-link">Prescriptions</a>
-            <a href="#addressCard" class="profile-side-link">Saved addresses</a>
-            <a href="#paymentCard" class="profile-side-link">Saved payment methods</a>
+            <a href="/profile.html?view=abha" class="profile-side-link" data-profile-view="abha">ABHA (Health ID)</a>
+            <a href="/profile.html?view=rx" class="profile-side-link" data-profile-view="rx">Prescriptions</a>
+            <a href="/profile.html?view=addresses" class="profile-side-link" data-profile-view="addresses">Saved addresses</a>
+            <a href="/profile.html?view=payments" class="profile-side-link" data-profile-view="payments">Saved payment methods</a>
           </div>
         </aside>
 
         <div class="profile-main">
+          <p id="profileBreadcrumb" class="profile-breadcrumb muted" aria-live="polite"></p>
+
+          <div class="profile-view-panel" data-profile-view-panel="details" id="profileViewDetails">
           <section id="profileCard" class="profile-card">
             <div class="section-head">
               <div>
@@ -102,160 +106,19 @@
               </div>
             </form>
           </section>
+          </div>
 
-          <section id="abhaCard" class="profile-card">
-            <div class="section-head">
-              <div>
-                <h3 style="margin-bottom: 0.25rem">ABHA (Ayushman Bharat Health Account)</h3>
-                <p class="muted section-sub">
-                  Link your 14-digit ABHA number or PHR address (e.g. <span class="muted">you@sbx</span>) for insurance
-                  workflows and a portable health record. We only contact ABDM after you enter a valid ABHA identifier
-                  and complete Aadhaar OTP verification.
-                </p>
-              </div>
-            </div>
-            <p class="muted" id="abhaStatus" style="margin: 0 0 0.75rem"></p>
-            <div id="abhaLinkedPanel" class="hidden">
-              <p class="muted" style="margin-top: 0">
-                Linked: <strong id="abhaMaskedDisplay">—</strong>
-                <span class="muted" id="abhaSyncMeta"></span>
-              </p>
-              <div class="auth-actions">
-                <button type="button" class="btn btn-primary" id="abhaSyncFromBtn">Refresh from ABHA</button>
-              </div>
-              <p class="muted" style="margin-top: 0.75rem; font-size: 0.9rem">
-                When you refresh, MedLens updates your name, email, gender, date of birth and registered address from
-                ABHA. If anything differs, the ABHA copy replaces what is stored here.
-              </p>
-            </div>
-            <div id="abhaLinkPanel">
-              <label class="field" style="max-width: 24rem">
-                <span>ABHA number or PHR address</span>
-                <input id="abhaIdentifierInput" type="text" placeholder="91xxxxxxxxxxxx or you@sbx" autocomplete="off" />
-              </label>
-              <div class="auth-actions" style="margin-top: 0.5rem">
-                <button type="button" class="btn btn-primary" id="abhaInitOtpBtn">Send Aadhaar OTP</button>
-              </div>
-              <div id="abhaOtpPanel" class="hidden" style="margin-top: 1rem">
-                <label class="field" style="max-width: 14rem">
-                  <span>OTP</span>
-                  <input id="abhaOtpInput" type="text" inputmode="numeric" maxlength="8" autocomplete="one-time-code" />
-                </label>
-                <input type="hidden" id="abhaTxnId" />
-                <div class="auth-actions">
-                  <button type="button" class="btn btn-primary" id="abhaCompleteBtn">Verify and link ABHA</button>
-                </div>
-              </div>
-            </div>
-          </section>
+          <div class="profile-view-panel" data-profile-view-panel="embed" id="profileViewEmbed" hidden>
+            <iframe
+              id="profileSectionFrame"
+              class="profile-embed-iframe"
+              title="Account section"
+              loading="lazy"
+              referrerpolicy="same-origin"
+            ></iframe>
+          </div>
 
-          <section id="rxCard" class="profile-card">
-            <div class="section-head">
-              <div>
-                <h3 style="margin-bottom: 0.25rem">Saved prescriptions</h3>
-                <p class="muted section-sub">
-                  Photos or PDFs for checkout and order history. Same files appear when you place home delivery or diagnostics orders.
-                </p>
-              </div>
-            </div>
-            <p class="muted" id="rxStatus" style="margin: 0 0 0.75rem"></p>
-            <label class="field" style="max-width: 22rem">
-              <span>Upload (camera or file)</span>
-              <input id="rxProfileUpload" type="file" accept="image/*,application/pdf" capture="environment" />
-            </label>
-            <div id="rxList" class="stack" style="margin-top: 0.75rem"></div>
-          </section>
-
-          <section id="addressCard" class="profile-card">
-            <div class="section-head">
-              <div>
-                <h3 style="margin-bottom: 0.25rem">Saved addresses</h3>
-                <p class="muted section-sub">Save multiple addresses manually or auto-save from your current location.</p>
-              </div>
-            </div>
-            <p class="muted" id="addressStatus" style="margin: 0 0 0.75rem"></p>
-            <div id="addressList" class="stack"></div>
-            <form id="addressForm" class="form-grid" novalidate style="margin-top: 0.75rem">
-              <label class="field">
-                <span>Label</span>
-                <input id="addrLabel" type="text" placeholder="Home / Office" />
-              </label>
-              <label class="field">
-                <span>Address line</span>
-                <input id="addrLine1" type="text" placeholder="Flat / house, street" />
-              </label>
-              <label class="field">
-                <span>Landmark</span>
-                <input id="addrLandmark" type="text" placeholder="Near..." />
-              </label>
-              <label class="field">
-                <span>City</span>
-                <input id="addrCity" type="text" placeholder="City" />
-              </label>
-              <label class="field">
-                <span>State</span>
-                <input id="addrState" type="text" placeholder="State" />
-              </label>
-              <label class="field">
-                <span>Pincode</span>
-                <input id="addrPin" type="text" placeholder="6-digit PIN" />
-              </label>
-              <div class="auth-actions">
-                <button type="button" class="btn btn-ghost" id="useLocationAddressBtn">Use my location</button>
-                <button type="submit" class="btn btn-primary">Save address</button>
-              </div>
-            </form>
-          </section>
-
-          <section id="paymentCard" class="profile-card">
-            <div class="section-head">
-              <div>
-                <h3 style="margin-bottom: 0.25rem">Saved payment methods</h3>
-                <p class="muted section-sub">Save multiple UPI/Card methods (Razorpay-backed).</p>
-              </div>
-            </div>
-            <p class="muted" id="paymentStatus" style="margin: 0 0 0.75rem"></p>
-            <div id="paymentList" class="stack"></div>
-
-            <div class="form-grid" style="margin-top: 0.75rem">
-              <form id="upiForm" novalidate>
-                <label class="field">
-                  <span>UPI ID</span>
-                  <input id="upiId" type="text" placeholder="name@bank" />
-                </label>
-                <label class="field">
-                  <span>Label</span>
-                  <input id="upiLabel" type="text" placeholder="Primary UPI" />
-                </label>
-                <div class="auth-actions">
-                  <button type="submit" class="btn btn-primary">Save UPI</button>
-                </div>
-              </form>
-
-              <form id="cardForm" novalidate>
-                <label class="field">
-                  <span>Card last 4 digits</span>
-                  <input id="cardLast4" type="text" maxlength="4" placeholder="1234" />
-                </label>
-                <label class="field">
-                  <span>Network</span>
-                  <input id="cardNetwork" type="text" placeholder="Visa / MasterCard" />
-                </label>
-                <label class="field">
-                  <span>Card holder name</span>
-                  <input id="cardHolder" type="text" placeholder="Name on card" />
-                </label>
-                <label class="field">
-                  <span>Label</span>
-                  <input id="cardLabel" type="text" placeholder="Primary card" />
-                </label>
-                <div class="auth-actions">
-                  <button type="submit" class="btn btn-primary">Save card</button>
-                </div>
-              </form>
-            </div>
-          </section>
-
+          <div class="profile-view-panel" data-profile-view-panel="orders" id="profileViewOrders" hidden>
           <section id="orderCard" class="profile-card">
             <div class="section-head">
               <div>
@@ -280,6 +143,7 @@
               </table>
             </div>
           </section>
+          </div>
         </div>
       </section>
     </main>
