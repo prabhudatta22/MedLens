@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireUser } from "../auth/middleware.js";
+import { ensureAbhaSchema } from "../abha/schema.js";
+import { loadAbhaLink, mergeAndPushAbhaForUser } from "../abha/syncProfile.js";
 
 const router = Router();
 router.use(requireUser);
@@ -14,6 +16,7 @@ async function ensureProfileSchema() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
        ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;
        ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT;
+       ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE;
 
        CREATE TABLE IF NOT EXISTS user_addresses (
          id SERIAL PRIMARY KEY,
@@ -95,6 +98,7 @@ router.get("/", async (req, res) => {
          to_jsonb(users) ->> 'email' AS email,
          to_jsonb(users) ->> 'full_name' AS full_name,
          to_jsonb(users) ->> 'gender' AS gender,
+         (users.date_of_birth)::text AS date_of_birth,
          created_at,
          last_login_at
        FROM users
@@ -134,11 +138,30 @@ router.get("/", async (req, res) => {
   ]);
 
   if (!uRes.rows.length) return res.status(404).json({ error: "User not found" });
+
+  let abha = { linked: false };
+  try {
+    await ensureAbhaSchema();
+    const link = await loadAbhaLink(pool, userId);
+    if (link) {
+      abha = {
+        linked: true,
+        health_id_masked: link.health_id_masked,
+        identifier_kind: link.identifier_kind,
+        aadhaar_verified_at: link.aadhaar_verified_at,
+        last_sync_at: link.last_sync_at,
+      };
+    }
+  } catch {
+    abha = { linked: false };
+  }
+
   return res.json({
     profile: uRes.rows[0],
     addresses: aRes.rows,
     payment_methods: pRes.rows,
     orders: oRes.rows,
+    abha,
   });
 });
 
@@ -152,16 +175,33 @@ router.put("/basic", async (req, res) => {
   const genderRaw = cleanText(req.body?.gender, 40)?.toLowerCase() || null;
   const gender = ["male", "female", "other", "prefer_not_to_say"].includes(genderRaw) ? genderRaw : null;
 
+  let date_of_birth = null;
+  const dobRaw = cleanText(req.body?.date_of_birth, 12);
+  if (dobRaw) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dobRaw)) {
+      return res.status(400).json({ error: "date_of_birth must be YYYY-MM-DD" });
+    }
+    const t = Date.parse(`${dobRaw}T12:00:00Z`);
+    if (!Number.isFinite(t)) return res.status(400).json({ error: "Invalid date_of_birth" });
+    date_of_birth = dobRaw;
+  }
+
   try {
     const { rows } = await pool.query(
       `UPDATE users
        SET full_name = $2,
            email = $3,
-           gender = $4
+           gender = $4,
+           date_of_birth = COALESCE($5::date, date_of_birth)
        WHERE id = $1
-       RETURNING id, phone_e164, to_jsonb(users) ->> 'email' AS email, to_jsonb(users) ->> 'full_name' AS full_name, to_jsonb(users) ->> 'gender' AS gender`,
-      [userId, full_name, email, gender]
+       RETURNING id, phone_e164, to_jsonb(users) ->> 'email' AS email, to_jsonb(users) ->> 'full_name' AS full_name, to_jsonb(users) ->> 'gender' AS gender, (users.date_of_birth)::text AS date_of_birth`,
+      [userId, full_name, email, gender, date_of_birth]
     );
+    try {
+      await mergeAndPushAbhaForUser(pool, userId, {});
+    } catch (e) {
+      console.warn("ABHA push after profile basic update:", e?.message || e);
+    }
     return res.json({ ok: true, profile: rows[0] });
   } catch (e) {
     if (e?.code === "23505") return res.status(409).json({ error: "Email already in use" });
@@ -207,6 +247,11 @@ router.post("/addresses", async (req, res) => {
       ]
     );
     await client.query("COMMIT");
+    try {
+      await mergeAndPushAbhaForUser(pool, userId, {});
+    } catch (e) {
+      console.warn("ABHA push after address save:", e?.message || e);
+    }
     return res.status(201).json({ ok: true, address: rows[0] });
   } catch (e) {
     await client.query("ROLLBACK");
@@ -235,6 +280,11 @@ router.post("/addresses/:id/default", async (req, res) => {
       return res.status(404).json({ error: "Address not found" });
     }
     await client.query("COMMIT");
+    try {
+      await mergeAndPushAbhaForUser(pool, userId, {});
+    } catch (e) {
+      console.warn("ABHA push after default address change:", e?.message || e);
+    }
     return res.json({ ok: true });
   } catch (e) {
     await client.query("ROLLBACK");

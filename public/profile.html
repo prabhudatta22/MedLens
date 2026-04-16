@@ -54,6 +54,7 @@
 
           <div class="profile-side-block">
             <span class="profile-side-title">Account</span>
+            <a href="#abhaCard" class="profile-side-link">ABHA (Health ID)</a>
             <a href="#rxCard" class="profile-side-link">Prescriptions</a>
             <a href="#addressCard" class="profile-side-link">Saved addresses</a>
             <a href="#paymentCard" class="profile-side-link">Saved payment methods</a>
@@ -92,10 +93,60 @@
                 <span>Email</span>
                 <input id="pfEmail" type="email" placeholder="you@example.com" />
               </label>
+              <label class="field">
+                <span>Date of birth</span>
+                <input id="pfDob" type="date" />
+              </label>
               <div class="auth-actions">
                 <button type="submit" class="btn btn-primary">Save profile</button>
               </div>
             </form>
+          </section>
+
+          <section id="abhaCard" class="profile-card">
+            <div class="section-head">
+              <div>
+                <h3 style="margin-bottom: 0.25rem">ABHA (Ayushman Bharat Health Account)</h3>
+                <p class="muted section-sub">
+                  Link your 14-digit ABHA number or PHR address (e.g. <span class="muted">you@sbx</span>) for insurance
+                  workflows and a portable health record. We only contact ABDM after you enter a valid ABHA identifier
+                  and complete Aadhaar OTP verification.
+                </p>
+              </div>
+            </div>
+            <p class="muted" id="abhaStatus" style="margin: 0 0 0.75rem"></p>
+            <div id="abhaLinkedPanel" class="hidden">
+              <p class="muted" style="margin-top: 0">
+                Linked: <strong id="abhaMaskedDisplay">—</strong>
+                <span class="muted" id="abhaSyncMeta"></span>
+              </p>
+              <div class="auth-actions">
+                <button type="button" class="btn btn-primary" id="abhaSyncFromBtn">Refresh from ABHA</button>
+              </div>
+              <p class="muted" style="margin-top: 0.75rem; font-size: 0.9rem">
+                When you refresh, MedLens updates your name, email, gender, date of birth and registered address from
+                ABHA. If anything differs, the ABHA copy replaces what is stored here.
+              </p>
+            </div>
+            <div id="abhaLinkPanel">
+              <label class="field" style="max-width: 24rem">
+                <span>ABHA number or PHR address</span>
+                <input id="abhaIdentifierInput" type="text" placeholder="91xxxxxxxxxxxx or you@sbx" autocomplete="off" />
+              </label>
+              <div class="auth-actions" style="margin-top: 0.5rem">
+                <button type="button" class="btn btn-primary" id="abhaInitOtpBtn">Send Aadhaar OTP</button>
+              </div>
+              <div id="abhaOtpPanel" class="hidden" style="margin-top: 1rem">
+                <label class="field" style="max-width: 14rem">
+                  <span>OTP</span>
+                  <input id="abhaOtpInput" type="text" inputmode="numeric" maxlength="8" autocomplete="one-time-code" />
+                </label>
+                <input type="hidden" id="abhaTxnId" />
+                <div class="auth-actions">
+                  <button type="button" class="btn btn-primary" id="abhaCompleteBtn">Verify and link ABHA</button>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section id="rxCard" class="profile-card">

@@ -15,10 +15,14 @@
     "db:migrate": "node server/db/migrate.js",
     "db:seed": "node server/db/seed.js",
     "db:import-dataset": "node server/scripts/import-medlens-dataset.js",
-    "db:load-full-data": "node server/scripts/load-postgres-data.js"
+    "db:load-full-data": "node server/scripts/load-postgres-data.js",
+    "test:ui-abha": "node e2e/abha-profile.ui.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
