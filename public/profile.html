@@ -50,7 +50,7 @@
           <div class="profile-side-block">
             <span class="profile-side-title">Orders</span>
             <a href="/orders.html" class="profile-side-link">All orders</a>
-            <a href="/profile.html?view=orders" class="profile-side-link" data-profile-view="orders">Recent snapshot</a>
+            <a href="/orders.html" class="profile-side-link">Order center</a>
           </div>
 
           <div class="profile-side-block">
@@ -72,39 +72,50 @@
                 <h3 style="margin-bottom: 0.25rem">Profile details</h3>
                 <p class="muted section-sub">Name, gender, mobile and email for your account.</p>
               </div>
+              <button
+                type="button"
+                id="profileDetailsToggle"
+                class="btn btn-sm btn-ghost"
+                aria-expanded="true"
+                aria-controls="profileDetailsBody"
+              >
+                Hide form
+              </button>
             </div>
-            <p class="muted" id="profileStatus" style="margin: 0 0 0.75rem"></p>
-            <form id="basicProfileForm" class="form-grid" novalidate>
-              <label class="field">
-                <span>User name</span>
-                <input id="pfName" type="text" placeholder="Your name" />
-              </label>
-              <label class="field">
-                <span>Gender</span>
-                <select id="pfGender">
-                  <option value="">Prefer not to say</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Mobile no</span>
-                <input id="pfPhone" type="text" readonly />
-              </label>
-              <label class="field">
-                <span>Email</span>
-                <input id="pfEmail" type="email" placeholder="you@example.com" />
-              </label>
-              <label class="field">
-                <span>Date of birth</span>
-                <input id="pfDob" type="date" />
-              </label>
-              <div class="auth-actions">
-                <button type="submit" class="btn btn-primary">Save profile</button>
-              </div>
-            </form>
+            <div id="profileDetailsBody">
+              <p class="muted" id="profileStatus" style="margin: 0 0 0.75rem"></p>
+              <form id="basicProfileForm" class="form-grid" novalidate>
+                <label class="field">
+                  <span>User name</span>
+                  <input id="pfName" type="text" placeholder="Your name" />
+                </label>
+                <label class="field">
+                  <span>Gender</span>
+                  <select id="pfGender">
+                    <option value="">Prefer not to say</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not_to_say">Prefer not to say</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Mobile no</span>
+                  <input id="pfPhone" type="text" readonly />
+                </label>
+                <label class="field">
+                  <span>Email</span>
+                  <input id="pfEmail" type="email" placeholder="you@example.com" />
+                </label>
+                <label class="field">
+                  <span>Date of birth</span>
+                  <input id="pfDob" type="date" />
+                </label>
+                <div class="auth-actions">
+                  <button type="submit" class="btn btn-primary">Save profile</button>
+                </div>
+              </form>
+            </div>
           </section>
           </div>
 
@@ -116,33 +127,6 @@
               loading="lazy"
               referrerpolicy="same-origin"
             ></iframe>
-          </div>
-
-          <div class="profile-view-panel" data-profile-view-panel="orders" id="profileViewOrders" hidden>
-          <section id="orderCard" class="profile-card">
-            <div class="section-head">
-              <div>
-                <h3 style="margin-bottom: 0.25rem">Order history (last 10)</h3>
-                <p class="muted section-sub">Quick view of your latest orders and delivery status.</p>
-              </div>
-              <a href="/orders.html" class="btn btn-sm btn-ghost">View all</a>
-            </div>
-            <div class="table-wrap">
-              <table class="price-table">
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Status</th>
-                    <th>Delivery</th>
-                    <th>Fee</th>
-                    <th>Placed</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="recentOrdersRows"></tbody>
-              </table>
-            </div>
-          </section>
           </div>
         </div>
       </section>

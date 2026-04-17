@@ -1,9 +1,11 @@
 import { cacheUser, clearCachedUser, fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
-import { $, request, setStatus, renderRecentOrders } from "./profileSectionCore.js";
+import { $, request, setStatus } from "./profileSectionCore.js";
 
 let profileData = null;
+/** When false, profile form body is collapsed (e.g. after opening another sidebar section). */
+let profileDetailsCardExpanded = true;
 
-const PROFILE_VIEWS = ["details", "abha", "rx", "addresses", "payments", "orders"];
+const PROFILE_VIEWS = ["details", "abha", "rx", "addresses", "payments"];
 const EMBED_VIEWS = ["abha", "rx", "addresses", "payments"];
 const EMBED_PAGE_SRC = {
   abha: "/profile-page-abha.html",
@@ -18,7 +20,6 @@ const VIEW_LABELS = {
   rx: "Prescriptions",
   addresses: "Saved addresses",
   payments: "Saved payment methods",
-  orders: "Recent orders",
 };
 
 const LEGACY_HASH_TO_VIEW = {
@@ -27,7 +28,6 @@ const LEGACY_HASH_TO_VIEW = {
   "#rxCard": "rx",
   "#addressCard": "addresses",
   "#paymentCard": "payments",
-  "#orderCard": "orders",
 };
 
 function profileViewHref(view) {
@@ -59,7 +59,6 @@ function applyProfileView(view) {
     const panel = el.getAttribute("data-profile-view-panel");
     let on = false;
     if (panel === "details") on = v === "details";
-    else if (panel === "orders") on = v === "orders";
     else if (panel === "embed") on = isEmbed;
     el.hidden = !on;
     el.setAttribute("aria-hidden", on ? "false" : "true");
@@ -81,6 +80,43 @@ function applyProfileView(view) {
       frame.dataset.embedSrc = nextSrc;
     }
   }
+
+  if (v !== "details") {
+    profileDetailsCardExpanded = false;
+  }
+  syncProfileDetailsCardDom();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      scrollActiveProfileSectionIntoView(v);
+    });
+  });
+}
+
+function scrollActiveProfileSectionIntoView(view) {
+  const v = PROFILE_VIEWS.includes(view) ? view : "details";
+  let target = null;
+  if (v === "details") target = $("profileCard");
+  else if (EMBED_VIEWS.includes(v)) target = $("profileViewEmbed");
+  if (!target) return;
+  const instant = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  target.scrollIntoView({ behavior: instant ? "auto" : "smooth", block: "start" });
+}
+
+function syncProfileDetailsCardDom() {
+  const body = $("profileDetailsBody");
+  const btn = $("profileDetailsToggle");
+  if (!body || !btn) return;
+  body.hidden = !profileDetailsCardExpanded;
+  btn.setAttribute("aria-expanded", profileDetailsCardExpanded ? "true" : "false");
+  btn.textContent = profileDetailsCardExpanded ? "Hide form" : "Show form";
+}
+
+function wireProfileDetailsToggle() {
+  $("profileDetailsToggle")?.addEventListener("click", () => {
+    profileDetailsCardExpanded = !profileDetailsCardExpanded;
+    syncProfileDetailsCardDom();
+  });
 }
 
 function wireProfileViewNav() {
@@ -90,6 +126,9 @@ function wireProfileViewNav() {
       const view = a.getAttribute("data-profile-view");
       if (!view || !PROFILE_VIEWS.includes(view)) return;
       history.pushState({ view }, "", profileViewHref(view));
+      if (view === "details") {
+        profileDetailsCardExpanded = true;
+      }
       applyProfileView(view);
     });
   });
@@ -142,7 +181,6 @@ async function loadProfile() {
   }
   profileData = r.data;
   fillBasicForm(r.data.profile);
-  renderRecentOrders(r.data.orders || []);
 
   if (r.data?.profile) {
     cacheUser({
@@ -172,6 +210,16 @@ async function saveBasicProfile(e) {
 }
 
 async function init() {
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.get("view") === "orders") {
+    window.location.replace("/orders.html");
+    return;
+  }
+  if (window.location.hash === "#orderCard") {
+    window.location.replace("/orders.html");
+    return;
+  }
+
   syncCanonicalProfileUrl();
 
   renderNav(loadCachedUser());
@@ -194,6 +242,7 @@ async function init() {
   });
 
   $("basicProfileForm")?.addEventListener("submit", saveBasicProfile);
+  wireProfileDetailsToggle();
   $("navLogout")?.addEventListener("click", async (e) => {
     e.preventDefault();
     await request("/api/auth/logout", { method: "POST", body: "{}" });

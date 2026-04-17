@@ -36,12 +36,6 @@ export function fmtTs(s) {
   return d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 }
 
-export function fmtInr(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return "—";
-  return `₹${x.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-}
-
 export function renderAbhaSection(abha) {
   const linked = Boolean(abha?.linked);
   const linkedPanel = $("abhaLinkedPanel");
@@ -207,26 +201,4 @@ export function renderPrescriptions(list, afterMutation) {
       await afterMutation?.();
     });
   });
-}
-
-export function renderRecentOrders(orders) {
-  const tbody = $("recentOrdersRows");
-  if (!tbody) return;
-  if (!orders?.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">No orders found.</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = orders
-    .map(
-      (o) => `
-      <tr>
-        <td><strong>#${escapeHtml(o.id)}</strong></td>
-        <td>${escapeHtml(o.status)}</td>
-        <td class="muted">${escapeHtml(o.delivery_option)}${o.scheduled_for ? ` · ${escapeHtml(fmtTs(o.scheduled_for))}` : ""}</td>
-        <td class="price-cell">${fmtInr(o.delivery_fee_inr)}</td>
-        <td class="muted">${escapeHtml(fmtTs(o.created_at))}</td>
-        <td><a href="/order.html?id=${encodeURIComponent(o.id)}">Track</a></td>
-      </tr>`,
-    )
-    .join("");
 }

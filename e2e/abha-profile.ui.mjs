@@ -138,6 +138,7 @@ async function main() {
     const syncRes = await sync;
     if (!syncRes.ok()) throw new Error(`sync-from-abha failed: ${await syncRes.text()}`);
 
+    await page.locator('a.profile-side-link[data-profile-view="details"]').click();
     await page.locator("#pfName").waitFor({ state: "visible" });
     const nameVal = await page.locator("#pfName").inputValue();
     if (!nameVal.includes("ABHA User")) {

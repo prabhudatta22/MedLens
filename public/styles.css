@@ -1255,6 +1255,12 @@ body {
   min-width: 0;
 }
 
+/* Keep section cards clear of the sticky topbar when scrolling into view (sidebar + SPA panels). */
+.profile-dashboard #profileCard,
+.profile-dashboard #profileViewEmbed {
+  scroll-margin-top: 5.75rem;
+}
+
 .profile-side-link.is-active {
   color: var(--accent);
   border-left: 3px solid var(--accent);
