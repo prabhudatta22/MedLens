@@ -547,12 +547,22 @@ function render(items) {
   }
   empty.classList.add("hidden");
 
+  const finitePrices = items.map((it) => Number(it.price_inr)).filter((n) => Number.isFinite(n));
+  const minAmongResults = finitePrices.length >= 2 ? Math.min(...finitePrices) : null;
+
   grid.innerHTML = items
     .map((it) => {
       const price = Number(it.price_inr);
       const mrp = it.mrp_inr != null ? Number(it.mrp_inr) : null;
-      const hasDiscount = mrp != null && mrp > price && price > 0;
-      const pct = hasDiscount ? Math.round(((mrp - price) / mrp) * 100) : null;
+      const discFromApi = it.discount_pct != null && Number.isFinite(Number(it.discount_pct)) ? Number(it.discount_pct) : null;
+      const hasDiscountByMrp = mrp != null && mrp > price && price > 0;
+      const hasDiscount = (discFromApi != null && discFromApi > 0.05) || hasDiscountByMrp;
+      const pct =
+        discFromApi != null && discFromApi > 0
+          ? Math.round(discFromApi * 10) / 10
+          : hasDiscountByMrp && mrp != null
+            ? Math.round(((mrp - price) / mrp) * 1000) / 10
+            : null;
       const tat = it.report_tat_hours != null ? `${escapeHtml(it.report_tat_hours)} hrs` : "—";
       const home = it.home_collection ? "Home collection" : "Lab visit";
       const provider = String(it.provider || "").toLowerCase();
@@ -560,6 +570,14 @@ function render(items) {
       const dealId = String(it.deal_id || packageId || "");
       const hasExternalOpen = provider !== "healthians" && !!it.slug;
       const openUrl = hasExternalOpen ? `https://www.1mg.com${it.slug}` : "#";
+
+      const saveVsMrp =
+        mrp != null && Number.isFinite(price) && Number.isFinite(mrp) && mrp > price ? Math.round((mrp - price) * 100) / 100 : null;
+      const showBestPrice =
+        minAmongResults != null &&
+        Number.isFinite(price) &&
+        price === minAmongResults &&
+        finitePrices.filter((x) => x === minAmongResults).length >= 1;
 
       return `
       <article class="lab-card">
@@ -574,7 +592,8 @@ function render(items) {
               <span class="pill">${escapeHtml(it.lab_name || "Lab")}</span>
               <span class="pill pill-muted">${escapeHtml(home)}</span>
               <span class="pill pill-muted">Report: ${tat}</span>
-              ${hasDiscount ? `<span class="pill pill-deal">${pct}% OFF</span>` : ""}
+              ${pct != null && pct > 0 ? `<span class="pill pill-deal">${escapeHtml(String(pct))}% off MRP</span>` : ""}
+              ${showBestPrice ? `<span class="pill pill-muted">Best price</span>` : ""}
             </div>
           </div>
         </div>
@@ -583,6 +602,14 @@ function render(items) {
             <div class="lab-price-now">${escapeHtml(fmtINR(price))}</div>
             <div class="lab-price-was muted">${hasDiscount ? `<s>${escapeHtml(fmtINR(mrp))}</s>` : ""}</div>
           </div>
+          ${
+            saveVsMrp != null
+              ? `<div class="muted" style="font-size: 0.82rem; margin-top: 0.35rem">
+                  Save <strong>₹${escapeHtml(fmtINR(saveVsMrp))}</strong> vs MRP
+                  ${pct != null && pct > 0 ? ` <span class="muted">(${escapeHtml(String(pct))}% discount)</span>` : ""}
+                </div>`
+              : ""
+          }
           <div class="lab-actions">
             ${
               hasExternalOpen

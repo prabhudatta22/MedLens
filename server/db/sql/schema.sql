@@ -427,3 +427,7 @@ CREATE TABLE IF NOT EXISTS abha_aadhaar_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_abha_sessions_user ON abha_aadhaar_sessions (user_id);
 CREATE INDEX IF NOT EXISTS idx_abha_sessions_expires ON abha_aadhaar_sessions (expires_at);
+
+-- Retail / lab discount % on MRP (optional; derived on import when MRP + price present)
+ALTER TABLE pharmacy_prices ADD COLUMN IF NOT EXISTS discount_pct NUMERIC(6, 3);
+ALTER TABLE lab_test_prices ADD COLUMN IF NOT EXISTS discount_pct NUMERIC(6, 3);

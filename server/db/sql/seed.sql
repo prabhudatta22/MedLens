@@ -60,7 +60,9 @@ INSERT INTO medicines (display_name, generic_name, strength, form, pack_size, sc
   ('Atorvastatin 20 mg', 'Atorvastatin calcium', '20 mg', 'tablet', 10, 'H'),
   ('Telma 40 (Telmisartan)', 'Telmisartan', '40 mg', 'tablet', 10, 'H'),
   ('Pantoprazole 40 mg', 'Pantoprazole', '40 mg', 'tablet', 10, 'H'),
-  ('Amoxicillin 500 mg', 'Amoxicillin', '500 mg', 'capsule', 10, 'H1');
+  ('Amoxicillin 500 mg', 'Amoxicillin', '500 mg', 'capsule', 10, 'H1'),
+  ('Paracetamol 650 mg', 'Paracetamol', '650 mg', 'tablet', 15, 'H'),
+  ('Dolo 650 Tablet', 'Paracetamol', '650 mg', 'tablet', 15, 'H');
 
 -- OTP users (integer id; distinct phones from catalog_users demo)
 INSERT INTO users (phone_e164, last_login_at) VALUES
@@ -137,6 +139,17 @@ INSERT INTO pharmacy_prices (pharmacy_id, medicine_id, price_inr, mrp_inr, price
   (1, 5, 125.00, 240.00, 'retail'),
   (6, 5, 98.00, 240.00, 'retail'),
   (8, 5, 110.00, 240.00, 'retail');
+
+-- Paracetamol 650 mg / Dolo 650 (matches home quick search "Paracetamol 650", "Dolo 650")
+INSERT INTO pharmacy_prices (pharmacy_id, medicine_id, price_inr, mrp_inr, discount_pct, price_type) VALUES
+  (1, 6, 25.50, 30.00, 15.000, 'retail'),
+  (2, 6, 24.90, 30.00, 17.000, 'retail'),
+  (3, 6, 27.00, 30.00, 10.000, 'retail'),
+  (4, 6, 26.00, 30.00, 13.333, 'retail'),
+  (5, 6, 24.75, 30.00, 17.500, 'retail'),
+  (1, 7, 26.00, 32.00, 18.750, 'retail'),
+  (2, 7, 25.40, 32.00, 20.625, 'retail'),
+  (4, 7, 26.40, 32.00, 17.500, 'retail');
 
 -- Partner demo: Apollo Bandra (pharmacy_id=1)
 INSERT INTO partner_pharmacies (pharmacy_id, display_name, api_key) VALUES

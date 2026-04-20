@@ -77,7 +77,8 @@ export async function matchLabTestsFromText(ocrText, { limitItems = 8, citySlug 
        t.id AS test_id,
        p.lab_name,
        p.price_inr,
-       p.mrp_inr
+       p.mrp_inr,
+       p.discount_pct
      FROM lab_tests t
      JOIN cities c ON c.slug = $1
      ${labPriceLateralSql("$1")}

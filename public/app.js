@@ -160,6 +160,62 @@ function mapsUrlFromDbOffer(o) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
 }
 
+/** Show partner-stated discount %, or derive from MRP vs price when present. */
+function formatOfferDiscountPct(o) {
+  if (o == null) return "—";
+  if (o.discount_pct != null && Number.isFinite(Number(o.discount_pct)) && Number(o.discount_pct) > 0) {
+    const d = Number(o.discount_pct);
+    return d % 1 < 0.05 ? `${Math.round(d)}%` : `${d.toFixed(1)}%`;
+  }
+  if (o.mrp_inr != null && o.price_inr != null) {
+    const m = Number(o.mrp_inr);
+    const p = Number(o.price_inr);
+    if (Number.isFinite(m) && Number.isFinite(p) && m > 0 && p <= m * 1.001) {
+      const im = (1 - p / m) * 100;
+      if (im > 0.25) return im % 1 < 0.05 ? `${Math.round(im)}%` : `${Math.round(im * 10) / 10}%`;
+    }
+  }
+  return "—";
+}
+
+/** Numeric discount % off MRP (stored or derived). */
+function numericDiscountPctFromOffer(o) {
+  if (o == null) return null;
+  if (o.discount_pct != null && Number.isFinite(Number(o.discount_pct)) && Number(o.discount_pct) >= 0) {
+    return Number(o.discount_pct);
+  }
+  const m = Number(o.mrp_inr);
+  const p = Number(o.price_inr);
+  if (Number.isFinite(m) && m > 0 && Number.isFinite(p) && p >= 0 && p <= m * 1.001) {
+    return Math.round((1 - p / m) * 100000) / 1000;
+  }
+  return null;
+}
+
+/** Rupees saved vs MRP for one listing (MRP − selling price). */
+function rupeesSaveVsMrp(o) {
+  const m = Number(o?.mrp_inr);
+  const p = Number(o?.price_inr);
+  if (!Number.isFinite(m) || m <= 0 || !Number.isFinite(p)) return null;
+  const s = m - p;
+  return s > 0.005 ? s : null;
+}
+
+function formatSaveVsMrpCell(o) {
+  const s = rupeesSaveVsMrp(o);
+  return s == null ? "—" : `<strong>₹${fmt(s)}</strong>`;
+}
+
+/** Subtitle when user picks a DB listing (discount + save vs MRP). */
+function selectionSavingsPhrase(p) {
+  const disc = numericDiscountPctFromOffer(p);
+  const save = rupeesSaveVsMrp(p);
+  const parts = [];
+  if (disc != null && disc > 0) parts.push(`${disc % 1 < 0.05 ? Math.round(disc) : disc.toFixed(1)}% off MRP`);
+  if (save != null) parts.push(`save ₹${fmt(save)} vs MRP`);
+  return parts.length ? ` · ${parts.join(" · ")}` : "";
+}
+
 /** Map /api/compare/by-pincode JSON into the shape expected by renderOnlineTable */
 function dbCompareResponseToOnlineShape(data) {
   const offers = data.offers || [];
@@ -190,6 +246,7 @@ function dbCompareResponseToOnlineShape(data) {
       search_url: mapsUrlFromDbOffer(o),
       website: mapsUrlFromDbOffer(o),
       data_mode: "local_db",
+      discount_pct: o.discount_pct != null ? Number(o.discount_pct) : null,
       pharmacy_id: o.pharmacy_id,
       medicine_id: o.medicine_id,
       address_line: o.address_line,
@@ -822,22 +879,46 @@ function renderLocalTable(offers, city, q, errorMsg) {
   stats.classList.remove("hidden");
   tableWrap.classList.remove("hidden");
 
-  const minPrice = Math.min(...offers.map((o) => Number(o.price_inr)).filter((n) => Number.isFinite(n)));
-  stats.innerHTML = `
-    <span>Rows: <strong>${offers.length}</strong></span>
-    <span>Lowest in list: <strong>₹${fmt(minPrice)}</strong></span>
-  `;
+  const priceNums = offers.map((o) => Number(o.price_inr)).filter((n) => Number.isFinite(n));
+  const minPrice = priceNums.length ? Math.min(...priceNums) : null;
+  const maxPrice = priceNums.length ? Math.max(...priceNums) : null;
+  const discPcts = offers.map(numericDiscountPctFromOffer).filter((n) => n != null && n > 0);
+  const maxDiscPct = discPcts.length ? Math.max(...discPcts) : null;
+  const statParts = [
+    `<span><strong>${offers.length}</strong> listing(s)</span>`,
+    minPrice != null ? `<span>Lowest: <strong>₹${fmt(minPrice)}</strong></span>` : "",
+  ];
+  if (maxDiscPct != null) {
+    statParts.push(
+      `<span>Best discount: <strong>${maxDiscPct % 1 < 0.05 ? Math.round(maxDiscPct) : maxDiscPct.toFixed(1)}%</strong> off MRP</span>`,
+    );
+  }
+  if (
+    minPrice != null &&
+    maxPrice != null &&
+    offers.length >= 2 &&
+    maxPrice > minPrice
+  ) {
+    statParts.push(
+      `<span>Pick lowest vs highest: <strong>₹${fmt(maxPrice - minPrice)}</strong> extra savings</span>`,
+    );
+  }
+  stats.innerHTML = statParts.filter(Boolean).join(" ");
 
   tbody.innerHTML = offers
     .map((o, idx) => {
       const best = Number(o.price_inr) === minPrice;
       const med = `${escapeHtml(o.display_name)} · ${escapeHtml(o.strength || "")}`;
+      const disc = formatOfferDiscountPct(o);
+      const saveCell = formatSaveVsMrpCell(o);
       return `
       <tr class="${best ? "best" : ""}">
-        <td>${escapeHtml(o.pharmacy_name)}${o.chain ? ` <span class="muted">(${escapeHtml(o.chain)})</span>` : ""}</td>
+        <td>${escapeHtml(o.pharmacy_name)}${o.chain ? ` <span class="muted">(${escapeHtml(o.chain)})</span>` : ""}${best ? ` <span class="pill pill-muted" style="margin-left:0.25rem">Best price</span>` : ""}</td>
         <td class="muted">${med}</td>
         <td class="price-cell">₹${fmt(o.price_inr)}</td>
         <td class="muted">${o.mrp_inr != null ? `₹${fmt(o.mrp_inr)}` : "—"}</td>
+        <td class="muted">${disc === "—" ? "—" : `<strong>${escapeHtml(disc)}</strong> off MRP`}</td>
+        <td class="muted">${saveCell}</td>
         <td class="muted">${escapeHtml(o.address_line || "")}${o.pincode ? ` · ${escapeHtml(o.pincode)}` : ""}</td>
         <td><button type="button" class="btn btn-sm add-local-cart" data-offer-idx="${idx}">Add</button></td>
       </tr>`;
@@ -922,10 +1003,33 @@ function renderOnlineTable(data, q) {
       : "";
   const lowLbl = isDbSource ? "Lowest" : "Lowest (est.)";
   const highLbl = isDbSource ? "Highest" : "Highest (est.)";
+  const dbHintParts = [];
+  if (isDbSource && providers.length >= 1) {
+    const discs = providers
+      .filter((x) => x.ok)
+      .map(numericDiscountPctFromOffer)
+      .filter((n) => n != null && n > 0);
+    const maxD = discs.length ? Math.max(...discs) : null;
+    if (maxD != null) {
+      dbHintParts.push(
+        `<span>Best discount: <strong>${maxD % 1 < 0.05 ? Math.round(maxD) : maxD.toFixed(1)}%</strong> off MRP</span>`,
+      );
+    }
+    const okPrices = providers.filter((x) => x.ok && x.price_inr != null).map((x) => Number(x.price_inr));
+    if (okPrices.length >= 2) {
+      const mn = Math.min(...okPrices);
+      const mx = Math.max(...okPrices);
+      if (mx > mn) {
+        dbHintParts.push(`<span>Cheapest vs priciest listing: <strong>₹${fmt(mx - mn)}</strong></span>`);
+      }
+    }
+  }
+  const dbCompareHint = dbHintParts.join(" ");
   statsEl.innerHTML = `
     <span>${lowLbl}: <strong>₹${fmt(s.min_inr)}</strong></span>
     <span>${highLbl}: <strong>₹${fmt(s.max_inr)}</strong></span>
     ${spread}
+    ${dbCompareHint}
   `;
   statsEl.classList.remove("hidden");
 
@@ -945,18 +1049,28 @@ function renderOnlineTable(data, q) {
       const checked = ok && p.provider_id === bestId ? " checked" : "";
       const priceCell = ok ? `₹${escapeHtml(fmt(p.price_inr))}` : "—";
       const mrpCell = ok && p.mrp_inr != null ? `₹${escapeHtml(fmt(p.mrp_inr))}` : "—";
+      const discStr = ok && isDbSource ? formatOfferDiscountPct(p) : "—";
+      const discCell = discStr === "—" ? "—" : `<strong>${escapeHtml(discStr)}</strong> off MRP`;
+      const saveCell =
+        ok && isDbSource ? formatSaveVsMrpCell(p) : "—";
       const url = escapeAttr(p.search_url || p.website || "#");
       const err = !ok ? ` <span class="muted">(${escapeHtml(p.error || "error")})</span>` : "";
       const canAdd = Boolean(p.search_url || p.website);
       const title = p.product_title ? escapeHtml(p.product_title) : `<span class="muted">—</span>`;
       const openLabel = isDbSource ? "Map" : "Open site";
+      const bestPill =
+        ok && isDbSource && bestId === p.provider_id && providers.filter((x) => x.ok).length > 1
+          ? ` <span class="pill pill-muted">Best price</span>`
+          : "";
       return `
       <tr>
         <td><input type="radio" name="online-pick" value="${id}"${checked} /></td>
-        <td>${escapeHtml(p.label || p.provider_id)}${err}</td>
+        <td>${escapeHtml(p.label || p.provider_id)}${bestPill}${err}</td>
         <td class="muted">${title}</td>
         <td class="price-cell">${priceCell}</td>
         <td class="muted">${mrpCell}</td>
+        <td class="muted">${discCell}</td>
+        <td class="muted">${saveCell}</td>
         <td><a href="${url}" target="_blank" rel="noopener noreferrer">${escapeHtml(openLabel)}</a></td>
         <td><button type="button" class="btn btn-sm add-online-cart" data-pidx="${pidx}"${
           canAdd ? "" : " disabled"
@@ -990,7 +1104,7 @@ function renderOnlineTable(data, q) {
     openBtn.disabled = false;
     selLabel.textContent = `Selected: ${row.label}${
       row.price_inr != null ? ` — ₹${fmt(row.price_inr)}${isDbSource ? "" : " (est.)"}` : ""
-    }`;
+    }${isDbSource ? selectionSavingsPhrase(row) : ""}`;
   }
 
   const firstChecked = tbody.querySelector('input[name="online-pick"]:checked');

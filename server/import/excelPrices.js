@@ -1,4 +1,5 @@
 import XLSX from "xlsx";
+import { deriveDiscountPct, parseOptionalDiscountPct, priceFromMrpAndDiscount } from "./discountPct.js";
 
 function normHeader(h) {
   return String(h || "")
@@ -44,8 +45,9 @@ export function parsePricesXlsx(buffer) {
   }
 
   // Expected long-format headers (minimum):
-  // city, state, pharmacy_name, drug_name, strength, form, pack_size, price_inr
-  // optional: chain, address_line, pincode, lat, lng, mrp_inr, price_type, in_stock
+  // city, state, pharmacy_name, drug_name, strength, form, pack_size
+  // price_inr — or omit if mrp_inr + discount_pct are provided (price will be derived)
+  // optional: chain, address_line, pincode, lat, lng, mrp_inr, discount_pct, price_type, in_stock
   const normalized = rows.map(({ rowNum, row }) => {
     const city = String(req(row, "city", rowNum)).trim();
     const state = String(req(row, "state", rowNum)).trim();
@@ -70,8 +72,30 @@ export function parsePricesXlsx(buffer) {
     const form = row.form != null && String(row.form).trim() !== "" ? String(row.form).trim() : "tablet";
     const packSize = row.pack_size != null && String(row.pack_size).trim() !== "" ? Number(row.pack_size) : 10;
 
-    const priceInr = Number(req(row, "price_inr", rowNum));
+    let discountPct = null;
+    try {
+      discountPct = parseOptionalDiscountPct(row);
+    } catch (e) {
+      throw new Error(`Row ${rowNum}: ${e.message}`);
+    }
+
     const mrpInr = row.mrp_inr != null && String(row.mrp_inr).trim() !== "" ? Number(row.mrp_inr) : null;
+    if (mrpInr != null && (!Number.isFinite(mrpInr) || mrpInr < 0)) throw new Error(`Row ${rowNum}: invalid mrp_inr`);
+
+    let priceInr =
+      row.price_inr != null && String(row.price_inr).trim() !== ""
+        ? Number(row.price_inr)
+        : NaN;
+
+    if (!Number.isFinite(priceInr) || priceInr < 0) {
+      const derived = priceFromMrpAndDiscount(mrpInr, discountPct);
+      if (derived != null) priceInr = derived;
+      else throw new Error(`Row ${rowNum}: missing price_inr (or provide mrp_inr + discount_pct to derive price)`);
+    }
+
+    if (discountPct == null && mrpInr != null && mrpInr > 0) {
+      discountPct = deriveDiscountPct(priceInr, mrpInr);
+    }
 
     const priceType =
       row.price_type != null && String(row.price_type).trim() !== ""
@@ -83,7 +107,6 @@ export function parsePricesXlsx(buffer) {
         : ["true", "1", "yes", "y"].includes(String(row.in_stock).trim().toLowerCase());
 
     if (!Number.isFinite(priceInr) || priceInr < 0) throw new Error(`Row ${rowNum}: invalid price_inr`);
-    if (mrpInr != null && (!Number.isFinite(mrpInr) || mrpInr < 0)) throw new Error(`Row ${rowNum}: invalid mrp_inr`);
     if (lat != null && !Number.isFinite(lat)) throw new Error(`Row ${rowNum}: invalid lat`);
     if (lng != null && !Number.isFinite(lng)) throw new Error(`Row ${rowNum}: invalid lng`);
 
@@ -99,7 +122,13 @@ export function parsePricesXlsx(buffer) {
         form,
         pack_size: Number.isFinite(packSize) && packSize > 0 ? Math.floor(packSize) : 10,
       },
-      price: { price_inr: priceInr, mrp_inr: mrpInr, price_type: priceType, in_stock: inStock },
+      price: {
+        price_inr: priceInr,
+        mrp_inr: mrpInr,
+        discount_pct: discountPct,
+        price_type: priceType,
+        in_stock: inStock,
+      },
     };
   });
 

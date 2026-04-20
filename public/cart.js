@@ -67,8 +67,18 @@ function renderComparedItems(compared) {
       stats.spread_percent != null ? `${stats.spread_percent}%` : "—";
 
     // columns: 0 med, 1 qty, 2 match, 3 best price, 4 pharmacy, 5 spread
-    tds[3].innerHTML = best?.price_inr != null ? `₹${fmtINR(best.price_inr)}` : "—";
-    tds[3].className = best?.price_inr != null ? "price-cell" : "muted";
+    {
+      const p = best?.price_inr;
+      const d = best?.discount_pct;
+      let priceHtml = p != null ? `₹${fmtINR(p)}` : "—";
+      if (d != null && Number.isFinite(Number(d)) && Number(d) > 0) {
+        const dp = Number(d);
+        const label = dp % 1 < 0.05 ? `${Math.round(dp)}%` : `${dp.toFixed(1)}%`;
+        priceHtml += ` <span class="muted">(${label} off)</span>`;
+      }
+      tds[3].innerHTML = priceHtml;
+      tds[3].className = p != null ? "price-cell" : "muted";
+    }
 
     tds[4].innerHTML =
       best?.pharmacy_name

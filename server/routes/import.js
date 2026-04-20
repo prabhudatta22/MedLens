@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { pool } from "../db/pool.js";
 import { parsePricesXlsx } from "../import/excelPrices.js";
+import { parseLabPricesXlsx } from "../import/labPricesExcel.js";
 import { parseErpExport } from "../import/erpExports.js";
 
 const router = Router();
@@ -29,6 +30,11 @@ function detectPriceAnomalies(r) {
   if (mrp != null && mrp > 0 && Number.isFinite(price) && price >= 0) {
     const off = (mrp - price) / mrp;
     if (off >= 0.8) issues.push("huge_discount");
+  }
+  const disc = r?.price?.discount_pct;
+  if (mrp != null && Number.isFinite(price) && mrp > 0 && disc != null && Number.isFinite(Number(disc))) {
+    const implied = (1 - price / mrp) * 100;
+    if (Math.abs(implied - Number(disc)) > 2.5) issues.push("discount_pct_mismatch");
   }
   if (Number.isFinite(price) && price > 250_000) issues.push("very_high_price");
   return issues;
@@ -116,18 +122,65 @@ async function ingestNormalizedRows(client, rows, summary) {
 
       // Upsert price (unique on pharmacy_id, medicine_id, price_type)
       const up = await client.query(
-        `INSERT INTO pharmacy_prices (pharmacy_id, medicine_id, price_inr, mrp_inr, in_stock, price_type)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO pharmacy_prices (pharmacy_id, medicine_id, price_inr, mrp_inr, discount_pct, in_stock, price_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (pharmacy_id, medicine_id, price_type)
          DO UPDATE SET price_inr = EXCLUDED.price_inr,
                        mrp_inr = EXCLUDED.mrp_inr,
+                       discount_pct = EXCLUDED.discount_pct,
                        in_stock = EXCLUDED.in_stock,
                        updated_at = now()
          RETURNING (xmax = 0) AS inserted`,
-        [pharmacyId, medicineId, r.price.price_inr, r.price.mrp_inr, r.price.in_stock, r.price.price_type]
+        [
+          pharmacyId,
+          medicineId,
+          r.price.price_inr,
+          r.price.mrp_inr,
+          r.price.discount_pct ?? null,
+          r.price.in_stock,
+          r.price.price_type,
+        ]
       );
       if (up.rows[0].inserted) summary.inserted.prices += 1;
       else summary.updated.prices += 1;
+    } catch (e) {
+      summary.errors.push({ row: r.rowNum, error: e.message });
+    }
+  }
+}
+
+async function ingestLabPriceRows(client, rows, summary) {
+  for (const r of rows) {
+    try {
+      const { rows: trows } = await client.query(`SELECT 1 FROM lab_tests WHERE id = $1 LIMIT 1`, [r.test_id]);
+      if (!trows.length) {
+        summary.errors.push({ row: r.rowNum, error: `Unknown test_id ${r.test_id} (use id from MedLens lab catalog)` });
+        continue;
+      }
+
+      const citySlug = slugifyCity(r.city);
+      const cityRes = await client.query(
+        `INSERT INTO cities (name, state, slug)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, state = EXCLUDED.state
+         RETURNING id`,
+        [r.city, r.state, citySlug],
+      );
+      const cityId = cityRes.rows[0].id;
+
+      const up = await client.query(
+        `INSERT INTO lab_test_prices (city_id, lab_name, test_id, price_inr, mrp_inr, discount_pct)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (city_id, lab_name, test_id)
+         DO UPDATE SET price_inr = EXCLUDED.price_inr,
+                       mrp_inr = EXCLUDED.mrp_inr,
+                       discount_pct = EXCLUDED.discount_pct,
+                       updated_at = now()
+         RETURNING (xmax = 0) AS inserted`,
+        [cityId, r.lab_name, r.test_id, r.price_inr, r.mrp_inr, r.discount_pct ?? null],
+      );
+      if (up.rows[0].inserted) summary.inserted.lab_prices += 1;
+      else summary.updated.lab_prices += 1;
     } catch (e) {
       summary.errors.push({ row: r.rowNum, error: e.message });
     }
@@ -148,8 +201,8 @@ router.post("/prices/xlsx", upload.single("file"), async (req, res) => {
   const summary = {
     sheet: parsed.sheetName,
     rows: parsed.rows.length,
-    inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0 },
-    updated: { prices: 0 },
+    inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0, lab_prices: 0 },
+    updated: { prices: 0, lab_prices: 0 },
     errors: [],
     warnings: [],
   };
@@ -158,6 +211,39 @@ router.post("/prices/xlsx", upload.single("file"), async (req, res) => {
     await client.query("BEGIN");
     await ingestNormalizedRows(client, parsed.rows, summary);
 
+    await client.query("COMMIT");
+    return res.json({ ok: true, summary });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    return res.status(500).json({ ok: false, error: e.message, summary });
+  } finally {
+    client.release();
+  }
+});
+
+router.post("/lab-prices/xlsx", upload.single("file"), async (req, res) => {
+  if (!req.file?.buffer) return res.status(400).json({ error: "Missing file (field name: file)" });
+
+  let parsed;
+  try {
+    parsed = parseLabPricesXlsx(req.file.buffer);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+
+  const client = await pool.connect();
+  const summary = {
+    sheet: parsed.sheetName,
+    rows: parsed.rows.length,
+    inserted: { lab_prices: 0 },
+    updated: { lab_prices: 0 },
+    errors: [],
+    warnings: [],
+  };
+
+  try {
+    await client.query("BEGIN");
+    await ingestLabPriceRows(client, parsed.rows, summary);
     await client.query("COMMIT");
     return res.json({ ok: true, summary });
   } catch (e) {
@@ -182,8 +268,8 @@ router.post("/erp/marg", upload.single("file"), async (req, res) => {
     flavor: "marg",
     sheet: parsed.sheetName,
     rows: parsed.rows.length,
-    inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0 },
-    updated: { prices: 0 },
+    inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0, lab_prices: 0 },
+    updated: { prices: 0, lab_prices: 0 },
     errors: [],
     warnings: [],
     detected_headers: parsed.headers,
@@ -217,8 +303,8 @@ router.post("/erp/retailgraph", upload.single("file"), async (req, res) => {
     flavor: "retailgraph",
     sheet: parsed.sheetName,
     rows: parsed.rows.length,
-    inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0 },
-    updated: { prices: 0 },
+    inserted: { cities: 0, pharmacies: 0, medicines: 0, prices: 0, lab_prices: 0 },
+    updated: { prices: 0, lab_prices: 0 },
     errors: [],
     warnings: [],
     detected_headers: parsed.headers,

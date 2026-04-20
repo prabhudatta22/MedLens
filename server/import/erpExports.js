@@ -1,4 +1,5 @@
 import XLSX from "xlsx";
+import { deriveDiscountPct, parseOptionalDiscountPct } from "./discountPct.js";
 
 function normHeader(h) {
   return String(h || "")
@@ -129,10 +130,24 @@ export function parseErpExport(buffer, meta, opts) {
       asBool(pick(row, ["availability", "available", "in_stock", "instock"])) ??
       (qty != null ? qty > 0 : null);
 
-    const priceInr = sell ?? mrp;
+    let priceInr = sell ?? mrp;
+    let discountPct = null;
+    try {
+      discountPct = parseOptionalDiscountPct(row);
+    } catch {
+      /* invalid or unknown discount column */
+    }
+    if (priceInr == null && mrp != null && discountPct != null) {
+      const d = Number(mrp) * (1 - Number(discountPct) / 100);
+      priceInr = Math.round(d * 100) / 100;
+    }
     if (priceInr == null) {
       // Can't price this row; skip.
       continue;
+    }
+
+    if (discountPct == null && mrp != null && Number.isFinite(Number(mrp)) && Number(mrp) > 0) {
+      discountPct = deriveDiscountPct(Number(priceInr), Number(mrp));
     }
 
     normalized.push({
@@ -151,6 +166,7 @@ export function parseErpExport(buffer, meta, opts) {
       price: {
         price_inr: Number(priceInr),
         mrp_inr: mrp != null ? Number(mrp) : null,
+        discount_pct: discountPct,
         price_type: "retail",
         in_stock: avail == null ? true : Boolean(avail),
       },

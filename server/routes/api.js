@@ -20,6 +20,15 @@ const asyncHandler =
   (req, res, next) =>
     Promise.resolve(fn(req, res, next)).catch(next);
 
+/** Match display/generic name including compact form (spaces removed), e.g. "paracetamol650" → Paracetamol 650 mg. */
+function medicineNameMatchParams(q) {
+  const qLow = (q || "").toString().trim().toLowerCase();
+  const like = `%${qLow}%`;
+  const compact = qLow.replace(/\s+/g, "");
+  const compactLike = compact.length >= 2 ? `%${compact}%` : like;
+  return { like, compactLike };
+}
+
 function normalizeCitySlug(slug) {
   const s = (slug || "").toString().trim().toLowerCase();
   if (!s) return "";
@@ -45,6 +54,7 @@ function mapPartnerPackageToLabRow(pkg) {
     lab_name: pkg.lab_name || "Healthians",
     price_inr: pkg.price_inr,
     mrp_inr: pkg.mrp_inr,
+    discount_pct: pkg.discount_pct ?? null,
     provider: "healthians",
     package_id: pkg.package_id,
     deal_id: pkg.deal_id || pkg.package_id,
@@ -175,7 +185,8 @@ router.get(
         t.slug,
         p.lab_name,
         p.price_inr,
-        p.mrp_inr
+        p.mrp_inr,
+        p.discount_pct
        FROM lab_tests t
        JOIN cities c ON c.slug = $2
        ${labPriceLateralSql("$2")}
@@ -249,7 +260,8 @@ router.get(
       t.home_collection,
       p.lab_name,
       p.price_inr,
-      p.mrp_inr
+      p.mrp_inr,
+      p.discount_pct
      FROM lab_tests t
      JOIN cities c ON c.slug = $2
      ${labPriceLateralSql("$2")}
@@ -299,7 +311,8 @@ router.get(
          t.home_collection,
          p.lab_name,
          p.price_inr,
-         p.mrp_inr
+         p.mrp_inr,
+         p.discount_pct
        FROM lab_tests t
        JOIN cities c ON c.slug = $2
        ${labPriceLateralSql("$2")}
@@ -329,6 +342,7 @@ router.get(
        pp.id AS price_id,
        pp.price_inr,
        pp.mrp_inr,
+       pp.discount_pct,
        pp.in_stock,
        pp.price_type,
        pp.updated_at,
@@ -387,12 +401,13 @@ router.get("/compare/search", async (req, res) => {
       offers: [],
     });
   }
-  const like = `%${q.toLowerCase()}%`;
+  const { like, compactLike } = medicineNameMatchParams(q);
   const { rows } = await pool.query(
     `SELECT
        pp.id AS price_id,
        pp.price_inr,
        pp.mrp_inr,
+       pp.discount_pct,
        pp.in_stock,
        pp.price_type,
        pp.updated_at,
@@ -419,10 +434,12 @@ router.get("/compare/search", async (req, res) => {
        AND (
          LOWER(m.display_name) LIKE $1
          OR LOWER(COALESCE(m.generic_name, '')) LIKE $1
+         OR regexp_replace(LOWER(m.display_name), '\\s+', '', 'g') LIKE $3
+         OR regexp_replace(LOWER(COALESCE(m.generic_name, '')), '\\s+', '', 'g') LIKE $3
        )
      ORDER BY pp.price_inr ASC NULLS LAST
      LIMIT 120`,
-    [like, citySlug]
+    [like, citySlug, compactLike]
   );
 
   const prices = rows.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
@@ -476,12 +493,13 @@ router.get(
       });
     }
 
-    const like = `%${q.toLowerCase()}%`;
+    const { like, compactLike } = medicineNameMatchParams(q);
     const { rows } = await pool.query(
       `SELECT
          pp.id AS price_id,
          pp.price_inr,
          pp.mrp_inr,
+         pp.discount_pct,
          pp.in_stock,
          pp.price_type,
          pp.updated_at,
@@ -509,10 +527,12 @@ router.get(
          AND (
            LOWER(m.display_name) LIKE $1
            OR LOWER(COALESCE(m.generic_name, '')) LIKE $1
+           OR regexp_replace(LOWER(m.display_name), '\\s+', '', 'g') LIKE $4
+           OR regexp_replace(LOWER(COALESCE(m.generic_name, '')), '\\s+', '', 'g') LIKE $4
          )
        ORDER BY pp.price_inr ASC NULLS LAST
        LIMIT 120`,
-      [like, pinParam, cityParam]
+      [like, pinParam, cityParam, compactLike]
     );
 
     const prices = rows.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
@@ -609,6 +629,7 @@ router.get("/carts/:id/compare", async (req, res) => {
          m.pack_size,
          pp.price_inr,
          pp.mrp_inr,
+         pp.discount_pct,
          pp.updated_at,
          p.id AS pharmacy_id,
          p.name AS pharmacy_name,
@@ -657,6 +678,7 @@ router.get("/carts/:id/compare", async (req, res) => {
       best: r.price_rank ? {
         price_inr: r.price_inr,
         mrp_inr: r.mrp_inr,
+        discount_pct: r.discount_pct,
         updated_at: r.updated_at,
         pharmacy_id: r.pharmacy_id,
         pharmacy_name: r.pharmacy_name,

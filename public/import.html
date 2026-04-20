@@ -36,16 +36,35 @@
             <input id="file" type="file" accept=".xlsx" required />
           </label>
           <div style="display: flex; gap: 0.6rem; flex-wrap: wrap">
-            <button id="btn" type="submit" class="btn">Import</button>
-            <button id="downloadTemplate" type="button" class="btn">Download Excel template</button>
+            <button id="btn" type="submit" class="btn">Import pharmacy sheet</button>
+            <button id="downloadTemplate" type="button" class="btn btn-ghost">Pharmacy template (.xlsx)</button>
+            <button id="downloadLabTemplate" type="button" class="btn btn-ghost">Diagnostics lab template (.xlsx)</button>
           </div>
         </form>
 
         <div style="margin-top: 1rem" class="muted">
-          Required headers:
-          <code>city, state, pharmacy_name, drug_name, strength, form, pack_size, price_inr</code>
-          (optional: <code>chain, generic_name, address_line, pincode, lat, lng, mrp_inr, price_type, in_stock</code>)
+          Pharmacy upload uses <code>POST /api/import/prices/xlsx</code>.
+          Include <strong>discount_pct</strong> (percent off MRP, 0–100) plus <code>mrp_inr</code> and either
+          <code>price_inr</code> or derive price from MRP − discount.
+          Columns:
+          <code>city, state, pharmacy_name, drug_name, strength</code>
+          (<code>form</code>, <code>pack_size</code> optional with defaults); price via <code>price_inr</code> or
+          <code>mrp_inr</code> + <code>discount_pct</code>.
         </div>
+        <div style="margin-top: 0.65rem" class="muted">
+          Diagnostics partner upload (lab tests): <code>POST /api/import/lab-prices/xlsx</code> — columns
+          <code>city, state, lab_name, test_id, mrp_inr, discount_pct, price_inr</code> (<code>test_id</code> =
+          <code>lab_tests.id</code>). Use the lab template row 3 as a layout guide.
+        </div>
+
+        <h2 style="margin-top: 1.75rem">Upload diagnostics (lab) prices</h2>
+        <form id="labForm">
+          <label class="field">
+            <span>Lab price sheet (.xlsx)</span>
+            <input id="labFile" type="file" accept=".xlsx" required />
+          </label>
+          <button id="labBtn" type="submit" class="btn">Import lab prices</button>
+        </form>
 
         <pre id="out" class="muted" style="margin-top: 1rem; white-space: pre-wrap"></pre>
       </section>

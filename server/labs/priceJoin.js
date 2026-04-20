@@ -6,7 +6,7 @@
 export function labPriceLateralSql(citySlugParam) {
   return `
   CROSS JOIN LATERAL (
-    SELECT p.lab_name, p.price_inr, p.mrp_inr
+    SELECT p.lab_name, p.price_inr, p.mrp_inr, p.discount_pct
     FROM lab_test_prices p
     INNER JOIN cities cref ON cref.id = p.city_id
     WHERE p.test_id = t.id

@@ -16,7 +16,9 @@
     "db:seed": "node server/db/seed.js",
     "db:import-dataset": "node server/scripts/import-medlens-dataset.js",
     "db:load-full-data": "node server/scripts/load-postgres-data.js",
-    "test:ui-abha": "node e2e/abha-profile.ui.mjs"
+    "test:ui-abha": "node e2e/abha-profile.ui.mjs",
+    "test:ui-discount": "node e2e/discount-compare.ui.mjs",
+    "generate:partner-templates": "node server/scripts/generate-partner-price-templates.mjs"
   },
   "engines": {
     "node": ">=20"

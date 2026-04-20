@@ -247,24 +247,33 @@ Schema: `user_prescriptions` plus FKs from `orders` and `carts` — see `server/
 
 Open `APP_BASE_URL/import.html` and upload an `.xlsx` file in **long format** (one row per pharmacy+medicine+city).
 
-### Required headers
+Downloadable templates (also regenerable with **`npm run generate:partner-templates`**):
 
-- `city`
-- `state`
-- `pharmacy_name`
-- `drug_name`
-- `strength`
-- `form`
-- `pack_size`
-- `price_inr`
+- **`public/templates/medlens-pharmacy-price-import-template.xlsx`** — medicines / retail pharmacy rows  
+- **`public/templates/medlens-lab-price-import-template.xlsx`** — diagnostics **lab_test_prices** rows (`test_id` must match **`lab_tests.id`**)
 
-### Optional headers
+### Pharmacy sheet — headers
 
-- `chain`, `generic_name`, `address_line`, `pincode`, `lat`, `lng`, `mrp_inr`, `price_type`, `in_stock`
+**Location / outlet:** `city`, `state`, `pharmacy_name`  
+**Product:** `drug_name`, `strength` — optional: `generic_name`, `form` (default tablet), `pack_size` (default 10)  
+**Pricing:** provide **`price_inr`** (selling price), **or** leave `price_inr` blank and set **`mrp_inr`** + **`discount_pct`** so the server derives selling price as \(\text{MRP} \times (1 - \text{discount_pct}/100)\).
+
+- **`discount_pct`** — percent off MRP (**0–100**). Stored on **`pharmacy_prices.discount_pct`** and shown on compare/cart when present (otherwise the UI may derive a % from MRP vs price).
+
+Optional: `chain`, `address_line`, `pincode`, `lat`, `lng`, `mrp_inr`, `price_type` (`retail` default), `in_stock`.
+
+### Diagnostics lab sheet — headers
+
+`city`, `state`, `lab_name`, **`test_id`** (FK to **`lab_tests.id`**), **`mrp_inr`**, **`discount_pct`**, **`price_inr`** (optional if MRP + discount supplied).
+
+Stored on **`lab_test_prices`** including **`discount_pct`**. Local diagnostics search compares labs using the same discount-aware UI as medicines.
 
 ### API
 
-- `POST /api/import/prices/xlsx` (multipart form-data, file field name `file`)
+- `POST /api/import/prices/xlsx` — pharmacy long-format workbook (multipart **`file`**)  
+- `POST /api/import/lab-prices/xlsx` — lab workbook (multipart **`file`**)
+
+Import responses may include **`warnings`** (e.g. **`discount_pct_mismatch`** if stated discount does not match MRP vs selling price within ~2.5%).
 
 ## Partner pharmacy dashboard (sales + profit)
 
@@ -298,6 +307,68 @@ Open `APP_BASE_URL/login.html`.
 ### Dev note
 
 If `NODE_ENV` is not `production`, the API returns the OTP as `dev_otp` to make local testing easy. In production, plug in an SMS provider and never return OTPs in responses.
+
+## ABHA / Health ID (ABDM)
+
+MedLens can link a consumer account to **ABHA** (Ayushman Bharat Health Account) under India’s **ABDM** (Ayushman Bharat Digital Mission), sync demographics into the local profile, and (in stub mode) exercise the full UI without calling real government APIs.
+
+### Who can use it
+
+- **Consumer** accounts only (`service_provider` users get `403` on ABHA routes).
+- UI: **Profile → ABHA (Health ID)** — open [`/profile.html?view=abha`](http://localhost:3000/profile.html?view=abha) (embedded page `public/profile-page-abha.html`).
+
+### Integration modes
+
+Mode is resolved by `server/abha/client.js`:
+
+| Mode | How it is selected | Behaviour |
+|------|--------------------|-----------|
+| **`stub`** | Set `ABHA_INTEGRATION_MODE=stub`, or leave mode unset and **do not** set both `ABDM_CLIENT_ID` and `ABDM_CLIENT_SECRET` | No external ABDM calls. OTP for the Aadhaar step is fixed by **`ABHA_STUB_AADHAAR_OTP`** (default **`123456`**). Demographics are **deterministic** from the entered ABHA / PHR identifier (hashed stub name, email, address, DOB, etc.). |
+| **`live`** | Set `ABHA_INTEGRATION_MODE=live`, or set **both** `ABDM_CLIENT_ID` and `ABDM_CLIENT_SECRET` (then mode defaults to `live` unless `ABHA_INTEGRATION_MODE` is explicitly `stub` or `off`) | **`POST /api/abha/aadhaar/complete`** currently returns **`501`** (real Aadhaar OTP verification against ABDM is not implemented yet). **`fetchAbhaDemographics`** can `GET` the Health ID profile using **`ABDM_ACCESS_TOKEN`** and optional base/path/HIP headers (see `.env.example`). **`pushAbhaDemographics`** sends a **`PUT`** with JSON built from the local profile—replace with the real ABDM signing, token exchange, and payloads from your gateway documentation before production. |
+| **`off`** | `ABHA_INTEGRATION_MODE=off` | ABHA routes that need the integration respond as disabled; status explains configuration. |
+
+All variables are documented in **`.env.example`** (`ABHA_INTEGRATION_MODE`, `ABHA_STUB_AADHAAR_OTP`, `ABDM_*`).
+
+### User flow (stub and intended live)
+
+1. User enters a **14-digit ABHA number** or **PHR address** (validated in `server/abha/validate.js`).
+2. **`POST /api/abha/aadhaar/initiate`** creates a short-lived server session (`abha_aadhaar_sessions`) and returns `txn_id` and a masked hint.
+3. **`POST /api/abha/aadhaar/complete`** checks the OTP, pulls demographics via **`fetchAbhaDemographics`**, writes **`abha_link`**, and applies fields to **`users`** (and inserts a **default address** when stub/live payload includes address). **ABHA data wins** on that merge (`server/abha/syncProfile.js`).
+4. **`POST /api/abha/sync-from-abha`** re-fetches from ABHA and overwrites the local profile again (when already linked).
+5. After local profile or address edits, the app may call **`mergeAndPushAbhaForUser`** / **`pushAbhaDemographics`** (live path requires a real token and endpoint contract).
+
+### HTTP API (session cookie, consumer)
+
+Base path: **`/api/abha`** (`server/routes/abha.js`). Schema is ensured on first use (`server/abha/schema.js`); run **`npm run db:migrate`** on a fresh DB.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/abha/status` | Returns `mode`, `configured`, and a short human message (stub vs live vs off). |
+| `GET` | `/api/abha/link` | Current link: masked id, verification/sync timestamps, `source_mode`. |
+| `POST` | `/api/abha/aadhaar/initiate` | Body: `health_id` / `abha_id` / `identifier`. Starts OTP session (stub or future live). |
+| `POST` | `/api/abha/aadhaar/complete` | Body: `txn_id`, `otp`. Completes link and syncs demographics. |
+| `POST` | `/api/abha/sync-from-abha` | Pull latest from ABHA into MedLens profile (requires existing link). |
+| `POST` | `/api/abha/push-profile` | Push local profile snapshot toward ABHA (stub no-ops network; live uses env base/path + bearer token). |
+
+`GET /api/profile` also returns an **`abha`** summary for the shell UI (`server/routes/profile.js`).
+
+### Code layout
+
+- **`server/routes/abha.js`** — HTTP routes, stub OTP, session lifecycle.
+- **`server/abha/client.js`** — mode detection, `fetchAbhaDemographics`, `pushAbhaDemographics`.
+- **`server/abha/syncProfile.js`** — apply demographics, sync-from-ABHA, merge/push helpers used by ABHA and profile routes.
+- **`server/abha/validate.js`** — identifier normalization and masking.
+- **`public/profile-page-abha.html`** / **`public/profile-page-abha.js`** — iframe UI for link + sync.
+
+### UI smoke test (Playwright)
+
+With Postgres running (e.g. `npm run db:up` + `npm run db:migrate`) and Playwright installed:
+
+```bash
+npm run test:ui-abha
+```
+
+This starts the server with **`ABHA_INTEGRATION_MODE=stub`**, logs in via OTP, completes the stub ABHA flow in the profile iframe, and checks **`/api/abha/sync-from-abha`**. Use a **clean** dev DB if you hit unique constraint errors on **`users.email`** (stub emails are deterministic per ABHA id).
 
 ## Online pharmacy comparison (parallel)
 
