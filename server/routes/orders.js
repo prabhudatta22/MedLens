@@ -121,7 +121,41 @@ async function ensureOrdersSchema() {
        ALTER TABLE orders ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE RESTRICT;
 
        ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
-       ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id TEXT;`
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id TEXT;
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status TEXT;
+       ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_reconciled_at TIMESTAMPTZ;
+
+       CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_razorpay_payment_unique
+         ON orders (razorpay_payment_id)
+         WHERE razorpay_payment_id IS NOT NULL AND btrim(razorpay_payment_id) <> '';
+
+       CREATE TABLE IF NOT EXISTS razorpay_webhook_events (
+         id BIGSERIAL PRIMARY KEY,
+         razorpay_event_id TEXT NOT NULL UNIQUE,
+         event_type TEXT NOT NULL,
+         payment_id TEXT,
+         order_entity_id TEXT,
+         payload_json JSONB NOT NULL,
+         processed_ok BOOLEAN NOT NULL DEFAULT false,
+         order_link_id INTEGER REFERENCES orders (id) ON DELETE SET NULL,
+         error_message TEXT,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       );
+
+       CREATE INDEX IF NOT EXISTS idx_rz_wh_payment ON razorpay_webhook_events (payment_id);
+       CREATE INDEX IF NOT EXISTS idx_rz_wh_created ON razorpay_webhook_events (created_at DESC);
+
+       CREATE TABLE IF NOT EXISTS razorpay_order_refunds (
+         id SERIAL PRIMARY KEY,
+         order_id INTEGER NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+         razorpay_refund_id TEXT NOT NULL UNIQUE,
+         amount_paise INTEGER NOT NULL CHECK (amount_paise > 0),
+         status TEXT,
+         raw_json JSONB,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       );
+
+       CREATE INDEX IF NOT EXISTS idx_rz_refunds_order ON razorpay_order_refunds (order_id, created_at DESC);`
     );
   })().catch((e) => {
     ordersSchemaReadyPromise = null;
@@ -498,6 +532,23 @@ router.post("/diagnostics", async (req, res) => {
     }
   }
 
+  let dbPaymentStatus = "cod";
+  if (paymentType === "prepaid") {
+    dbPaymentStatus = paymentMeta ? "prepaid_verified" : "cod";
+  }
+
+  const rzPaymentDupCheck = paymentMeta?.razorpay_payment_id
+    ? String(paymentMeta.razorpay_payment_id).trim()
+    : "";
+  if (rzPaymentDupCheck) {
+    const dup = await pool.query(`SELECT id FROM orders WHERE razorpay_payment_id = $1 LIMIT 1`, [
+      rzPaymentDupCheck,
+    ]);
+    if (dup.rows.length) {
+      return res.status(409).json({ error: "This Razorpay payment is already linked to an order." });
+    }
+  }
+
   const address = await loadBookingAddress({
     userId,
     addressId: Number.isFinite(addressId) && addressId > 0 ? addressId : null,
@@ -575,26 +626,37 @@ router.post("/diagnostics", async (req, res) => {
     const scheduledIso = requestedSchedule.toISOString();
     const rzOrderId = paymentMeta?.razorpay_order_id ? String(paymentMeta.razorpay_order_id) : null;
     const rzPaymentId = paymentMeta?.razorpay_payment_id ? String(paymentMeta.razorpay_payment_id) : null;
-    const orderRes = await client.query(
-      `INSERT INTO orders
-         (user_id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, provider_name, provider_order_ref, provider_payload, notes, prescription_id, razorpay_order_id, razorpay_payment_id, updated_at)
+    let order;
+    try {
+      const orderRes = await client.query(
+        `INSERT INTO orders
+         (user_id, order_kind, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, provider_name, provider_order_ref, provider_payload, notes, prescription_id, razorpay_order_id, razorpay_payment_id, payment_status, razorpay_reconciled_at, updated_at)
        VALUES
-         ($1,'diagnostics','confirmed','normal',0,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())
-       RETURNING id, order_kind, status, scheduled_for, provider_name, provider_order_ref, created_at, prescription_id, razorpay_order_id, razorpay_payment_id`,
-      [
-        userId,
-        scheduledIso,
-        address.id,
-        partnerEnabled ? "healthians" : "medlens-local",
-        providerBooking.booking_ref || null,
-        JSON.stringify(providerBooking.provider_response || {}),
-        `Diagnostics package booking in ${city} (${paymentType.toUpperCase()}) · ${packages.length} test(s)`,
-        diagPrescriptionId,
-        rzOrderId,
-        rzPaymentId,
-      ]
-    );
-    const order = orderRes.rows[0];
+         ($1,'diagnostics','confirmed','normal',0,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now())
+       RETURNING id, order_kind, status, scheduled_for, provider_name, provider_order_ref, created_at, prescription_id, razorpay_order_id, razorpay_payment_id, payment_status`,
+        [
+          userId,
+          scheduledIso,
+          address.id,
+          partnerEnabled ? "healthians" : "medlens-local",
+          providerBooking.booking_ref || null,
+          JSON.stringify(providerBooking.provider_response || {}),
+          `Diagnostics package booking in ${city} (${paymentType.toUpperCase()}) · ${packages.length} test(s)`,
+          diagPrescriptionId,
+          rzOrderId,
+          rzPaymentId,
+          dbPaymentStatus,
+          null,
+        ]
+      );
+      order = orderRes.rows[0];
+    } catch (e) {
+      if (e && e.code === "23505") {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "This Razorpay payment is already linked to an order." });
+      }
+      throw e;
+    }
     for (const pkg of packages) {
       await client.query(
         `INSERT INTO order_items

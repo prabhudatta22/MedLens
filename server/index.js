@@ -26,6 +26,11 @@ const publicDir = join(__dirname, "..", "public");
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
+/** Behind nginx / ALB / Cloudflare — required for correct req.ip and secure cookies when X-Forwarded-* is set */
+if (String(process.env.TRUST_PROXY || "").trim() === "1") {
+  app.set("trust proxy", 1);
+}
+
 app.use(
   "/webhook/razorpay",
   express.raw({ type: "application/json", limit: "2mb" }),

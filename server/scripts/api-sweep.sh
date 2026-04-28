@@ -16,6 +16,7 @@ echo "code	method	url"
 
 echo "# --- public / anonymous ---"
 hit GET "$BASE/api/health"
+hit GET "$BASE/api/payments/razorpay/health"
 hit GET "$BASE/api/payments/razorpay/status"
 hit GET "$BASE/api/cities"
 hit GET "$BASE/api/normalize?q=paracetamol%20500"

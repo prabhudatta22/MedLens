@@ -131,7 +131,12 @@ export async function assertCapturedDiagnosticsPayment({
   }
   const payment = await fetchRazorpayPayment(razorpayPaymentId);
   const status = String(payment.status || "").toLowerCase();
-  if (status !== "captured" && status !== "authorized") {
+  const requireCaptured = String(process.env.RAZORPAY_REQUIRE_CAPTURED_ONLY || "").trim() === "1";
+  if (requireCaptured) {
+    if (status !== "captured") {
+      throw new Error(`Payment must be captured (status: ${payment.status || "unknown"})`);
+    }
+  } else if (status !== "captured" && status !== "authorized") {
     throw new Error(`Payment is not complete (status: ${payment.status || "unknown"})`);
   }
   if (String(payment.order_id || "") !== String(razorpayOrderId)) {
@@ -146,4 +151,30 @@ export async function assertCapturedDiagnosticsPayment({
     throw new Error("Payment currency must be INR");
   }
   return payment;
+}
+
+/**
+ * @param {{ paymentId: string, amountPaise?: number, notes?: Record<string, string> }} opts
+ * Full refund if amountPaise omitted; else partial in paise.
+ */
+export async function createRazorpayRefund({ paymentId, amountPaise, notes = null }) {
+  if (!isRazorpayConfigured()) {
+    throw new Error("Razorpay is not configured");
+  }
+  const id = String(paymentId || "").trim();
+  if (!id) throw new Error("payment_id is required");
+  const body = {};
+  if (amountPaise != null && Number.isFinite(Number(amountPaise))) {
+    const a = Math.round(Number(amountPaise));
+    if (a > 0) body.amount = a;
+  }
+  if (notes && typeof notes === "object" && Object.keys(notes).length) {
+    body.notes = Object.fromEntries(
+      Object.entries(notes).map(([k, v]) => [String(k).slice(0, 40), String(v).slice(0, 256)])
+    );
+  }
+  return razorpayFetch(`/payments/${encodeURIComponent(id)}/refund`, {
+    method: "POST",
+    body: Object.keys(body).length ? body : {},
+  });
 }

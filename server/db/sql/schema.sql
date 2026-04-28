@@ -399,6 +399,43 @@ ALTER TABLE carts ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES us
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS prescription_id INTEGER REFERENCES user_prescriptions (id) ON DELETE RESTRICT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_reconciled_at TIMESTAMPTZ;
+
+-- One MedLens order per Razorpay payment (replay / double-booking safety)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_razorpay_payment_unique
+  ON orders (razorpay_payment_id)
+  WHERE razorpay_payment_id IS NOT NULL AND btrim(razorpay_payment_id) <> '';
+
+-- Razorpay webhooks: idempotency by Razorpay event id (evt_…)
+CREATE TABLE IF NOT EXISTS razorpay_webhook_events (
+  id BIGSERIAL PRIMARY KEY,
+  razorpay_event_id TEXT NOT NULL UNIQUE,
+  event_type TEXT NOT NULL,
+  payment_id TEXT,
+  order_entity_id TEXT,
+  payload_json JSONB NOT NULL,
+  processed_ok BOOLEAN NOT NULL DEFAULT false,
+  order_link_id INTEGER REFERENCES orders (id) ON DELETE SET NULL,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rz_wh_payment ON razorpay_webhook_events (payment_id);
+CREATE INDEX IF NOT EXISTS idx_rz_wh_created ON razorpay_webhook_events (created_at DESC);
+
+-- Refund audit (Razorpay may send multiple partial refunds)
+CREATE TABLE IF NOT EXISTS razorpay_order_refunds (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+  razorpay_refund_id TEXT NOT NULL UNIQUE,
+  amount_paise INTEGER NOT NULL CHECK (amount_paise > 0),
+  status TEXT,
+  raw_json JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rz_refunds_order ON razorpay_order_refunds (order_id, created_at DESC);
 
 -- ABHA (Health ID) link + Aadhaar OTP session (also ensured at runtime in server/abha/schema.js)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE;

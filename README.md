@@ -243,6 +243,20 @@ MedLens keeps **uploaded prescription files** on the user’s account for **chec
 
 Schema: `user_prescriptions` plus FKs from `orders` and `carts` — see `server/db/sql/schema.sql` and `server/routes/orders.js` (`ensureOrdersSchema`). Implementation: `server/routes/prescriptions.js`, `server/prescriptions/store.js`, `server/prescriptions/schema.js`.
 
+## Razorpay (diagnostics prepaid, production)
+
+MedLens uses **Razorpay Standard Checkout** for **diagnostics** cart checkout on `/checkout.html`. The server creates orders (`POST /api/payments/razorpay/order`), verifies signatures on `POST /api/orders/diagnostics`, and reconciles **webhooks** at **`POST /webhook/razorpay`** (raw JSON body + `X-Razorpay-Signature`).
+
+**Deploy checklist**
+
+- **HTTPS** on the public host; register the same URL in the Razorpay Dashboard (Live vs Test mode matches your keys).
+- **Secrets**: store `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` in your host’s secret manager or encrypted env — not in git. Use **one key pair per environment** (staging vs production).
+- **`TRUST_PROXY=1`** when the app sits behind a reverse proxy so rate limits and logs see the real client IP.
+- **Webhook events**: enable at least `payment.captured`, `payment.failed`, and `refund.processed`. Events are stored idempotently in `razorpay_webhook_events` (Razorpay `event.id`) and applied to `orders` (`payment_status`, `razorpay_reconciled_at`).
+- **Replay safety**: `orders.razorpay_payment_id` is **unique** when set; duplicate booking with the same payment returns **409**.
+- **Refunds**: `POST /api/payments/razorpay/refund` with `{ "order_id": <id>, "amount_inr": <optional> }` (consumer session; owns the order). Records rows in `razorpay_order_refunds` and updates `payment_status`.
+- **Observability**: optional `PAYMENTS_LOG_JSON=1` for structured stdout logs; `GET /api/payments/razorpay/metrics` when `PAYMENTS_METRICS_SECRET` is set (send header **`X-Payments-Metrics-Secret`**). **`GET /api/payments/razorpay/health`** is unauthenticated for load balancers.
+
 ## Import prices from Excel (.xlsx)
 
 Open `APP_BASE_URL/import.html` and upload an `.xlsx` file in **long format** (one row per pharmacy+medicine+city).
