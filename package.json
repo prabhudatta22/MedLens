@@ -18,7 +18,9 @@
     "db:load-full-data": "node server/scripts/load-postgres-data.js",
     "test:ui-abha": "node e2e/abha-profile.ui.mjs",
     "test:ui-discount": "node e2e/discount-compare.ui.mjs",
-    "generate:partner-templates": "node server/scripts/generate-partner-price-templates.mjs"
+    "generate:partner-templates": "node server/scripts/generate-partner-price-templates.mjs",
+    "loadtest:k6": "k6 run loadtest/k6/medlens-stress.js",
+    "loadtest:node": "node loadtest/node-stress.mjs"
   },
   "engines": {
     "node": ">=20"

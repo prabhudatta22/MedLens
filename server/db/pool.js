@@ -23,7 +23,9 @@ function isLocalDatabaseUrl(databaseUrl) {
  */
 function buildPoolConfig() {
   const conn = process.env.DATABASE_URL;
-  const base = { max: 10, idleTimeoutMillis: 30_000 };
+  const poolMaxRaw = Number(process.env.PGPOOL_MAX);
+  const poolMax = Number.isFinite(poolMaxRaw) && poolMaxRaw >= 2 ? Math.min(200, Math.floor(poolMaxRaw)) : 10;
+  const base = { max: poolMax, idleTimeoutMillis: 30_000 };
 
   if (!conn) return base;
 

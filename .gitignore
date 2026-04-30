@@ -68,6 +68,9 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Load-test output (local runs)
+loadtest/last-run-results.txt
+
 # User-uploaded prescriptions (local disk)
 uploads/
 

@@ -17,6 +17,7 @@ import abhaRoutes from "./routes/abha.js";
 import prescriptionsRoutes from "./routes/prescriptions.js";
 import paymentsRazorpayRoutes from "./routes/paymentsRazorpay.js";
 import razorpayWebhook from "./routes/razorpayWebhook.js";
+import loadTestRoutes from "./routes/loadTest.js";
 import cookieParser from "cookie-parser";
 import { attachUser } from "./auth/middleware.js";
 
@@ -39,6 +40,17 @@ app.use(
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 app.use(attachUser);
+
+const loadTok = String(process.env.LOAD_TEST_TOKEN || "").trim();
+if (loadTok) {
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "MedLens: LOAD_TEST_TOKEN is set — POST /api/load-test/session can mint arbitrary consumer sessions; remove after load testing."
+    );
+  }
+  app.use("/api", loadTestRoutes);
+}
+
 app.use(express.static(publicDir));
 app.use("/api/geocode", geocodeRoutes);
 app.use("/api/catalog", catalogRoutes);

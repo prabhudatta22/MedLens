@@ -6,6 +6,12 @@ https://medlens-h4ym.onrender.com/
 
 India-focused prescription medicine **price comparison** demo: Node.js (Express) + **PostgreSQL** (`pg`). Prices are in **INR**; cities and pharmacy names are sample data.
 
+## Load and stress testing
+
+Synthetic traffic (labs search, medicine/compare search, diagnostics + medicine COD orders) lives under **`loadtest/`** — see **`loadtest/README.md`**. Briefly:
+
+- Set **`LOAD_TEST_TOKEN`** and optionally **`PGPOOL_MAX`** while testing; **omit `LOAD_TEST_TOKEN` in production** (or isolate the environment).
+
 ## Database note
 
 There is no widely documented product called **“Radiant DB”** as a standalone SQL database. This app uses **PostgreSQL** with a standard `DATABASE_URL`. If your provider (e.g. Neon, Supabase, AWS RDS, Aiven, or a Postgres-compatible host) gives you a connection string, paste it into `.env` as `DATABASE_URL`.
