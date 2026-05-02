@@ -387,7 +387,9 @@ router.get(
 );
 
 /** Realtime local match: pharmacies in city whose stocked medicine name/generic contains q */
-router.get("/compare/search", async (req, res) => {
+router.get(
+  "/compare/search",
+  asyncHandler(async (req, res) => {
   const q = (req.query.q || "").toString().trim().slice(0, 120);
   const citySlug = (req.query.city || "").toString().trim().toLowerCase();
   if (!citySlug) {
@@ -456,7 +458,8 @@ router.get("/compare/search", async (req, res) => {
     stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
     offers: rows,
   });
-});
+  })
+);
 
 /**
  * GET /api/compare/by-pincode?q=metformin&pincode=400050&city=mumbai
@@ -559,7 +562,9 @@ router.get(
   })
 );
 
-router.get("/carts/:id", async (req, res) => {
+router.get(
+  "/carts/:id",
+  asyncHandler(async (req, res) => {
   const cartId = Number(req.params.id);
   if (!Number.isFinite(cartId) || cartId < 1) {
     return res.status(400).json({ error: "invalid cart id" });
@@ -592,9 +597,12 @@ router.get("/carts/:id", async (req, res) => {
   );
 
   res.json({ cart: cartRes.rows[0], items: itemsRes.rows });
-});
+  })
+);
 
-router.get("/carts/:id/compare", async (req, res) => {
+router.get(
+  "/carts/:id/compare",
+  asyncHandler(async (req, res) => {
   const cartId = Number(req.params.id);
   const citySlug = (req.query.city || "").toString().trim().toLowerCase();
   if (!Number.isFinite(cartId) || cartId < 1) {
@@ -691,7 +699,8 @@ router.get("/carts/:id/compare", async (req, res) => {
   });
 
   res.json({ cartId, city: citySlug, items });
-});
+  })
+);
 
 router.use((err, _req, res, _next) => {
   // Avoid crashing the process on DB/network errors from async routes.

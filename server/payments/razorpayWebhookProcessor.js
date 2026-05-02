@@ -104,7 +104,11 @@ async function updateOrderForPaymentCaptured({ payId, orderEntId }) {
               ELSE payment_status
             END
       WHERE ($1::text IS NOT NULL AND razorpay_payment_id = $1)
-         OR ($2::text IS NOT NULL AND razorpay_order_id = $2)
+         OR (
+              $2::text IS NOT NULL
+              AND razorpay_order_id = $2
+              AND (razorpay_payment_id IS NULL OR btrim(razorpay_payment_id) = '' OR razorpay_payment_id = $1)
+            )
       RETURNING id`,
     [payId, orderEntId]
   );
@@ -127,7 +131,11 @@ async function updateOrderForPaymentFailed({ payId, orderEntId }) {
               ELSE payment_status
             END
       WHERE ($1::text IS NOT NULL AND razorpay_payment_id = $1)
-         OR ($2::text IS NOT NULL AND razorpay_order_id = $2)
+         OR (
+              $2::text IS NOT NULL
+              AND razorpay_order_id = $2
+              AND (razorpay_payment_id IS NULL OR btrim(razorpay_payment_id) = '' OR razorpay_payment_id = $1)
+            )
       RETURNING id, payment_status`,
     [payId, orderEntId]
   );
