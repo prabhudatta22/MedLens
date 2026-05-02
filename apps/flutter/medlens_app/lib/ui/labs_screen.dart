@@ -26,8 +26,12 @@ class _LabsScreenState extends State<LabsScreen> {
   List<City> _cities = [];
   City? _city;
   bool _loadingCities = true;
+  bool _running = false;
   List<Map<String, dynamic>> _rows = [];
   String? _status;
+
+  @override
+  void dispose() {
     _debounce?.cancel();
     _qCtrl.dispose();
     _pinCtrl.dispose();
