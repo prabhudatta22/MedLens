@@ -26,8 +26,11 @@ class LocalOffer {
   final int medicineId;
   final String medicineLabel;
   final String? strength;
+  final String? form;
+  final int? packSize;
   final double priceInr;
   final double? mrpInr;
+  final double? discountPct;
 
   LocalOffer({
     required this.pharmacyId,
@@ -39,8 +42,11 @@ class LocalOffer {
     required this.medicineId,
     required this.medicineLabel,
     required this.strength,
+    required this.form,
+    required this.packSize,
     required this.priceInr,
     required this.mrpInr,
+    required this.discountPct,
   });
 
   factory LocalOffer.fromJson(Map<String, dynamic> j) {
@@ -49,6 +55,8 @@ class LocalOffer {
       final n = double.tryParse(x.toString());
       return n;
     }
+
+    final ps = j['pack_size'];
 
     return LocalOffer(
       pharmacyId: (j['pharmacy_id'] as num).toInt(),
@@ -60,8 +68,11 @@ class LocalOffer {
       medicineId: (j['medicine_id'] as num).toInt(),
       medicineLabel: (j['display_name'] ?? '').toString(),
       strength: j['strength']?.toString(),
+      form: j['form']?.toString(),
+      packSize: ps == null ? null : int.tryParse(ps.toString()),
       priceInr: numOrNull(j['price_inr']) ?? 0,
       mrpInr: numOrNull(j['mrp_inr']),
+      discountPct: numOrNull(j['discount_pct']),
     );
   }
 }

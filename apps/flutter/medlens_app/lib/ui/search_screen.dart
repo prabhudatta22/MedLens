@@ -5,15 +5,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../api/medlens_api.dart';
-import '../api/models.dart';
-import '../state/cart_state.dart';
-import '../state/settings_state.dart';
-import 'cart_screen.dart';
-import 'settings_sheet.dart';
+import '../core/api_binding.dart';
 
+import '../api/models.dart';
+import '../api/medlens_client.dart';
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -50,9 +49,8 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  MedLensApi _api(BuildContext context) {
-    final baseUrl = context.read<SettingsState>().baseUrl;
-    return MedLensApi(baseUrl: baseUrl);
+  MedLensClient _client(BuildContext context) {
+    return context.read<ApiBinding>().client;
   }
 
   Future<void> _loadCities() async {
@@ -61,7 +59,7 @@ class _SearchScreenState extends State<SearchScreen> {
       _status = 'Loading cities…';
     });
     try {
-      final cities = await _api(context).getCities();
+      final cities = await _client(context).getCities();
       setState(() {
         _cities = cities;
         _city = cities.isNotEmpty ? cities.first : null;
@@ -110,7 +108,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final api = _api(context);
+      final api = _client(context);
       final res = await Future.wait([
         api.searchOnline(q: q),
         api.searchLocal(q: q, citySlug: citySlug),
@@ -164,7 +162,7 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() {
         _status = 'Looking up address…';
       });
-      final geo = await _api(context).reverseGeocode(lat: pos.latitude, lng: pos.longitude);
+      final geo = await _client(context).reverseGeocode(lat: pos.latitude, lng: pos.longitude);
       if (!mounted) return;
 
       City? matched;
@@ -191,57 +189,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartState>();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('MedLens'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) => const SettingsSheet(),
-              );
-            },
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-          ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CartScreen()));
-                },
-                icon: const Icon(Icons.shopping_cart_outlined),
-                tooltip: 'Cart',
-              ),
-              if (cart.totalQty > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFC5F0E8),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFF0D7A6C).withOpacity(0.35)),
-                    ),
-                    child: Text(
-                      '${cart.totalQty}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF065F52)),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+    final list = ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
           Card(
             child: Padding(
               padding: const EdgeInsets.all(14),
@@ -322,8 +272,16 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: _local.map((o) => _LocalRow(offer: o, citySlug: _city?.slug)).toList(),
                   ),
           ),
-        ],
+      ],
+    );
+
+    if (widget.embedded) return list;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('MedLens'),
       ),
+      body: list,
     );
   }
 }
@@ -415,11 +373,15 @@ class _OnlineRow extends StatelessWidget {
                       unitPriceInr: quote.priceInr ?? 0,
                       mrpInr: quote.mrpInr,
                       quantity: 1,
+                      packageId: null,
+                      dealId: null,
                       pharmacyId: null,
                       pharmacyName: null,
                       addressLine: null,
                       pincode: null,
                       citySlug: null,
+                      form: null,
+                      packSize: null,
                       onlineProviderId: quote.providerId,
                       onlineLabel: quote.label,
                       checkoutUrl: url,
@@ -470,6 +432,11 @@ class _LocalRow extends StatelessWidget {
                   [offer.addressLine, offer.pincode].where((x) => (x ?? '').trim().isNotEmpty).join(' · '),
                   style: const TextStyle(fontSize: 12),
                 ),
+                if ((offer.discountPct ?? 0) > 0.05)
+                  Text(
+                    '≈ ${offer.discountPct!.toStringAsFixed(1)}% vs MRP (API)',
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.secondary),
+                  ),
               ],
             ),
           ),
@@ -501,11 +468,15 @@ class _LocalRow extends StatelessWidget {
                 unitPriceInr: offer.priceInr,
                 mrpInr: offer.mrpInr,
                 quantity: 1,
+                packageId: null,
+                dealId: null,
                 pharmacyId: offer.pharmacyId,
                 pharmacyName: offer.pharmacyName,
                 addressLine: offer.addressLine,
                 pincode: offer.pincode,
                 citySlug: citySlug,
+                form: offer.form,
+                packSize: offer.packSize,
                 onlineProviderId: null,
                 onlineLabel: null,
                 checkoutUrl: checkoutUrl,
