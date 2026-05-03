@@ -11,6 +11,10 @@ import {
   assertCapturedDiagnosticsPayment,
   isRazorpayConfigured,
 } from "../payments/razorpayClient.js";
+import {
+  loadAuthoritativeMedicineOrderItems,
+  totalMedicineOrderItemsPaise,
+} from "../orders/medicineOrderPricing.js";
 
 const router = Router();
 router.use(requireUser);
@@ -350,25 +354,14 @@ router.post("/", async (req, res) => {
   const delivery_option = String(req.body?.delivery_option || "normal");
   const q = quoteDelivery(delivery_option);
 
-  let itemsSubtotalPaise = 0;
-  for (const it of items) {
-    const pharmacy_id = Number(it.pharmacyId);
-    const medicine_id = Number(it.medicineId);
-    const quantity_units = Math.max(1, Math.floor(Number(it.quantity || it.quantity_units || 1)));
-    const item_label = String(it.medicineLabel || it.item_label || "").trim().slice(0, 200);
-
-    if (!Number.isFinite(pharmacy_id) || pharmacy_id < 1) {
-      return res.status(400).json({ error: "Invalid pharmacyId in items[]" });
-    }
-    if (!Number.isFinite(medicine_id) || medicine_id < 1) {
-      return res.status(400).json({ error: "Invalid medicineId in items[]" });
-    }
-    if (!item_label) {
-      return res.status(400).json({ error: "item_label/medicineLabel required" });
-    }
-    const unit = Number(it.unitPriceInr || it.unit_price_inr || 0) || 0;
-    itemsSubtotalPaise += Math.round(unit * 100 * quantity_units);
+  let pricedItems;
+  try {
+    pricedItems = await loadAuthoritativeMedicineOrderItems(pool, items);
+  } catch (e) {
+    return res.status(e?.statusCode || 400).json({ error: e?.message || "Invalid order items" });
   }
+
+  const itemsSubtotalPaise = totalMedicineOrderItemsPaise(pricedItems);
 
   const feePaise = Math.round(Number(q.fee_inr) * 100);
   const totalPaise = itemsSubtotalPaise + feePaise;
@@ -486,21 +479,7 @@ router.post("/", async (req, res) => {
       ]
     );
 
-    for (const it of items) {
-      const pharmacy_id = Number(it.pharmacyId);
-      const medicine_id = Number(it.medicineId);
-      const quantity_units = Math.max(1, Math.floor(Number(it.quantity || it.quantity_units || 1)));
-      const tablets_per_day =
-        it.tablets_per_day == null || it.tablets_per_day === ""
-          ? null
-          : Number(it.tablets_per_day);
-
-      if (!Number.isFinite(pharmacy_id) || pharmacy_id < 1) throw new Error("Invalid pharmacyId in items[]");
-      if (!Number.isFinite(medicine_id) || medicine_id < 1) throw new Error("Invalid medicineId in items[]");
-
-      const item_label = String(it.medicineLabel || it.item_label || "").trim().slice(0, 200);
-      if (!item_label) throw new Error("item_label/medicineLabel required");
-
+    for (const it of pricedItems) {
       await client.query(
         `INSERT INTO order_items
            (order_id, source, pharmacy_id, medicine_id, item_label, strength, form, pack_size, quantity_units, tablets_per_day, unit_price_inr, mrp_inr)
@@ -508,16 +487,16 @@ router.post("/", async (req, res) => {
            ($1,'local',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         [
           order.id,
-          pharmacy_id,
-          medicine_id,
-          item_label,
-          it.strength ? String(it.strength).trim().slice(0, 80) : null,
-          it.form ? String(it.form).trim().slice(0, 40) : null,
-          it.pack_size != null ? Number(it.pack_size) : null,
-          quantity_units,
-          tablets_per_day,
-          Number(it.unitPriceInr || it.unit_price_inr || 0) || 0,
-          it.mrpInr != null ? Number(it.mrpInr) : it.mrp_inr != null ? Number(it.mrp_inr) : null,
+          it.pharmacy_id,
+          it.medicine_id,
+          it.item_label,
+          it.strength,
+          it.form,
+          it.pack_size,
+          it.quantity_units,
+          it.tablets_per_day,
+          it.unit_price_inr,
+          it.mrp_inr,
         ]
       );
     }
