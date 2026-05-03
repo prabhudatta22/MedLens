@@ -4,6 +4,7 @@
  */
 
 const DEFAULT_RADIUS_KM = 120;
+const DEFAULT_PREMIUM_CAP_INR = 15;
 
 /**
  * Great-circle distance in kilometres.
@@ -63,12 +64,68 @@ export function defaultGeoRadiusKm() {
   return Number.isFinite(n) && n > 1 && n < 600 ? n : DEFAULT_RADIUS_KM;
 }
 
+export function defaultPremiumRankCapInr() {
+  const n = Number(process.env.COMPARE_PREMIUM_MAX_BIAS_INR);
+  return Number.isFinite(n) && n >= 0 && n <= 500 ? n : DEFAULT_PREMIUM_CAP_INR;
+}
+
 function parseRadiusOverride(query) {
   const raw = query.radius_km ?? query.radiusKm;
   if (raw === undefined || raw === null || String(raw).trim() === "") return null;
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0 || n > 500) return null;
   return n;
+}
+
+function premiumListingActive(row) {
+  const tier = String(row.listing_tier || "standard").toLowerCase();
+  if (tier === "featured" || tier === "premium") return true;
+  const u = row.featured_until ? new Date(row.featured_until).getTime() : 0;
+  return Number.isFinite(u) && u > Date.now();
+}
+
+function availabilityStalenessBump(row) {
+  let b = 0;
+  const st = String(row.stock_status || "unknown").toLowerCase();
+  if (st === "out_of_stock") b += 1_000_000;
+  else if (row.in_stock === false) b += 800_000;
+  else if (st === "limited") b += 8;
+  else if (st === "unknown") b += 3;
+  const obs = row.stock_observed_at ? new Date(row.stock_observed_at).getTime() : 0;
+  if (!obs || Date.now() - obs > 14 * 864e5) b += 4;
+  return b;
+}
+
+function premiumRankBiasInr(row, capInr) {
+  if (!premiumListingActive(row)) return 0;
+  const w = Number(row.premium_rank_weight);
+  const weight = Number.isFinite(w) && w >= 0 ? Math.min(1, w) : 0;
+  return Math.min(capInr, weight * capInr);
+}
+
+/**
+ * Lower score sorts first (cheaper / fresher / less sponsored boost).
+ */
+export function effectiveOfferSortScore(row, capInr = defaultPremiumRankCapInr()) {
+  const pup = Number(row.price_per_unit_inr);
+  const pack = Number(row.price_inr);
+  const base =
+    Number.isFinite(pup) && pup > 0 ? pup : Number.isFinite(pack) && pack > 0 ? pack : Number.POSITIVE_INFINITY;
+  return base + availabilityStalenessBump(row) - premiumRankBiasInr(row, capInr);
+}
+
+function attachListingMeta(row, capInr) {
+  const boost = premiumRankBiasInr(row, capInr);
+  const out = { ...row };
+  out.sponsored_listing = boost > 0;
+  out.listing_boost_inr = Math.round(boost * 10000) / 10000;
+  return out;
+}
+
+/** When geo is absent, still expose sponsorship fields for transparency. */
+export function enrichRowsWithListingTransparency(rows) {
+  const capInr = defaultPremiumRankCapInr();
+  return rows.map((r) => attachListingMeta({ ...r }, capInr));
 }
 
 /**
@@ -88,6 +145,8 @@ export function applyGeoToPharmacyOffers(rows, user, query = {}) {
   let radiusKm = parseRadiusOverride(query);
   if (radiusKm == null) radiusKm = defaultGeoRadiusKm();
 
+  const capInr = defaultPremiumRankCapInr();
+
   const enriched = rows.map((r) => {
     const row = { ...r };
     if (pharmacyHasReliableCoords(r)) {
@@ -96,7 +155,7 @@ export function applyGeoToPharmacyOffers(rows, user, query = {}) {
     } else {
       row.distance_km = null;
     }
-    return row;
+    return attachListingMeta(row, capInr);
   });
 
   let out = enriched.filter((r) => r.distance_km == null || r.distance_km <= radiusKm);
@@ -105,15 +164,26 @@ export function applyGeoToPharmacyOffers(rows, user, query = {}) {
     out = [...out].sort((a, b) => {
       const da = a.distance_km;
       const db = b.distance_km;
-      const pa = Number(a.price_inr);
-      const pb = Number(b.price_inr);
       if (da == null && db == null) {
-        return (Number.isFinite(pa) ? pa : Infinity) - (Number.isFinite(pb) ? pb : Infinity);
+        const sa = effectiveOfferSortScore(a, capInr);
+        const sb = effectiveOfferSortScore(b, capInr);
+        if (sa !== sb) return sa - sb;
+        return (Number(a.price_inr) || 0) - (Number(b.price_inr) || 0);
       }
       if (da == null) return 1;
       if (db == null) return -1;
       if (Math.abs(da - db) > 1e-6) return da - db;
-      return (Number.isFinite(pa) ? pa : Infinity) - (Number.isFinite(pb) ? pb : Infinity);
+      const sa = effectiveOfferSortScore(a, capInr);
+      const sb = effectiveOfferSortScore(b, capInr);
+      if (sa !== sb) return sa - sb;
+      return (Number(a.price_inr) || 0) - (Number(b.price_inr) || 0);
+    });
+  } else {
+    out = [...out].sort((a, b) => {
+      const sa = effectiveOfferSortScore(a, capInr);
+      const sb = effectiveOfferSortScore(b, capInr);
+      if (sa !== sb) return sa - sb;
+      return (Number(a.price_inr) || 0) - (Number(b.price_inr) || 0);
     });
   }
 
@@ -123,7 +193,10 @@ export function applyGeoToPharmacyOffers(rows, user, query = {}) {
       user_lat: user.lat,
       user_lng: user.lng,
       radius_km: radiusKm,
-      sort: useDistanceSort ? "distance_then_price" : "price_only",
+      sort: useDistanceSort ? "distance_then_effective_unit_price" : "effective_unit_price",
+      premium_max_bias_inr: capInr,
+      note:
+        "Effective rank blends per-pack unit price (when present), stock/staleness penalties, and a capped premium listing bias. Set COMPARE_PREMIUM_MAX_BIAS_INR to tune.",
     },
   };
 }

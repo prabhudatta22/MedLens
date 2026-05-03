@@ -11,7 +11,16 @@ import {
   isDiagnosticsPartnerEnabled,
   searchPartnerPackages,
 } from "../integrations/diagnosticsPartner.js";
-import { applyGeoToPharmacyOffers, parseUserLatLngFromQuery } from "../geo/pharmacyOffersGeo.js";
+import {
+  applyGeoToPharmacyOffers,
+  enrichRowsWithListingTransparency,
+  parseUserLatLngFromQuery,
+} from "../geo/pharmacyOffersGeo.js";
+import { ensureCatalogIntelligence } from "../catalog/ensureIntel.js";
+import { resolveDrugConceptIds } from "../catalog/drugResolver.js";
+import { enrichOffersWithUnitPricing, pricePerPackUnitInr } from "../catalog/priceNorm.js";
+import { COMPARE_OFFER_SQL } from "../catalog/compareOfferColumns.js";
+import { logCatalogCompareImpressions } from "../catalog/compareAnalytics.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -28,6 +37,15 @@ function medicineNameMatchParams(q) {
   const compact = qLow.replace(/\s+/g, "");
   const compactLike = compact.length >= 2 ? `%${compact}%` : like;
   return { like, compactLike };
+}
+
+async function finalizeLocalCompareOffers(rows, req) {
+  const userGeo = parseUserLatLngFromQuery(req.query);
+  const priced = enrichOffersWithUnitPricing(rows);
+  if (userGeo) {
+    return applyGeoToPharmacyOffers(priced, userGeo, req.query);
+  }
+  return { rows: enrichRowsWithListingTransparency(priced), geo: null };
 }
 
 function normalizeCitySlug(slug) {
@@ -362,41 +380,39 @@ router.get(
     return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
   }
 
+  await ensureCatalogIntelligence(pool);
+
   const { rows } = await pool.query(
-    `SELECT
-       pp.id AS price_id,
-       pp.price_inr,
-       pp.mrp_inr,
-       pp.discount_pct,
-       pp.in_stock,
-       pp.price_type,
-       pp.updated_at,
-       p.id AS pharmacy_id,
-       p.name AS pharmacy_name,
-       p.chain,
-       p.address_line,
-       p.pincode,
-       p.lat,
-       p.lng,
-       c.name AS city_name,
-       c.state,
-       m.id AS medicine_id,
-       m.display_name,
-       m.strength,
-       m.form,
-       m.pack_size
+    `
+    ${COMPARE_OFFER_SQL}
      FROM pharmacy_prices pp
      JOIN pharmacies p ON p.id = pp.pharmacy_id
      JOIN cities c ON c.id = p.city_id
      JOIN medicines m ON m.id = pp.medicine_id
-     WHERE pp.medicine_id = $1 AND c.slug = $2 AND pp.price_type = 'retail'
+     WHERE c.slug = $2 AND pp.price_type = 'retail'
+       AND (
+         pp.medicine_id = $1
+         OR (
+           EXISTS (SELECT 1 FROM medicines mx WHERE mx.id = $1 AND mx.drug_concept_id IS NOT NULL)
+           AND m.drug_concept_id IS NOT DISTINCT FROM (SELECT mz.drug_concept_id FROM medicines mz WHERE mz.id = $1)
+         )
+       )
      ORDER BY pp.price_inr ASC NULLS LAST`,
     [medicineId, citySlug]
   );
 
-  const userGeo = parseUserLatLngFromQuery(req.query);
-  const geoOut = applyGeoToPharmacyOffers(rows, userGeo, req.query);
+  const geoOut = await finalizeLocalCompareOffers(rows, req);
   const offers = geoOut.rows;
+
+  void logCatalogCompareImpressions(pool, {
+    req,
+    source: "compare_medicine",
+    query: null,
+    citySlug,
+    pincode: null,
+    offers,
+    extraMeta: { compare_medicine_id: medicineId },
+  }).catch((e) => console.error("[catalog_compare_impression]", e));
 
   const prices = offers.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
   const min = prices.length ? Math.min(...prices) : null;
@@ -436,30 +452,13 @@ router.get(
       ...(geoEarly ? { geo: geoEarly } : {}),
     });
   }
+  await ensureCatalogIntelligence(pool);
+
   const { like, compactLike } = medicineNameMatchParams(q);
+  const conceptIds = await resolveDrugConceptIds(pool, q);
   const { rows } = await pool.query(
-    `SELECT
-       pp.id AS price_id,
-       pp.price_inr,
-       pp.mrp_inr,
-       pp.discount_pct,
-       pp.in_stock,
-       pp.price_type,
-       pp.updated_at,
-       p.id AS pharmacy_id,
-       p.name AS pharmacy_name,
-       p.chain,
-       p.address_line,
-       p.pincode,
-       p.lat,
-       p.lng,
-       c.name AS city_name,
-       c.state,
-       m.id AS medicine_id,
-       m.display_name,
-       m.strength,
-       m.form,
-       m.pack_size
+    `
+    ${COMPARE_OFFER_SQL}
      FROM pharmacy_prices pp
      JOIN pharmacies p ON p.id = pp.pharmacy_id
      JOIN cities c ON c.id = p.city_id
@@ -471,15 +470,29 @@ router.get(
          OR LOWER(COALESCE(m.generic_name, '')) LIKE $1
          OR regexp_replace(LOWER(m.display_name), '\\s+', '', 'g') LIKE $3
          OR regexp_replace(LOWER(COALESCE(m.generic_name, '')), '\\s+', '', 'g') LIKE $3
+         OR (
+           cardinality($4::INTEGER[]) > 0
+           AND m.drug_concept_id IS NOT NULL
+           AND m.drug_concept_id = ANY ($4::INTEGER[])
+         )
        )
      ORDER BY pp.price_inr ASC NULLS LAST
      LIMIT 120`,
-    [like, citySlug, compactLike]
+    [like, citySlug, compactLike, conceptIds]
   );
 
-  const userGeo = parseUserLatLngFromQuery(req.query);
-  const geoOut = applyGeoToPharmacyOffers(rows, userGeo, req.query);
+  const geoOut = await finalizeLocalCompareOffers(rows, req);
   const offers = geoOut.rows;
+
+  void logCatalogCompareImpressions(pool, {
+    req,
+    source: "compare_search",
+    query: q,
+    citySlug,
+    pincode: null,
+    offers,
+    extraMeta: { drug_concept_ids: conceptIds },
+  }).catch((e) => console.error("[catalog_compare_impression]", e));
 
   const prices = offers.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
   const min = prices.length ? Math.min(...prices) : null;
@@ -534,30 +547,13 @@ router.get(
       });
     }
 
+    await ensureCatalogIntelligence(pool);
+
     const { like, compactLike } = medicineNameMatchParams(q);
+    const conceptIds = await resolveDrugConceptIds(pool, q);
     const { rows } = await pool.query(
-      `SELECT
-         pp.id AS price_id,
-         pp.price_inr,
-         pp.mrp_inr,
-         pp.discount_pct,
-         pp.in_stock,
-         pp.price_type,
-         pp.updated_at,
-         p.id AS pharmacy_id,
-         p.name AS pharmacy_name,
-         p.chain,
-         p.address_line,
-         p.pincode,
-         p.lat,
-         p.lng,
-         c.name AS city_name,
-         c.state,
-         m.id AS medicine_id,
-         m.display_name,
-         m.strength,
-         m.form,
-         m.pack_size
+      `
+      ${COMPARE_OFFER_SQL}
        FROM pharmacy_prices pp
        JOIN pharmacies p ON p.id = pp.pharmacy_id
        JOIN cities c ON c.id = p.city_id
@@ -570,15 +566,29 @@ router.get(
            OR LOWER(COALESCE(m.generic_name, '')) LIKE $1
            OR regexp_replace(LOWER(m.display_name), '\\s+', '', 'g') LIKE $4
            OR regexp_replace(LOWER(COALESCE(m.generic_name, '')), '\\s+', '', 'g') LIKE $4
+           OR (
+             cardinality($5::INTEGER[]) > 0
+             AND m.drug_concept_id IS NOT NULL
+             AND m.drug_concept_id = ANY ($5::INTEGER[])
+           )
          )
        ORDER BY pp.price_inr ASC NULLS LAST
        LIMIT 120`,
-      [like, pinParam, cityParam, compactLike]
+      [like, pinParam, cityParam, compactLike, conceptIds]
     );
 
-    const userGeo = parseUserLatLngFromQuery(req.query);
-    const geoOut = applyGeoToPharmacyOffers(rows, userGeo, req.query);
+    const geoOut = await finalizeLocalCompareOffers(rows, req);
     const offers = geoOut.rows;
+
+    void logCatalogCompareImpressions(pool, {
+      req,
+      source: "compare_by_pincode",
+      query: q,
+      citySlug: cityParam || null,
+      pincode: pinParam || null,
+      offers,
+      extraMeta: { drug_concept_ids: conceptIds },
+    }).catch((e) => console.error("[catalog_compare_impression]", e));
 
     const prices = offers.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
     const min = prices.length ? Math.min(...prices) : null;
@@ -655,6 +665,8 @@ router.get(
     return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
   }
 
+  await ensureCatalogIntelligence(pool);
+
   const cartExists = await pool.query(`SELECT 1 FROM carts WHERE id = $1 LIMIT 1`, [cartId]);
   if (!cartExists.rows.length) {
     return res.status(404).json({ error: "not found" });
@@ -678,15 +690,21 @@ router.get(
          m.strength,
          m.form,
          m.pack_size,
+         m.drug_concept_id,
          pp.price_inr,
          pp.mrp_inr,
          pp.discount_pct,
+         pp.in_stock,
+         pp.stock_status,
+         pp.stock_observed_at,
          pp.updated_at,
          p.id AS pharmacy_id,
          p.name AS pharmacy_name,
          p.chain,
          p.address_line,
          p.pincode,
+         p.listing_tier,
+         p.premium_rank_weight,
          MIN(pp.price_inr) OVER (PARTITION BY ci.medicine_id) AS min_inr,
          MAX(pp.price_inr) OVER (PARTITION BY ci.medicine_id) AS max_inr,
          ROW_NUMBER() OVER (PARTITION BY ci.medicine_id ORDER BY pp.price_inr ASC NULLS LAST) AS price_rank
@@ -726,6 +744,7 @@ router.get(
       strength: r.strength,
       form: r.form,
       pack_size: r.pack_size,
+      drug_concept_id: r.drug_concept_id,
       best: r.price_rank ? {
         price_inr: r.price_inr,
         mrp_inr: r.mrp_inr,
@@ -736,6 +755,12 @@ router.get(
         chain: r.chain,
         address_line: r.address_line,
         pincode: r.pincode,
+        in_stock: r.in_stock,
+        stock_status: r.stock_status,
+        stock_observed_at: r.stock_observed_at,
+        listing_tier: r.listing_tier,
+        premium_rank_weight: r.premium_rank_weight,
+        price_per_unit_inr: pricePerPackUnitInr(r.price_inr, r.pack_size),
       } : null,
       stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
     };

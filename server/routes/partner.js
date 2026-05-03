@@ -117,5 +117,83 @@ router.get("/sales/recent", async (req, res) => {
   res.json({ sales: rows });
 });
 
+/**
+ * B2B: demand surfaced through local compare (analytics_events seeded by `/api/compare*` routes).
+ * Consumer text query is mirrored on analytics_events.query when applicable.
+ */
+router.get("/catalog/compare-summary", async (req, res) => {
+  const pharmacyId = req.partner.pharmacy_id;
+  const from = req.query.from ? new Date(String(req.query.from)) : null;
+  const to = req.query.to ? new Date(String(req.query.to)) : null;
+
+  const fromOk = from && !Number.isNaN(from.getTime());
+  const toOk = to && !Number.isNaN(to.getTime());
+
+  const params = [pharmacyId];
+  let where = `pharmacy_id = $1 AND event_type = 'catalog_compare_impression'`;
+  if (fromOk) {
+    params.push(from.toISOString());
+    where += ` AND created_at >= $${params.length}`;
+  }
+  if (toOk) {
+    params.push(to.toISOString());
+    where += ` AND created_at < $${params.length}`;
+  }
+
+  const totalsRes = await pool.query(
+    `SELECT COUNT(*)::int AS impressions,
+            COUNT(*) FILTER (
+              WHERE (meta ->> 'sponsored_listing') = 'true'
+            )::int AS sponsored_views
+     FROM analytics_events
+     WHERE ${where}`,
+    params
+  );
+
+  const dailyRes = await pool.query(
+    `SELECT
+       date_trunc('day', created_at) AS day,
+       COUNT(*)::int AS impressions
+     FROM analytics_events
+     WHERE ${where}
+     GROUP BY day
+     ORDER BY day ASC
+     LIMIT 120`,
+    params
+  );
+
+  const topQueriesRes = await pool.query(
+    `SELECT
+       query AS consumer_query,
+       COUNT(*)::int AS impressions,
+       COUNT(DISTINCT (meta ->> 'source'))::int AS sources
+     FROM analytics_events
+     WHERE ${where} AND COALESCE(trim(query), '') <> ''
+     GROUP BY consumer_query
+     ORDER BY impressions DESC NULLS LAST
+     LIMIT 20`,
+    params
+  );
+
+  const topSourcesRes = await pool.query(
+    `SELECT meta ->> 'source' AS source, COUNT(*)::int AS impressions
+     FROM analytics_events
+     WHERE ${where}
+       AND COALESCE(trim(meta ->> 'source'), '') <> ''
+     GROUP BY meta ->> 'source'
+     ORDER BY impressions DESC`,
+    params
+  );
+
+  res.json({
+    pharmacyId,
+    range: { from: fromOk ? from.toISOString() : null, to: toOk ? to.toISOString() : null },
+    totals: totalsRes.rows[0] || { impressions: 0, sponsored_views: 0 },
+    daily: dailyRes.rows,
+    consumer_queries: topQueriesRes.rows,
+    sources: topSourcesRes.rows,
+  });
+});
+
 export default router;
 

@@ -24,9 +24,45 @@ test("applyGeoToPharmacyOffers sorts by distance then price", () => {
     { pharmacy_id: 3, price_inr: "50", lat: null, lng: null, display_name: "FarCheap" },
   ];
   const { rows: out, geo } = applyGeoToPharmacyOffers(rows, { lat: 12.97, lng: 77.59 }, {});
-  assert.equal(geo?.sort, "distance_then_price");
+  assert.equal(geo?.sort, "distance_then_effective_unit_price");
   assert.ok(out[0].pharmacy_id === 1);
   assert.ok(out[1].pharmacy_id === 2);
   assert.ok(out[0].distance_km <= out[1].distance_km);
   assert.equal(out[out.length - 1].distance_km, null);
+});
+
+test("premium bias can reshuffle pharmacies at the same distance", (t) => {
+  process.env.COMPARE_PREMIUM_MAX_BIAS_INR = "100";
+  t.after(() => {
+    delete process.env.COMPARE_PREMIUM_MAX_BIAS_INR;
+  });
+
+  const rows = [
+    {
+      pharmacy_id: 10,
+      price_inr: "120",
+      pack_size: 10,
+      lat: "12.971",
+      lng: "77.594",
+      stock_status: "in_stock",
+      in_stock: true,
+      listing_tier: "standard",
+      premium_rank_weight: "0",
+      display_name: "Std",
+    },
+    {
+      pharmacy_id: 11,
+      price_inr: "132",
+      pack_size: 10,
+      lat: "12.97102",
+      lng: "77.59402",
+      stock_status: "in_stock",
+      in_stock: true,
+      listing_tier: "premium",
+      premium_rank_weight: "1",
+      display_name: "Prem",
+    },
+  ];
+  const { rows: out } = applyGeoToPharmacyOffers(rows, { lat: 12.971015, lng: 77.594015 }, {});
+  assert.equal(out[0].pharmacy_id, 11);
 });

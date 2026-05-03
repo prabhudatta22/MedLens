@@ -380,6 +380,77 @@ CREATE TABLE IF NOT EXISTS lab_test_prices (
 CREATE INDEX IF NOT EXISTS idx_lab_prices_city ON lab_test_prices (city_id);
 CREATE INDEX IF NOT EXISTS idx_lab_prices_test ON lab_test_prices (test_id);
 
+-- =====================================================================
+-- Catalog intelligence (drug mapping, availability, analytics, premium)
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS drug_concepts (
+  id SERIAL PRIMARY KEY,
+  key_hash TEXT NOT NULL UNIQUE,
+  canonical_label TEXT NOT NULL,
+  generic_key TEXT NOT NULL,
+  strength TEXT NOT NULL DEFAULT '',
+  form TEXT NOT NULL DEFAULT 'tablet',
+  search_blob TEXT GENERATED ALWAYS AS (
+    trim(lower(canonical_label)) || ' ' || trim(lower(generic_key)) || ' ' || trim(lower(strength)) || ' ' ||
+    trim(lower(form))
+  ) STORED,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_drug_concepts_trgm ON drug_concepts USING gin (search_blob gin_trgm_ops);
+
+CREATE TABLE IF NOT EXISTS medicine_aliases (
+  id SERIAL PRIMARY KEY,
+  alias_normalized TEXT NOT NULL,
+  drug_concept_id INTEGER NOT NULL REFERENCES drug_concepts (id) ON DELETE CASCADE,
+  source TEXT NOT NULL DEFAULT 'manual',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (alias_normalized, drug_concept_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_medicine_aliases_norm ON medicine_aliases (alias_normalized);
+
+CREATE TABLE IF NOT EXISTS medicine_external_codes (
+  id SERIAL PRIMARY KEY,
+  source TEXT NOT NULL,
+  code TEXT NOT NULL,
+  drug_concept_id INTEGER NOT NULL REFERENCES drug_concepts (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (source, code)
+);
+
+ALTER TABLE medicines ADD COLUMN IF NOT EXISTS drug_concept_id INTEGER REFERENCES drug_concepts (id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_medicines_drug_concept ON medicines (drug_concept_id);
+
+ALTER TABLE pharmacy_prices ADD COLUMN IF NOT EXISTS stock_status TEXT NOT NULL DEFAULT 'unknown'
+  CHECK (stock_status IN ('in_stock', 'limited', 'out_of_stock', 'unknown'));
+ALTER TABLE pharmacy_prices ADD COLUMN IF NOT EXISTS stock_qty INTEGER CHECK (stock_qty IS NULL OR stock_qty >= 0);
+ALTER TABLE pharmacy_prices ADD COLUMN IF NOT EXISTS stock_observed_at TIMESTAMPTZ;
+
+ALTER TABLE pharmacies ADD COLUMN IF NOT EXISTS listing_tier TEXT NOT NULL DEFAULT 'standard'
+  CHECK (listing_tier IN ('standard', 'featured', 'premium'));
+ALTER TABLE pharmacies ADD COLUMN IF NOT EXISTS featured_until TIMESTAMPTZ;
+ALTER TABLE pharmacies ADD COLUMN IF NOT EXISTS premium_rank_weight NUMERIC(8, 4) NOT NULL DEFAULT 0
+  CHECK (premium_rank_weight >= 0 AND premium_rank_weight <= 1);
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  event_type TEXT NOT NULL,
+  user_id INTEGER REFERENCES users (id) ON DELETE SET NULL,
+  pharmacy_id INTEGER REFERENCES pharmacies (id) ON DELETE SET NULL,
+  medicine_id INTEGER REFERENCES medicines (id) ON DELETE SET NULL,
+  drug_concept_id INTEGER REFERENCES drug_concepts (id) ON DELETE SET NULL,
+  city_slug TEXT,
+  query TEXT,
+  meta JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_type_time ON analytics_events (event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_pharmacy_time ON analytics_events (pharmacy_id, created_at DESC);
+
 -- Saved prescriptions (web upload + WhatsApp image); linked to orders for fulfilment & history
 CREATE TABLE IF NOT EXISTS user_prescriptions (
   id SERIAL PRIMARY KEY,

@@ -16,6 +16,8 @@ Synthetic traffic (labs search, medicine/compare search, diagnostics + medicine 
 
 There is no widely documented product called **“Radiant DB”** as a standalone SQL database. This app uses **PostgreSQL** with a standard `DATABASE_URL`. If your provider (e.g. Neon, Supabase, AWS RDS, Aiven, or a Postgres-compatible host) gives you a connection string, paste it into `.env` as `DATABASE_URL`.
 
+For a **one-shot** `psql` bootstrap (extensions + core tables), `server/db/sql/first_time_setup.sql` is kept broadly in sync with `schema.sql`, including the **catalog intelligence** tables and alters; ongoing evolution is still driven by **`npm run db:migrate`** reading `server/db/sql/schema.sql`.
+
 ## Quick start
 
 1. **PostgreSQL (Docker)**
@@ -55,6 +57,12 @@ Install Docker Desktop, then start Postgres via Compose:
    To reproduce the spreadsheet import from your own file instead: `npm run db:import-dataset` (see `server/scripts/import-medlens-dataset.js`).
 
 4. Open **http://localhost:3000** — type a medicine name; the app queries each configured online retailer in parallel and shows matching **demo** pharmacy rows for the selected city.
+
+5. **Optional — unit tests**
+
+   ```bash
+   npm test
+   ```
 
 ## Importing ERP exports (Marg / RetailGraph)
 
@@ -280,7 +288,7 @@ Downloadable templates (also regenerable with **`npm run generate:partner-templa
 
 - **`discount_pct`** — percent off MRP (**0–100**). Stored on **`pharmacy_prices.discount_pct`** and shown on compare/cart when present (otherwise the UI may derive a % from MRP vs price).
 
-Optional: `chain`, `address_line`, `pincode`, `lat`, `lng`, `mrp_inr`, `price_type` (`retail` default), `in_stock`.
+Optional: `chain`, `address_line`, `pincode`, `lat`, `lng`, `mrp_inr`, `price_type` (`retail` default), `in_stock`, and (when your pipeline populates them) availability columns stored on **`pharmacy_prices`**: `stock_status` (`in_stock` / `limited` / `out_of_stock` / `unknown`), `stock_qty`, `stock_observed_at`. Premium listing fields live on **`pharmacies`**: `listing_tier`, `featured_until`, `premium_rank_weight` (see **Catalog intelligence** below).
 
 ### Diagnostics lab sheet — headers
 
@@ -312,6 +320,54 @@ All partner endpoints require header `x-api-key: <key>`.
 - `GET /api/partner/me`
 - `GET /api/partner/sales/summary?from=YYYY-MM-DD&to=YYYY-MM-DD`
 - `GET /api/partner/sales/recent`
+- `GET /api/partner/catalog/compare-summary?from=…&to=…` — B2B **demand from local compare**: aggregates MedLens-written **`analytics_events`** rows (`event_type = catalog_compare_impression`) for **this partner’s pharmacy**. Requires **`CATALOG_ANALYTICS=1`** on the app server so `/api/compare*` routes persist impressions (see **Catalog intelligence**).
+
+## Catalog intelligence & local DB compare
+
+MedLens keeps a small **catalog intelligence** layer on top of the demo `medicines` / `pharmacy_prices` tables so local compare can group **equivalent drug concepts**, surface **per-unit pricing**, respect **stock freshness** in ranking when lat/lng is provided, optionally **bias featured listings** (with a hard cap), and optionally log **partner-visible demand**.
+
+### Schema (PostgreSQL)
+
+Applied from `server/db/sql/schema.sql` (and mirrored for raw `psql` bootstrap in `server/db/sql/first_time_setup.sql`):
+
+| Area | Tables / columns |
+|------|-------------------|
+| Drug concepts | **`drug_concepts`** (`key_hash`, labels, strength, form, trigram **search_blob**), **`medicine_aliases`**, **`medicine_external_codes`** |
+| SKU link | **`medicines.drug_concept_id`** → `drug_concepts` |
+| Availability | **`pharmacy_prices`**: `stock_status`, `stock_qty`, `stock_observed_at` |
+| Premium listing | **`pharmacies`**: `listing_tier` (`standard` / `featured` / `premium`), `featured_until`, `premium_rank_weight` (0–1) |
+| Impressions | **`analytics_events`** — compare requests can insert **`catalog_compare_impression`** (opt-in; see env) |
+
+### Runtime behaviour
+
+- **Backfill (lazy, once per server process):** on the first local compare call, the app ensures **`drug_concepts`** rows exist for each distinct generic+strength+form hash, links **`medicines.drug_concept_id`**, and seeds **`medicine_aliases`** from display and generic names (`server/catalog/ensureIntel.js`).
+- **Search / PIN compare:** `GET /api/compare/search` and `GET /api/compare/by-pincode` resolve extra **`drug_concept_id`** candidates from aliases + trigram match on concepts, and OR them into the SQL filter so “metformin”-style text can still hit concept-linked SKUs (`server/catalog/drugResolver.js`).
+- **Single-medicine compare:** `GET /api/compare?medicineId=…` returns offers for that row **and** other medicines sharing the same **`drug_concept_id`** (when set).
+- **Cart compare:** `GET /api/carts/:id/compare` includes **`drug_concept_id`**, stock fields, listing tier/weight, and **`price_per_unit_inr`** on the **`best`** offer.
+
+### Offer JSON (local compare)
+
+Rows include pack price as before, plus:
+
+- **`price_per_unit_inr`** — `price_inr / pack_size` when `pack_size > 0`
+- **`stock_status`**, **`stock_qty`**, **`stock_observed_at`**, **`listing_tier`**, **`featured_until`**, **`premium_rank_weight`**
+- **`drug_concept_id`**
+- With **`lat` / `lng`** query params, **`applyGeoToPharmacyOffers`** also adds **`distance_km`**, **`sponsored_listing`**, **`listing_boost_inr`**, and ranks by an **effective score** (unit price + stock/staleness penalties − capped premium bias). Geo metadata includes **`premium_max_bias_inr`** and sort mode.
+
+### Environment variables
+
+Documented in **`.env.example`**:
+
+- **`COMPARE_GEO_MAX_RADIUS_KM`** — filter/radius when the client sends coordinates (unchanged default behaviour).
+- **`COMPARE_PREMIUM_MAX_BIAS_INR`** — maximum “ranking discount” applied to premium/featured offers when sorting (default **15**).
+- **`CATALOG_ANALYTICS`** — set to **`1`** to enable batch inserts of **`catalog_compare_impression`** after local compare responses; leave unset to disable (recommended default for low-traffic or privacy-sensitive deploys).
+
+### Code layout
+
+- `server/catalog/` — intelligence backfill, resolver, shared compare SELECT, unit pricing, impression logging  
+- `server/geo/pharmacyOffersGeo.js` — distance filter + effective ranking  
+- `server/routes/api.js` — `/api/compare*`, `/api/carts/:id/compare` wiring  
+- `server/routes/partner.js` — `GET /api/partner/catalog/compare-summary`
 
 ## User login (mobile OTP)
 
@@ -461,7 +517,7 @@ The home page does **not** require picking a medicine from a database list first
 
 ### Pilot DB compare flow (home page)
 
-The home page also loads **pilot database** rows in parallel: **`GET /api/compare/by-pincode`** (optional 6-digit PIN + city → “Online retailers” table) and **`GET /api/compare/search`** (city → “Nearby pharmacies” table). The client may optionally call **`GET /api/normalize`** first to tidy the query string.
+The home page also loads **pilot database** rows in parallel: **`GET /api/compare/by-pincode`** (optional 6-digit PIN + city → “Online retailers” table) and **`GET /api/compare/search`** (city → “Nearby pharmacies” table). The client may optionally call **`GET /api/normalize`** first to tidy the query string. Both routes run **drug-concept resolution** so matches are not limited to naive substring hits on display/generic names alone (see **Catalog intelligence & local DB compare**). Optional **`lat` / `lng`** (and **`sort_by=price`** for price-only ranking) tune geo ordering and sponsorship transparency.
 
 ```mermaid
 sequenceDiagram
@@ -507,9 +563,11 @@ Open `APP_BASE_URL/reminders.html` while logged in. You can set a **next reminde
 - `GET /api/cities` — cities (India demo)  
 - `GET /api/geocode/reverse?lat=&lng=` — Google reverse geocode + best match to a demo city (requires `GOOGLE_MAPS_API_KEY`)  
 - `GET /api/medicines/search?q=metformin` — medicine search  
-- `GET /api/compare?medicineId=1&city=mumbai` — ranked prices for one medicine in that city  
-- `GET /api/compare/search?q=metformin&city=mumbai` — realtime local match (name/generic contains `q`, demo DB)  
+- `GET /api/compare?medicineId=1&city=mumbai` — local ranked offers for **`medicineId`** and sibling SKUs sharing **`drug_concept_id`**; includes **`price_per_unit_inr`**, stock and listing fields; optional **`lat`/`lng`** (and **`radius_km`**, **`sort_by`**) drive geo-ranked results (see **Catalog intelligence**)  
+- `GET /api/compare/search?q=metformin&city=mumbai` — local match (name/generic **or** resolved drug concepts), same enrichment and geo knobs as above  
+- `GET /api/compare/by-pincode?q=…&pincode=……&city=…` — pilot PIN + optional city filter; same resolution and payloads  
 - `GET /api/carts/:id` — cart + extracted items  
+- `GET /api/carts/:id/compare?city=mumbai` — per-line min/max spread + **`best`** offer with concept, stock, listing, and **`price_per_unit_inr`**  
 - `GET/POST/PATCH/DELETE /api/reminders` — purchase reminders (logged-in users)  
 - `GET/POST/DELETE /api/prescriptions` and `GET /api/prescriptions/:id/file` — saved prescription files for checkout and orders (logged-in **consumer** users; see **Saved prescriptions**)  
 
