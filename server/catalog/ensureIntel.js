@@ -7,7 +7,13 @@ let intelPromise;
  * and seed coarse aliases so search can resolve concepts.
  */
 export function ensureCatalogIntelligence(pool) {
-  if (!intelPromise) intelPromise = runIntel(pool);
+  if (!intelPromise) {
+    intelPromise = runIntel(pool).catch((err) => {
+      // Do not permanently poison compare routes after a transient first-run DB failure.
+      intelPromise = undefined;
+      throw err;
+    });
+  }
   return intelPromise;
 }
 
