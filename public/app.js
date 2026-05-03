@@ -33,6 +33,8 @@ let liveQuery = "";
 const GEO_STORAGE_KEY = "medlens_geo_location_v1";
 const RECENT_SEARCH_KEY = "medlens_recent_searches_v1";
 const RECENT_MAX = 6;
+const COMPARE_SORT_STORAGE_KEY = "medlens_compare_sort_v1";
+const COMPARE_RADIUS_STORAGE_KEY = "medlens_compare_radius_km_v1";
 
 const DEFAULT_METRO_CITIES = [
   { slug: "mumbai", name: "Mumbai", state: "Maharashtra" },
@@ -66,6 +68,7 @@ async function loadCities() {
 
   setCityOptions(sel, cities);
   restoreGeoFromSession();
+  initCompareRankControls();
   if (!loadGeoState()?.google) maybeAutoLocateFromPermission();
 }
 
@@ -216,6 +219,72 @@ function selectionSavingsPhrase(p) {
   return parts.length ? ` · ${parts.join(" · ")}` : "";
 }
 
+/** lat/lng + optional sort_by + radius_km for /api/compare/* */
+function getMedicineCompareGeoAndRankQuery() {
+  const g = loadGeoState()?.google;
+  const la = Number(g?.lat);
+  const lo = Number(g?.lng);
+  const hasCoords = Number.isFinite(la) && Number.isFinite(lo);
+  let s = "";
+  if (hasCoords) {
+    s += `&lat=${encodeURIComponent(la)}&lng=${encodeURIComponent(lo)}`;
+  }
+  const sortVal = ($("compareSortBy")?.value || "nearest").toString();
+  if (sortVal === "price") s += "&sort_by=price";
+  const radRaw = ($("compareRadiusKm")?.value || "default").toString();
+  if (hasCoords && radRaw && radRaw !== "default") {
+    const n = Number(radRaw);
+    if (Number.isFinite(n) && n > 0 && n <= 500) s += `&radius_km=${encodeURIComponent(n)}`;
+  }
+  return s;
+}
+
+function initCompareRankControls() {
+  const sortSel = $("compareSortBy");
+  const radSel = $("compareRadiusKm");
+  if (sortSel) {
+    try {
+      const v = sessionStorage.getItem(COMPARE_SORT_STORAGE_KEY);
+      if (v === "price" || v === "nearest") sortSel.value = v;
+    } catch {
+      /* ignore */
+    }
+    sortSel.addEventListener("change", () => {
+      try {
+        sessionStorage.setItem(COMPARE_SORT_STORAGE_KEY, sortSel.value);
+      } catch {
+        /* ignore */
+      }
+      clearTimeout(searchTimer);
+      runRealtimeSearch();
+    });
+  }
+  if (radSel) {
+    try {
+      const v = sessionStorage.getItem(COMPARE_RADIUS_STORAGE_KEY);
+      if (v && [...radSel.options].some((o) => o.value === v)) radSel.value = v;
+    } catch {
+      /* ignore */
+    }
+    radSel.addEventListener("change", () => {
+      try {
+        sessionStorage.setItem(COMPARE_RADIUS_STORAGE_KEY, radSel.value);
+      } catch {
+        /* ignore */
+      }
+      clearTimeout(searchTimer);
+      runRealtimeSearch();
+    });
+  }
+}
+
+function formatDistanceKm(d) {
+  if (d == null || !Number.isFinite(Number(d))) return "—";
+  const x = Number(d);
+  if (x < 10 && x !== Math.round(x)) return `${x.toFixed(1)} km`;
+  return `${Math.round(x)} km`;
+}
+
 /** Map /api/compare/by-pincode JSON into the shape expected by renderOnlineTable */
 function dbCompareResponseToOnlineShape(data) {
   const offers = data.offers || [];
@@ -256,6 +325,7 @@ function dbCompareResponseToOnlineShape(data) {
       chain: o.chain,
       display_name: o.display_name,
       strength: o.strength,
+      distance_km: o.distance_km != null && Number.isFinite(Number(o.distance_km)) ? Number(o.distance_km) : null,
     })),
   };
 }
@@ -766,8 +836,9 @@ async function runRealtimeSearch() {
 
   const pin = getComparePincode();
   const pinParam = pin ? `&pincode=${encodeURIComponent(pin)}` : "";
-  const dbRetailersUrl = `/api/compare/by-pincode?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}${pinParam}`;
-  const localUrl = `/api/compare/search?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}`;
+  const compareExtras = getMedicineCompareGeoAndRankQuery();
+  const dbRetailersUrl = `/api/compare/by-pincode?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}${pinParam}${compareExtras}`;
+  const localUrl = `/api/compare/search?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}${compareExtras}`;
 
   try {
     const [dbRes, localRes] = await Promise.all([fetch(dbRetailersUrl, { signal }), fetch(localUrl, { signal })]);
@@ -803,7 +874,13 @@ async function runRealtimeSearch() {
     }
 
     const pinNote = pin ? ` · PIN ${pin}` : "";
-    statusEl.textContent = `Results for “${q}” in ${city}${pinNote}. Online retailers: pilot DB. Local: city-wide search.`;
+    const hasCoords = compareExtras.includes("lat=");
+    const sortPrice = ($("compareSortBy")?.value || "nearest") === "price";
+    let rankNote = "";
+    if (hasCoords && sortPrice) rankNote = " · rankings: cheapest first (coordinates still used for distance column)";
+    else if (hasCoords) rankNote = " · rankings: nearest first where pharmacy coordinates exist";
+    else if (sortPrice) rankNote = " · rankings: lowest price (no saved coordinates — same as default SQL order)";
+    statusEl.textContent = `Results for “${q}” in ${city}${pinNote}${rankNote}. Online retailers: pilot DB. Local: city-wide search.`;
   } catch (e) {
     if (e?.name === "AbortError") return;
     statusEl.textContent = String(e?.message || e);
@@ -911,9 +988,11 @@ function renderLocalTable(offers, city, q, errorMsg) {
       const med = `${escapeHtml(o.display_name)} · ${escapeHtml(o.strength || "")}`;
       const disc = formatOfferDiscountPct(o);
       const saveCell = formatSaveVsMrpCell(o);
+      const distCell = escapeHtml(formatDistanceKm(o.distance_km));
       return `
       <tr class="${best ? "best" : ""}">
         <td>${escapeHtml(o.pharmacy_name)}${o.chain ? ` <span class="muted">(${escapeHtml(o.chain)})</span>` : ""}${best ? ` <span class="pill pill-muted" style="margin-left:0.25rem">Best price</span>` : ""}</td>
+        <td class="muted">${distCell}</td>
         <td class="muted">${med}</td>
         <td class="price-cell">₹${fmt(o.price_inr)}</td>
         <td class="muted">${o.mrp_inr != null ? `₹${fmt(o.mrp_inr)}` : "—"}</td>
@@ -988,8 +1067,11 @@ function renderOnlineTable(data, q) {
   }
 
   const anyOk = providers.some((p) => p.ok);
+  const anyGeo = isDbSource && providers.some((p) => p.distance_km != null && Number.isFinite(Number(p.distance_km)));
   status.textContent = isDbSource
-    ? `Pilot database · ${data.filter_label || "compare"}. ${providers.filter((p) => p.ok).length} listing(s).`
+    ? `Pilot database · ${data.filter_label || "compare"}. ${providers.filter((p) => p.ok).length} listing(s).${
+        anyGeo ? " Distance uses your saved location when pharmacy coordinates are available." : ""
+      }`
     : `Parallel fetch completed in ${data.parallel_ms ?? "—"} ms.${
         anyOk
           ? ""
@@ -1058,6 +1140,10 @@ function renderOnlineTable(data, q) {
       const canAdd = Boolean(p.search_url || p.website);
       const title = p.product_title ? escapeHtml(p.product_title) : `<span class="muted">—</span>`;
       const openLabel = isDbSource ? "Map" : "Open site";
+      const distCell =
+        isDbSource && p.distance_km != null && Number.isFinite(Number(p.distance_km))
+          ? escapeHtml(formatDistanceKm(p.distance_km))
+          : "—";
       const bestPill =
         ok && isDbSource && bestId === p.provider_id && providers.filter((x) => x.ok).length > 1
           ? ` <span class="pill pill-muted">Best price</span>`
@@ -1067,6 +1153,7 @@ function renderOnlineTable(data, q) {
         <td><input type="radio" name="online-pick" value="${id}"${checked} /></td>
         <td>${escapeHtml(p.label || p.provider_id)}${bestPill}${err}</td>
         <td class="muted">${title}</td>
+        <td class="muted">${distCell}</td>
         <td class="price-cell">${priceCell}</td>
         <td class="muted">${mrpCell}</td>
         <td class="muted">${discCell}</td>

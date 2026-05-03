@@ -11,6 +11,7 @@ import {
   isDiagnosticsPartnerEnabled,
   searchPartnerPackages,
 } from "../integrations/diagnosticsPartner.js";
+import { applyGeoToPharmacyOffers, parseUserLatLngFromQuery } from "../geo/pharmacyOffersGeo.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -39,6 +40,19 @@ function normalizeCitySlug(slug) {
     delhi: "new-delhi",
   };
   return alias[s] || s.replace(/\s+/g, "-");
+}
+
+function labsGeoAttachment(req) {
+  const u = parseUserLatLngFromQuery(req.query);
+  if (!u) return {};
+  return {
+    geo: {
+      user_lat: u.lat,
+      user_lng: u.lng,
+      note:
+        "Diagnostics catalog is city-scoped; coordinates are echoed for clients and passed to the partner API when supported.",
+    },
+  };
 }
 
 function mapPartnerPackageToLabRow(pkg) {
@@ -211,11 +225,12 @@ router.get(
   const citySlug = normalizeCitySlug(req.query.city);
   const pincode = (req.query.pincode || "").toString().trim().slice(0, 10);
   const category = (req.query.category || "").toString().trim().toUpperCase();
+  const userLatLng = parseUserLatLngFromQuery(req.query);
   if (!citySlug) {
     return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
   }
   if (!q || q.length < 2) {
-    return res.json({ query: q, city: citySlug, items: [] });
+    return res.json({ query: q, city: citySlug, items: [], ...labsGeoAttachment(req) });
   }
 
   if (isDiagnosticsPartnerEnabled()) {
@@ -225,6 +240,7 @@ router.get(
         city: citySlug,
         category,
         pincode,
+        ...(userLatLng ? { lat: userLatLng.lat, lng: userLatLng.lng } : {}),
       });
       const items = (partner.packages || []).map(mapPartnerPackageToLabRow);
       return res.json({
@@ -233,6 +249,7 @@ router.get(
         source: "partner",
         partner: "healthians",
         items,
+        ...labsGeoAttachment(req),
       });
     } catch (e) {
       // Fall back to local DB search if partner API is temporarily unavailable.
@@ -271,7 +288,7 @@ router.get(
     params
   );
 
-  res.json({ query: q, city: citySlug, items: rows });
+  res.json({ query: q, city: citySlug, items: rows, ...labsGeoAttachment(req) });
   })
 );
 
@@ -281,16 +298,24 @@ router.get(
     const packageId = (req.params.packageId || "").toString().trim();
     const citySlug = normalizeCitySlug(req.query.city);
     const pincode = (req.query.pincode || "").toString().trim().slice(0, 10);
+    const userLatLng = parseUserLatLngFromQuery(req.query);
     if (!packageId) return res.status(400).json({ error: "packageId is required" });
     if (!citySlug) return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
 
     if (isDiagnosticsPartnerEnabled()) {
-      const pkg = await getPartnerPackageDetails({ packageId, city: citySlug, pincode, category: "" });
+      const pkg = await getPartnerPackageDetails({
+        packageId,
+        city: citySlug,
+        pincode,
+        category: "",
+        ...(userLatLng ? { lat: userLatLng.lat, lng: userLatLng.lng } : {}),
+      });
       if (!pkg) return res.status(404).json({ error: "Package not found" });
       return res.json({
         source: "partner",
         partner: "healthians",
         item: mapPartnerPackageToLabRow(pkg),
+        ...labsGeoAttachment(req),
       });
     }
 
@@ -321,7 +346,7 @@ router.get(
       [numericId, citySlug]
     );
     if (!rows.length) return res.status(404).json({ error: "Package not found" });
-    return res.json({ source: "local", item: rows[0] });
+    return res.json({ source: "local", item: rows[0], ...labsGeoAttachment(req) });
   })
 );
 
@@ -369,7 +394,11 @@ router.get(
     [medicineId, citySlug]
   );
 
-  const prices = rows.map((r) => Number(r.price_inr));
+  const userGeo = parseUserLatLngFromQuery(req.query);
+  const geoOut = applyGeoToPharmacyOffers(rows, userGeo, req.query);
+  const offers = geoOut.rows;
+
+  const prices = offers.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
   const min = prices.length ? Math.min(...prices) : null;
   const max = prices.length ? Math.max(...prices) : null;
   let spreadPct = null;
@@ -381,7 +410,8 @@ router.get(
     medicineId,
     city: citySlug,
     stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
-    offers: rows,
+    offers,
+    ...(geoOut.geo ? { geo: geoOut.geo } : {}),
   });
   })
 );
@@ -396,11 +426,14 @@ router.get(
     return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
   }
   if (!q || q.length < 2) {
+    const ug = parseUserLatLngFromQuery(req.query);
+    const geoEarly = ug ? applyGeoToPharmacyOffers([], ug, req.query).geo : null;
     return res.json({
       query: q,
       city: citySlug,
       stats: { min_inr: null, max_inr: null, spread_percent: null },
       offers: [],
+      ...(geoEarly ? { geo: geoEarly } : {}),
     });
   }
   const { like, compactLike } = medicineNameMatchParams(q);
@@ -444,7 +477,11 @@ router.get(
     [like, citySlug, compactLike]
   );
 
-  const prices = rows.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
+  const userGeo = parseUserLatLngFromQuery(req.query);
+  const geoOut = applyGeoToPharmacyOffers(rows, userGeo, req.query);
+  const offers = geoOut.rows;
+
+  const prices = offers.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
   const min = prices.length ? Math.min(...prices) : null;
   const max = prices.length ? Math.max(...prices) : null;
   let spreadPct = null;
@@ -456,7 +493,8 @@ router.get(
     query: q,
     city: citySlug,
     stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
-    offers: rows,
+    offers,
+    ...(geoOut.geo ? { geo: geoOut.geo } : {}),
   });
   })
 );
@@ -538,7 +576,11 @@ router.get(
       [like, pinParam, cityParam, compactLike]
     );
 
-    const prices = rows.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
+    const userGeo = parseUserLatLngFromQuery(req.query);
+    const geoOut = applyGeoToPharmacyOffers(rows, userGeo, req.query);
+    const offers = geoOut.rows;
+
+    const prices = offers.map((r) => Number(r.price_inr)).filter((n) => Number.isFinite(n));
     const min = prices.length ? Math.min(...prices) : null;
     const max = prices.length ? Math.max(...prices) : null;
     let spreadPct = null;
@@ -557,7 +599,8 @@ router.get(
       city: cityParam,
       filter_label: filterLabel || "Database",
       stats: { min_inr: min, max_inr: max, spread_percent: spreadPct },
-      offers: rows,
+      offers,
+      ...(geoOut.geo ? { geo: geoOut.geo } : {}),
     });
   })
 );

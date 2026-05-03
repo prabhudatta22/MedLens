@@ -109,9 +109,15 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final api = _client(context);
+      final geo = _geo;
       final res = await Future.wait([
         api.searchOnline(q: q),
-        api.searchLocal(q: q, citySlug: citySlug),
+        api.searchLocal(
+          q: q,
+          citySlug: citySlug,
+          lat: geo?.lat,
+          lng: geo?.lng,
+        ),
       ]);
       if (!mounted) return;
       setState(() {
@@ -428,6 +434,11 @@ class _LocalRow extends StatelessWidget {
                 Text(offer.pharmacyName, style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text('${offer.medicineLabel}${offer.strength != null ? ' · ${offer.strength}' : ''}',
                     style: const TextStyle(fontSize: 12)),
+                if (offer.distanceKm != null)
+                  Text(
+                    '${offer.distanceKm! < 10 ? offer.distanceKm!.toStringAsFixed(1) : offer.distanceKm!.round()} km away',
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.tertiary),
+                  ),
                 Text(
                   [offer.addressLine, offer.pincode].where((x) => (x ?? '').trim().isNotEmpty).join(' · '),
                   style: const TextStyle(fontSize: 12),

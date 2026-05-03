@@ -118,6 +118,34 @@
                 </p>
               </label>
 
+              <div class="field field-hero" id="compare-rank-field">
+                <span>Ranking (local + online pilot DB)</span>
+                <div class="compare-rank-row" style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.35rem">
+                  <label class="field-inline" style="margin: 0; min-width: 12rem; flex: 1">
+                    <span class="muted" style="font-size: 0.85rem">Sort</span>
+                    <select id="compareSortBy" aria-label="Sort pharmacy listings">
+                      <option value="nearest">Nearest, then cheapest</option>
+                      <option value="price">Cheapest (ignore distance)</option>
+                    </select>
+                  </label>
+                  <label class="field-inline" style="margin: 0; min-width: 12rem; flex: 1">
+                    <span class="muted" style="font-size: 0.85rem">Max distance</span>
+                    <select id="compareRadiusKm" aria-label="Drop listings beyond this distance when coordinates exist">
+                      <option value="default">Server default (~120 km)</option>
+                      <option value="15">15 km</option>
+                      <option value="25">25 km</option>
+                      <option value="50">50 km</option>
+                      <option value="80">80 km</option>
+                      <option value="120">120 km</option>
+                      <option value="200">200 km</option>
+                    </select>
+                  </label>
+                </div>
+                <p class="muted hint" style="margin-top: 0.35rem">
+                  Uses coordinates from “Use my location” when available. Pharmacies without coordinates stay listed; radius only filters rows with known distance.
+                </p>
+              </div>
+
               <div class="search-actions" aria-label="Search actions">
                 <button type="button" class="btn btn-primary" id="searchBtn">Compare prices</button>
                 <!-- <span class="muted hint">Tip: press Enter to search.</span> -->
@@ -205,6 +233,7 @@
                   <th>Select</th>
                   <th>Retailer</th>
                   <th>Product</th>
+                  <th class="muted">Distance</th>
                   <th>Price</th>
                   <th>MRP</th>
                   <th>Off MRP</th>
@@ -253,6 +282,7 @@
               <thead>
                 <tr>
                   <th>Pharmacy</th>
+                  <th class="muted">Distance</th>
                   <th>Medicine</th>
                   <th>Price</th>
                   <th>MRP</th>

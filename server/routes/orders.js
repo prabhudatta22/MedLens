@@ -350,6 +350,78 @@ router.post("/", async (req, res) => {
   const delivery_option = String(req.body?.delivery_option || "normal");
   const q = quoteDelivery(delivery_option);
 
+  let itemsSubtotalPaise = 0;
+  for (const it of items) {
+    const pharmacy_id = Number(it.pharmacyId);
+    const medicine_id = Number(it.medicineId);
+    const quantity_units = Math.max(1, Math.floor(Number(it.quantity || it.quantity_units || 1)));
+    const item_label = String(it.medicineLabel || it.item_label || "").trim().slice(0, 200);
+
+    if (!Number.isFinite(pharmacy_id) || pharmacy_id < 1) {
+      return res.status(400).json({ error: "Invalid pharmacyId in items[]" });
+    }
+    if (!Number.isFinite(medicine_id) || medicine_id < 1) {
+      return res.status(400).json({ error: "Invalid medicineId in items[]" });
+    }
+    if (!item_label) {
+      return res.status(400).json({ error: "item_label/medicineLabel required" });
+    }
+    const unit = Number(it.unitPriceInr || it.unit_price_inr || 0) || 0;
+    itemsSubtotalPaise += Math.round(unit * 100 * quantity_units);
+  }
+
+  const feePaise = Math.round(Number(q.fee_inr) * 100);
+  const totalPaise = itemsSubtotalPaise + feePaise;
+  if (totalPaise < 100) {
+    return res.status(400).json({ error: "Order total must be at least ₹1" });
+  }
+
+  const paymentType = String(req.body?.payment_type || "cod").trim().toLowerCase() === "prepaid" ? "prepaid" : "cod";
+
+  let paymentMeta = null;
+  if (paymentType === "prepaid") {
+    const rzOrder = String(req.body?.razorpay_order_id || "").trim();
+    const rzPay = String(req.body?.razorpay_payment_id || "").trim();
+    const rzSig = String(req.body?.razorpay_signature || "").trim();
+    if (!rzOrder || !rzPay || !rzSig) {
+      return res.status(400).json({
+        error:
+          "Prepaid requires Razorpay checkout: pay first, then the app sends razorpay_order_id, razorpay_payment_id, and razorpay_signature.",
+      });
+    }
+    if (!isRazorpayConfigured()) {
+      return res.status(400).json({ error: "Razorpay is not configured — choose Cash on delivery." });
+    }
+    try {
+      await assertCapturedDiagnosticsPayment({
+        razorpayOrderId: rzOrder,
+        razorpayPaymentId: rzPay,
+        razorpaySignature: rzSig,
+        expectedAmountPaise: totalPaise,
+      });
+      paymentMeta = {
+        razorpay_order_id: rzOrder,
+        razorpay_payment_id: rzPay,
+        razorpay_signature: rzSig,
+      };
+    } catch (e) {
+      return res.status(400).json({ error: e?.message || "Razorpay payment verification failed" });
+    }
+  }
+
+  let dbPaymentStatus = paymentType === "prepaid" && paymentMeta ? "prepaid_verified" : "cod";
+
+  const rzPaymentDupCheck = paymentMeta?.razorpay_payment_id ? String(paymentMeta.razorpay_payment_id).trim() : "";
+  if (rzPaymentDupCheck) {
+    const dup = await pool.query(`SELECT id FROM orders WHERE razorpay_payment_id = $1 LIMIT 1`, [rzPaymentDupCheck]);
+    if (dup.rows.length) {
+      return res.status(409).json({ error: "This Razorpay payment is already linked to an order." });
+    }
+  }
+
+  const rzOrderIdForInsert = paymentMeta?.razorpay_order_id ? String(paymentMeta.razorpay_order_id).trim() : null;
+  const rzPaymentIdForInsert = paymentMeta?.razorpay_payment_id ? String(paymentMeta.razorpay_payment_id).trim() : null;
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -374,10 +446,12 @@ router.post("/", async (req, res) => {
       ]
     );
 
-    const orderRes = await client.query(
-      `INSERT INTO orders (user_id, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, notes, prescription_id, updated_at)
-       VALUES ($1,'created',$2,$3,$4,$5,$6,$7, now())
-       RETURNING id, status, delivery_option, delivery_fee_inr, scheduled_for, created_at, prescription_id`,
+    let order;
+    try {
+      const orderRes = await client.query(
+      `INSERT INTO orders (user_id, status, delivery_option, delivery_fee_inr, scheduled_for, address_id, notes, prescription_id, razorpay_order_id, razorpay_payment_id, payment_status, updated_at)
+       VALUES ($1,'created',$2,$3,$4,$5,$6,$7,$8,$9,$10, now())
+       RETURNING id, status, delivery_option, delivery_fee_inr, scheduled_for, created_at, prescription_id, razorpay_order_id, razorpay_payment_id, payment_status`,
       [
         userId,
         q.delivery_option,
@@ -386,14 +460,30 @@ router.post("/", async (req, res) => {
         addrRes.rows[0].id,
         req.body?.notes ? String(req.body.notes).trim().slice(0, 500) : null,
         prescriptionId,
+        rzOrderIdForInsert,
+        rzPaymentIdForInsert,
+        dbPaymentStatus,
       ]
     );
-    const order = orderRes.rows[0];
+      order = orderRes.rows[0];
+    } catch (e) {
+      if (e && e.code === "23505") {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "This Razorpay payment is already linked to an order." });
+      }
+      throw e;
+    }
 
     await client.query(
       `INSERT INTO order_events (order_id, status, message)
        VALUES ($1,$2,$3)`,
-      [order.id, "created", "Order created"]
+      [
+        order.id,
+        "created",
+        paymentType === "prepaid"
+          ? "Order created · prepaid verified"
+          : "Order created · pay on delivery",
+      ]
     );
 
     for (const it of items) {
@@ -437,10 +527,19 @@ router.post("/", async (req, res) => {
     // WhatsApp: push initial status
     await maybeNotifyWhatsapp({
       userPhoneE164: req.user.phone_e164,
-      text: `MedLens: Order #${order.id} placed. Status: ${order.status}. Delivery option: ${order.delivery_option}.`,
+      text:
+        paymentType === "prepaid"
+          ? `MedLens: Order #${order.id} placed · prepaid ✓ (${order.payment_status}). Delivery: ${order.delivery_option}.`
+          : `MedLens: Order #${order.id} placed (${order.payment_status}). Status: ${order.status}. Delivery option: ${order.delivery_option}.`,
     });
 
-    res.status(201).json({ ok: true, order });
+    res.status(201).json({
+      ok: true,
+      order: {
+        ...order,
+        payment_type: paymentType,
+      },
+    });
   } catch (e) {
     await client.query("ROLLBACK");
     res.status(500).json({ ok: false, error: e.message });

@@ -53,8 +53,21 @@ class MedLensClient {
     return list.map((x) => City.fromJson(x as Map<String, dynamic>)).toList();
   }
 
-  Future<List<LocalOffer>> searchLocal({required String q, required String citySlug}) async {
-    final r = await dio.get('/api/compare/search', queryParameters: {'q': q, 'city': citySlug});
+  Future<List<LocalOffer>> searchLocal({
+    required String q,
+    required String citySlug,
+    double? lat,
+    double? lng,
+  }) async {
+    final r = await dio.get(
+      '/api/compare/search',
+      queryParameters: {
+        'q': q,
+        'city': citySlug,
+        if (lat != null && lng != null) 'lat': lat,
+        if (lat != null && lng != null) 'lng': lng,
+      },
+    );
     _ensure2xx(r);
     final list = (_m(r.data)['offers'] as List<dynamic>? ?? []);
     return list.map((x) => LocalOffer.fromJson(x as Map<String, dynamic>)).toList();
@@ -73,22 +86,38 @@ class MedLensClient {
     return GeocodeResult.fromJson(_m(r.data));
   }
 
-  Future<Map<String, dynamic>> labsSearch({required String q, required String city, String pincode = ''}) async {
+  Future<Map<String, dynamic>> labsSearch({
+    required String q,
+    required String city,
+    String pincode = '',
+    double? lat,
+    double? lng,
+  }) async {
     final r = await dio.get('/api/labs/search', queryParameters: {
       'q': q,
       'city': city,
       if (pincode.trim().isNotEmpty) 'pincode': pincode.trim(),
+      if (lat != null && lng != null) 'lat': lat,
+      if (lat != null && lng != null) 'lng': lng,
     });
     _ensure2xx(r);
     return _m(r.data);
   }
 
-  Future<Map<String, dynamic>> labsPackageDetail({required String packageId, required String city, String pincode = ''}) async {
+  Future<Map<String, dynamic>> labsPackageDetail({
+    required String packageId,
+    required String city,
+    String pincode = '',
+    double? lat,
+    double? lng,
+  }) async {
     final r = await dio.get(
       '/api/labs/package/${Uri.encodeComponent(packageId)}',
       queryParameters: {
         'city': city,
         if (pincode.trim().isNotEmpty) 'pincode': pincode.trim(),
+        if (lat != null && lng != null) 'lat': lat,
+        if (lat != null && lng != null) 'lng': lng,
       },
     );
     _ensure2xx(r);

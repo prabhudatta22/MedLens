@@ -10,6 +10,7 @@ const SUGGEST_DEBOUNCE_MS = 180;
 const RECENT_KEY = "medlens_recent_lab_searches_v1";
 const RECENT_MAX = 6;
 const DIAG_PREPAID_KEY = "medlens_diag_prepaid_payload_v1";
+const GEO_STORAGE_KEY = "medlens_geo_location_v1";
 
 let cities = [];
 let selectedCategory = "";
@@ -34,8 +35,20 @@ function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
-function cleanPincode(v) {
-  return String(v || "").replace(/[^\d]/g, "").slice(0, 6);
+function appendStoredGeoCoords(params) {
+  try {
+    const raw = sessionStorage.getItem(GEO_STORAGE_KEY);
+    if (!raw) return;
+    const j = JSON.parse(raw);
+    const la = Number(j?.google?.lat);
+    const lo = Number(j?.google?.lng);
+    if (Number.isFinite(la) && Number.isFinite(lo)) {
+      params.set("lat", String(la));
+      params.set("lng", String(lo));
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 function fmtINR(n) {
@@ -728,6 +741,7 @@ async function runSearch() {
 
   const params = new URLSearchParams({ q, city, pincode });
   if (selectedCategory) params.set("category", selectedCategory);
+  appendStoredGeoCoords(params);
 
   try {
     const res = await fetch(`/api/labs/search?${params.toString()}`);
@@ -916,6 +930,7 @@ async function runSuggestSearch() {
   const pincode = cleanPincode($("labPincode")?.value || "");
   const params = new URLSearchParams({ q, city, pincode });
   if (selectedCategory) params.set("category", selectedCategory);
+  appendStoredGeoCoords(params);
 
   try {
     // Reuse labs search endpoint for suggestions (we only display top results).

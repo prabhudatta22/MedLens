@@ -43,6 +43,23 @@
       </section>
 
       <div id="cart-main" class="hidden">
+        <section
+          id="checkoutAuthBanner"
+          class="panel checkout-auth-banner hidden"
+          aria-label="Sign in required"
+          style="margin-bottom: 1rem"
+        >
+          <div class="online-head" style="align-items: flex-start">
+            <div>
+              <h2 style="margin: 0; font-size: 1.05rem">Sign in to checkout</h2>
+              <p class="muted" style="margin: 0.4rem 0 0">
+                Log in with your phone OTP to place home-delivery medicine orders, book diagnostics from the cart, and choose how you pay.
+              </p>
+            </div>
+            <a class="btn btn-primary" id="checkoutAuthLoginBtn" href="/login.html">Log in</a>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="online-head">
             <h2>Your cart by pharmacy / retailer</h2>
@@ -117,7 +134,17 @@
                 <option value="express_60">60 min (+₹49)</option>
               </select>
             </label>
+            <label class="field">
+              <span>Payment</span>
+              <select id="deliveryPaymentType" aria-label="Payment for medicine delivery">
+                <option value="cod">Cash on delivery</option>
+                <option value="prepaid">Pay online (Razorpay)</option>
+              </select>
+            </label>
           </div>
+          <p id="deliveryPrepaidHint" class="muted hidden" style="margin-top: 0.35rem; font-size: 0.9rem; line-height: 1.45">
+            Pay the <strong>medicine subtotal + delivery fee</strong> in the Razorpay window. After payment succeeds, your MedLens order is created.
+          </p>
 
           <div style="margin-top: 0.75rem">
             <h3 style="margin: 0 0 0.5rem; font-size: 1rem">Consumption (for reminders)</h3>

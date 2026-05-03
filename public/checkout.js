@@ -191,6 +191,75 @@ function syncDiagPrepaidHint() {
   if (badge) badge.classList.toggle("hidden", !prepaid);
 }
 
+function syncDeliveryPaymentHint() {
+  const hint = $("deliveryPrepaidHint");
+  const pay = $("deliveryPaymentType");
+  if (!hint || !pay) return;
+  hint.classList.toggle("hidden", pay.value !== "prepaid");
+}
+
+function checkoutReturnPath() {
+  return `${window.location.pathname}${window.location.search || ""}` || "/checkout.html";
+}
+
+function checkoutLoginHref() {
+  return `/login.html?returnTo=${encodeURIComponent(checkoutReturnPath())}`;
+}
+
+function wireCheckoutLoginLinks() {
+  const h = checkoutLoginHref();
+  $("loginToOrderLink")?.setAttribute("href", h);
+  $("navLogin")?.setAttribute("href", h);
+  $("checkoutAuthLoginBtn")?.setAttribute("href", h);
+}
+
+function isCheckoutConsumer(user) {
+  return Boolean(user && user.role !== "service_provider");
+}
+
+async function ensureLoggedInConsumer() {
+  const user = await fetchMe();
+  if (isCheckoutConsumer(user)) return user;
+  wireCheckoutLoginLinks();
+  window.location.assign(checkoutLoginHref());
+  return null;
+}
+
+function medicineDeliveryFeeInr(deliveryOption) {
+  const opt = String(deliveryOption || "normal");
+  switch (opt) {
+    case "express_60":
+      return 49;
+    case "express_4_6":
+      return 29;
+    case "same_day":
+      return 19;
+    case "normal":
+    default:
+      return 0;
+  }
+}
+
+function totalMedicineDeliveryInr(lines, deliveryOption) {
+  const fee = medicineDeliveryFeeInr(deliveryOption);
+  const sub = (lines || []).reduce((s, L) => {
+    const q = Math.max(1, Math.floor(Number(L.quantity) || 1));
+    return s + (Number(L.unitPriceInr) || 0) * q;
+  }, 0);
+  return sub + fee;
+}
+
+function updateCheckoutAuthBanner(user) {
+  const banner = $("checkoutAuthBanner");
+  if (!banner) return;
+  const items = getCartItems();
+  const needs =
+    items.length > 0 &&
+    !isCheckoutConsumer(user) &&
+    (onlyLocalItems(items).length > 0 || onlyDiagnosticsItems(items).length > 0);
+  banner.classList.toggle("hidden", !needs);
+}
+
 function removeLinesById(lineIds) {
   const ids = new Set((lineIds || []).map((x) => String(x)));
   if (!ids.size) return;
@@ -205,11 +274,8 @@ async function placeDiagnosticsOrder() {
   const btn = $("placeDiagnosticsBtn");
   if (!statusEl || !btn) return;
 
-  const user = await fetchMe();
-  if (!user || user.role === "service_provider") {
-    statusEl.textContent = "Please login with your phone OTP to place diagnostics booking.";
-    return;
-  }
+  const user = await ensureLoggedInConsumer();
+  if (!user) return;
 
   const lines = onlyDiagnosticsItems(getCartItems());
   if (!lines.length) {
@@ -499,11 +565,8 @@ async function placeDeliveryOrder() {
   const btn = $("placeOrderBtn");
   if (!statusEl || !btn) return;
 
-  const user = await fetchMe();
-  if (!user || user.role === "service_provider") {
-    statusEl.textContent = "Please login with your phone OTP to place an order.";
-    return;
-  }
+  const user = await ensureLoggedInConsumer();
+  if (!user) return;
 
   const items = onlyLocalItems(getCartItems());
   if (!items.length) {
@@ -517,14 +580,13 @@ async function placeDeliveryOrder() {
     return;
   }
 
-  btn.disabled = true;
-  statusEl.textContent = "Placing order…";
-
   const doseMap = collectDoseByLineId();
   const delivery_option = $("deliveryOption")?.value || "normal";
+  const paymentType = $("deliveryPaymentType")?.value === "prepaid" ? "prepaid" : "cod";
 
   const prescId = getSelectedPrescriptionId();
-  const payload = {
+  const basePayload = {
+    payment_type: paymentType,
     delivery_option,
     address: {
       address_line1: addr1,
@@ -539,20 +601,117 @@ async function placeDeliveryOrder() {
       medicineLabel: L.medicineLabel,
       strength: L.strength || "",
       form: L.form || "",
-      pack_size: L.pack_size ?? null,
+      pack_size: L.packSize ?? L.pack_size ?? null,
       quantity: Number(L.quantity) || 1,
       unitPriceInr: Number(L.unitPriceInr) || 0,
       mrpInr: L.mrpInr ?? null,
       tablets_per_day: doseMap.get(L.lineId) ?? null,
     })),
   };
-  if (prescId) payload.prescription_id = prescId;
+  if (prescId) basePayload.prescription_id = prescId;
+
+  if (paymentType === "prepaid") {
+    btn.disabled = true;
+    statusEl.textContent = "Preparing Razorpay checkout…";
+    try {
+      const rz = await fetchRazorpayStatus();
+      if (!rz.configured) {
+        statusEl.innerHTML =
+          "Razorpay is not configured on the server. Add <code>RAZORPAY_KEY_ID</code> and <code>RAZORPAY_KEY_SECRET</code> to <code>.env</code> and restart, or choose <strong>Cash on delivery</strong>.";
+        btn.disabled = false;
+        return;
+      }
+      await loadRazorpayScript();
+      const totalInr = totalMedicineDeliveryInr(items, delivery_option);
+      if (!(totalInr > 0)) {
+        statusEl.textContent = "Invalid cart total.";
+        btn.disabled = false;
+        return;
+      }
+      const ord = await createRazorpayServerOrder(totalInr);
+      let handlerDone = false;
+      const options = {
+        key: ord.key_id,
+        amount: String(ord.amount),
+        currency: ord.currency || "INR",
+        order_id: ord.order_id,
+        name: "MedLens",
+        description: `Medicine delivery · ${items.length} line(s)`,
+        theme: { color: "#0f766e" },
+        handler(response) {
+          handlerDone = true;
+          void (async () => {
+            statusEl.textContent = "Verifying payment and placing order…";
+            try {
+              const res = await fetch("/api/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({
+                  ...basePayload,
+                  payment_type: "prepaid",
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                statusEl.textContent = data.error || `Order failed (${res.status})`;
+                btn.disabled = false;
+                return;
+              }
+              const id = data.order?.id;
+              statusEl.innerHTML = `Order placed: <strong>#${escapeHtml(id)}</strong> (prepaid). <a href="/order.html?id=${encodeURIComponent(
+                id
+              )}">Track order</a>.`;
+              removeLinesById(items.map((L) => L.lineId));
+              try {
+                sessionStorage.setItem(ORDER_SUCCESS_KEY, "Order placed successfully");
+              } catch {
+                /* ignore */
+              }
+              render();
+            } catch (e) {
+              statusEl.textContent = String(e?.message || e);
+            } finally {
+              btn.disabled = false;
+            }
+          })();
+        },
+        modal: {
+          ondismiss() {
+            if (!handlerDone) {
+              statusEl.textContent =
+                "Payment window closed. Try Pay online again or choose Cash on delivery.";
+              btn.disabled = false;
+            }
+          },
+        },
+      };
+      if (user?.phone_e164 || user?.email) {
+        options.prefill = {};
+        if (user.phone_e164) options.prefill.contact = user.phone_e164;
+        if (user.email) options.prefill.email = user.email;
+      }
+      statusEl.textContent = `Total ₹${fmt(totalInr)} (items + delivery fee) — complete payment in the Razorpay window.`;
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (e) {
+      statusEl.textContent = String(e?.message || e);
+      btn.disabled = false;
+    }
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = "Placing order…";
 
   try {
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(basePayload),
       credentials: "same-origin",
     });
     const data = await res.json().catch(() => ({}));
@@ -565,6 +724,13 @@ async function placeDeliveryOrder() {
     statusEl.innerHTML = `Order placed: <strong>#${escapeHtml(id)}</strong>. <a href="/order.html?id=${encodeURIComponent(
       id
     )}">Track order</a>.`;
+    removeLinesById(items.map((L) => L.lineId));
+    try {
+      sessionStorage.setItem(ORDER_SUCCESS_KEY, "Order placed successfully");
+    } catch {
+      /* ignore */
+    }
+    render();
   } catch (e) {
     statusEl.textContent = String(e?.message || e);
   } finally {
@@ -709,6 +875,9 @@ function render() {
   }
   if (diagPay && !diagPay.value) diagPay.value = "cod";
   syncDiagPrepaidHint();
+  syncDeliveryPaymentHint();
+
+  void fetchMe().then((u) => updateCheckoutAuthBanner(u));
 
   void refreshPrescriptionCheckoutPanel();
 }
@@ -730,16 +899,15 @@ $("openAllBtn")?.addEventListener("click", () => {
 
 render();
 
-const returnToCheckout = `${window.location.pathname}${window.location.search || ""}`;
-const loginReturn = `/login.html?returnTo=${encodeURIComponent(returnToCheckout || "/checkout.html")}`;
-$("loginToOrderLink")?.setAttribute("href", loginReturn);
-$("navLogin")?.setAttribute("href", loginReturn);
-
+wireCheckoutLoginLinks();
 Promise.all([refreshAuthNav(), fetchMe()]).then(([, u]) => {
   const loginLink = $("loginToOrderLink");
-  if (loginLink) loginLink.classList.toggle("hidden", Boolean(u && u.role !== "service_provider"));
+  if (loginLink) loginLink.classList.toggle("hidden", Boolean(isCheckoutConsumer(u)));
+  updateCheckoutAuthBanner(u);
 });
 $("placeOrderBtn")?.addEventListener("click", () => placeDeliveryOrder());
 $("placeDiagnosticsBtn")?.addEventListener("click", () => placeDiagnosticsOrder());
 $("diagPaymentType")?.addEventListener("change", syncDiagPrepaidHint);
+$("deliveryPaymentType")?.addEventListener("change", syncDeliveryPaymentHint);
 syncDiagPrepaidHint();
+syncDeliveryPaymentHint();

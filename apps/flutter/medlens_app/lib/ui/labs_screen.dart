@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../api/medlens_client.dart';
@@ -28,6 +29,11 @@ class _LabsScreenState extends State<LabsScreen> {
   bool _loadingCities = true;
   List<Map<String, dynamic>> _rows = [];
   String? _status;
+  bool _running = false;
+  GeocodeResult? _geo;
+
+  @override
+  void dispose() {
     _debounce?.cancel();
     _qCtrl.dispose();
     _pinCtrl.dispose();
@@ -66,6 +72,68 @@ class _LabsScreenState extends State<LabsScreen> {
     });
   }
 
+  Future<void> _useMyLocation() async {
+    setState(() {
+      _status = 'Checking location permission…';
+    });
+
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) {
+      setState(() {
+        _status = 'Location services are disabled. Enable GPS and try again.';
+      });
+      return;
+    }
+
+    var perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+    }
+    if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+      setState(() {
+        _status = 'Location permission denied. Pick a city manually.';
+      });
+      return;
+    }
+
+    setState(() {
+      _status = 'Getting coordinates…';
+    });
+
+    try {
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      setState(() {
+        _status = 'Looking up address…';
+      });
+      final geo = await _c().reverseGeocode(lat: pos.latitude, lng: pos.longitude);
+      if (!mounted) return;
+
+      City? matched;
+      final mc = geo.matchedCity;
+      if (mc != null) {
+        for (final c in _cities) {
+          if (c.slug == mc.slug) {
+            matched = c;
+            break;
+          }
+        }
+      }
+
+      setState(() {
+        _geo = geo;
+        if (matched != null) _city = matched;
+        _status = null;
+      });
+
+      await _runSearch();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _status = e.toString();
+      });
+    }
+  }
+
   Future<void> _runSearch() async {
     final q = _qCtrl.text.trim();
     final slug = _city?.slug;
@@ -86,18 +154,29 @@ class _LabsScreenState extends State<LabsScreen> {
     });
 
     try {
-      final bundle = await _c().labsSearch(q: q, city: slug, pincode: _pinCtrl.text.trim());
+      final geo = _geo;
+      final bundle = await _c().labsSearch(
+        q: q,
+        city: slug,
+        pincode: _pinCtrl.text.trim(),
+        lat: geo?.lat,
+        lng: geo?.lng,
+      );
       final raw = bundle['items'] as List<dynamic>? ?? [];
-      _rows = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-      _status = null;
+      if (!mounted) return;
+      setState(() {
+        _rows = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        _status = null;
+        _running = false;
+      });
     } catch (e) {
-      _status = e.toString();
-      _rows = [];
+      if (!mounted) return;
+      setState(() {
+        _status = e.toString();
+        _rows = [];
+        _running = false;
+      });
     }
-
-    setState(() {
-      _running = false;
-    });
   }
 
   void _addToCart(BuildContext ctx, Map<String, dynamic> it) {
@@ -198,10 +277,28 @@ class _LabsScreenState extends State<LabsScreen> {
                         child: TextField(
                           controller: _pinCtrl,
                           decoration: const InputDecoration(labelText: 'Pincode'),
+                          onChanged: (_) => _debouncedSearch(),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _running ? null : _useMyLocation,
+                      icon: const Icon(Icons.my_location, size: 18),
+                      label: const Text('Use my location'),
+                    ),
+                  ),
+                  if ((_geo?.formattedAddress ?? '').trim().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(
+                        _geo!.formattedAddress!.trim(),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    ),
                   const SizedBox(height: 8),
                   Text(
                     context.read<SettingsState>().baseUrl,

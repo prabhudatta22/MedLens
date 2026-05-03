@@ -31,6 +31,7 @@ class LocalOffer {
   final double priceInr;
   final double? mrpInr;
   final double? discountPct;
+  final double? distanceKm;
 
   LocalOffer({
     required this.pharmacyId,
@@ -47,6 +48,7 @@ class LocalOffer {
     required this.priceInr,
     required this.mrpInr,
     required this.discountPct,
+    this.distanceKm,
   });
 
   factory LocalOffer.fromJson(Map<String, dynamic> j) {
@@ -73,6 +75,7 @@ class LocalOffer {
       priceInr: numOrNull(j['price_inr']) ?? 0,
       mrpInr: numOrNull(j['mrp_inr']),
       discountPct: numOrNull(j['discount_pct']),
+      distanceKm: numOrNull(j['distance_km']),
     );
   }
 }

@@ -206,7 +206,7 @@ function normalizeProductType(category = "") {
   return "pathology";
 }
 
-export async function searchPartnerPackages({ query, city, category, pincode }) {
+export async function searchPartnerPackages({ query, city, category, pincode, lat, lng } = {}) {
   if (!isEnabled()) return { enabled: false, packages: [] };
   const zip = String(pincode || getEnv("DIAG_B2B_DEFAULT_PINCODE") || "").trim();
   if (!zip) throw new Error("Diagnostics search requires pincode (or DIAG_B2B_DEFAULT_PINCODE)");
@@ -222,6 +222,12 @@ export async function searchPartnerPackages({ query, city, category, pincode }) 
     test_type: normalizeProductType(category),
     client_id: getEnv("DIAG_B2B_CLIENT_ID", ""),
   };
+  const la = lat != null ? Number(lat) : NaN;
+  const lo = lng != null ? Number(lng) : NaN;
+  if (Number.isFinite(la) && Number.isFinite(lo)) {
+    payload.lat = String(la);
+    payload.long = String(lo);
+  }
   const data = await httpRequest(productsPath(), {
     method,
     body: method === "GET" ? null : payload,
@@ -242,9 +248,19 @@ export async function searchPartnerPackages({ query, city, category, pincode }) 
   return { enabled: true, packages: list };
 }
 
-export async function getPartnerPackageDetails({ packageId, city, pincode, category = "" }) {
+export async function getPartnerPackageDetails({ packageId, city, pincode, category = "", lat, lng } = {}) {
   if (!isEnabled()) return null;
-  const { packages } = await searchPartnerPackages({ query: "", city, category, pincode });
+  const latLngOpts =
+    lat != null && lng != null && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+      ? { lat: Number(lat), lng: Number(lng) }
+      : {};
+  const { packages } = await searchPartnerPackages({
+    query: "",
+    city,
+    category,
+    pincode,
+    ...latLngOpts,
+  });
   return (
     packages.find((p) => p.package_id === String(packageId) || p.deal_id === String(packageId)) ||
     packages.find((p) => p.product_type_id === String(packageId)) ||
