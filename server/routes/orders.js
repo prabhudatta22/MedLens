@@ -251,26 +251,55 @@ function normalizeDiagnosticsPackages(body) {
   return out;
 }
 
-function sanitizePaymentMeta(meta) {
-  if (!meta || typeof meta !== "object") return null;
-  const method = String(meta.method || "").trim().toLowerCase();
-  if (method === "upi") {
-    const upi = String(meta.upi_id || "").trim();
-    if (!upi) return { method: "upi" };
-    const [left, right] = upi.split("@");
-    const masked = left ? `${left.slice(0, 2)}***@${right || "upi"}` : "upi";
-    return { method: "upi", upi_masked: masked };
+export async function resolveDiagnosticsPaymentState({
+  body = {},
+  paymentType = "cod",
+  totalPaise = 0,
+  razorpayConfigured = isRazorpayConfigured,
+  assertPayment = assertCapturedDiagnosticsPayment,
+} = {}) {
+  if (paymentType !== "prepaid") {
+    return { paymentMeta: null, dbPaymentStatus: "cod" };
   }
-  if (method === "card") {
-    const last4 = String(meta.card_last4 || "").replace(/\D/g, "").slice(-4);
-    return {
-      method: "card",
-      card_last4: last4 || "****",
-      card_network: String(meta.card_network || "CARD").slice(0, 16),
-      card_holder_name: String(meta.card_holder_name || "").slice(0, 80),
-    };
+
+  if (!razorpayConfigured()) {
+    const err = new Error("Prepaid diagnostics require Razorpay to be configured on the server.");
+    err.statusCode = 503;
+    throw err;
   }
-  return { method: "unknown" };
+
+  const rzOrder = String(body?.razorpay_order_id || "").trim();
+  const rzPay = String(body?.razorpay_payment_id || "").trim();
+  const rzSig = String(body?.razorpay_signature || "").trim();
+  if (!rzOrder || !rzPay || !rzSig) {
+    const err = new Error(
+      "Prepaid requires Razorpay checkout: send razorpay_order_id, razorpay_payment_id, and razorpay_signature after payment."
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  try {
+    await assertPayment({
+      razorpayOrderId: rzOrder,
+      razorpayPaymentId: rzPay,
+      razorpaySignature: rzSig,
+      expectedAmountPaise: totalPaise,
+    });
+  } catch (e) {
+    e.statusCode = 400;
+    throw e;
+  }
+
+  return {
+    paymentMeta: {
+      provider: "razorpay",
+      razorpay_order_id: rzOrder,
+      razorpay_payment_id: rzPay,
+      verified: true,
+    },
+    dbPaymentStatus: "prepaid_verified",
+  };
 }
 
 async function createDiagnosticReminder({ client, userId, orderId, packageName, scheduledFor }) {
@@ -498,44 +527,17 @@ router.post("/diagnostics", async (req, res) => {
   if (!Number.isFinite(priceInr) || priceInr <= 0) return res.status(400).json({ error: "price_inr must be greater than 0" });
 
   const totalPaise = packages.reduce((sum, p) => sum + Math.round(Number(p.price_inr) * 100), 0);
-  let paymentMeta = null;
-  if (paymentType === "prepaid") {
-    const rzOrder = String(req.body?.razorpay_order_id || "").trim();
-    const rzPay = String(req.body?.razorpay_payment_id || "").trim();
-    const rzSig = String(req.body?.razorpay_signature || "").trim();
-    if (rzOrder && rzPay && rzSig) {
-      try {
-        await assertCapturedDiagnosticsPayment({
-          razorpayOrderId: rzOrder,
-          razorpayPaymentId: rzPay,
-          razorpaySignature: rzSig,
-          expectedAmountPaise: totalPaise,
-        });
-        paymentMeta = {
-          provider: "razorpay",
-          razorpay_order_id: rzOrder,
-          razorpay_payment_id: rzPay,
-          verified: true,
-        };
-      } catch (e) {
-        return res.status(400).json({ error: e?.message || "Razorpay payment verification failed" });
-      }
-    } else if (isRazorpayConfigured()) {
-      return res.status(400).json({
-        error: "Prepaid requires Razorpay checkout: send razorpay_order_id, razorpay_payment_id, and razorpay_signature after payment.",
-      });
-    } else {
-      paymentMeta = sanitizePaymentMeta(req.body?.payment_meta);
-      if (!paymentMeta) {
-        return res.status(400).json({ error: "payment_meta is required for prepaid booking (or configure Razorpay)" });
-      }
-    }
+  let paymentState;
+  try {
+    paymentState = await resolveDiagnosticsPaymentState({
+      body: req.body,
+      paymentType,
+      totalPaise,
+    });
+  } catch (e) {
+    return res.status(e?.statusCode || 400).json({ error: e?.message || "Razorpay payment verification failed" });
   }
-
-  let dbPaymentStatus = "cod";
-  if (paymentType === "prepaid") {
-    dbPaymentStatus = paymentMeta ? "prepaid_verified" : "cod";
-  }
+  const { paymentMeta, dbPaymentStatus } = paymentState;
 
   const rzPaymentDupCheck = paymentMeta?.razorpay_payment_id
     ? String(paymentMeta.razorpay_payment_id).trim()
