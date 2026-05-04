@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MedLens — Diagnostic reports</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="profile-embed-page">
+    <main class="profile-embed-inner">
+      <section id="diagReportsCard" class="profile-card">
+        <div class="section-head">
+          <div>
+            <h3 style="margin-bottom: 0.25rem">Diagnostic reports</h3>
+            <p class="muted section-sub">
+              Download lab PDFs linked to your account. Hosted files may use signed S3 URLs; local copies open in a new tab.
+            </p>
+          </div>
+        </div>
+        <p class="muted" id="diagReportsStatus" data-diagnostic-reports-status style="margin: 0 0 0.75rem"></p>
+        <div id="diagReportsWrap" class="diag-reports-wrap" data-diagnostic-reports-wrap></div>
+      </section>
+    </main>
+    <script type="module">
+      import { loadDiagnosticReportsInto } from "/profile-page-reports.js";
+      void loadDiagnosticReportsInto({
+        wrap: document.querySelector("[data-diagnostic-reports-wrap]"),
+        status: document.querySelector("[data-diagnostic-reports-status]"),
+      });
+    </script>
+  </body>
+</html>

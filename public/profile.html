@@ -57,6 +57,7 @@
             <span class="profile-side-title">Account</span>
             <a href="/profile.html?view=abha" class="profile-side-link" data-profile-view="abha">ABHA (Health ID)</a>
             <a href="/profile.html?view=rx" class="profile-side-link" data-profile-view="rx">Prescriptions</a>
+            <a href="/profile.html?view=reports" class="profile-side-link" data-profile-view="reports">Diagnostic reports</a>
             <a href="/profile.html?view=addresses" class="profile-side-link" data-profile-view="addresses">Saved addresses</a>
             <a href="/profile.html?view=payments" class="profile-side-link" data-profile-view="payments">Saved payment methods</a>
           </div>
@@ -117,6 +118,27 @@
               </form>
             </div>
           </section>
+          </div>
+
+          <div class="profile-view-panel" data-profile-view-panel="reports" id="profileViewReports" hidden>
+            <section id="diagReportsCard" class="profile-card">
+              <div class="section-head">
+                <div>
+                  <h3 style="margin-bottom: 0.25rem">Diagnostic reports</h3>
+                  <p class="muted section-sub">
+                    Download lab PDFs attached to your bookings. Hosted files may use signed S3 URLs; local storage opens
+                    in a new tab.
+                  </p>
+                </div>
+              </div>
+              <p
+                class="muted"
+                id="diagReportsStatus"
+                data-diagnostic-reports-status
+                style="margin: 0 0 0.75rem"
+              ></p>
+              <div id="diagReportsWrap" class="diag-reports-wrap" data-diagnostic-reports-wrap></div>
+            </section>
           </div>
 
           <div class="profile-view-panel" data-profile-view-panel="embed" id="profileViewEmbed" hidden>

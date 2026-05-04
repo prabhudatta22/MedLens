@@ -149,6 +149,61 @@ async function load() {
     }
   }
 
+  const dgc = $("orderDiagReport");
+  if (dgc) {
+    if (
+      o.order_kind === "diagnostics" &&
+      o.provider_order_ref &&
+      !String(o.provider_order_ref).startsWith("LOCAL-")
+    ) {
+      dgc.classList.remove("hidden");
+      dgc.innerHTML = `
+        <div class="rx-match" style="justify-content: flex-start">
+          <div>
+            <div class="rx-match-title">Lab report</div>
+            <div class="rx-match-sub muted">
+              Fetch the latest verified report from the diagnostics partner into your profile (PDF/images).
+              <a href="/profile.html?view=reports" style="margin-left: 0.35rem">View reports</a>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" id="orderDiagSyncBtn">Pull report</button>
+        </div>
+        <p class="muted" id="orderDiagSyncStatus" style="margin: 0.4rem 0 0"></p>`;
+      $("orderDiagSyncBtn")?.addEventListener("click", async () => {
+        const st = $("orderDiagSyncStatus");
+        if (st) st.textContent = "Contacting lab…";
+        try {
+          const r = await fetch(`/api/orders/${encodeURIComponent(String(o.id))}/sync-diagnostic-report`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            if (st) st.textContent = j.error || `Sync failed (${r.status}).`;
+            return;
+          }
+          const s = j.sync;
+          let msg = "Done.";
+          if (s?.report_id) {
+            msg = `Saved report #${s.report_id}. Open Profile → Diagnostic reports to download.`;
+          } else if (s?.skipped) {
+            msg = `No file saved (${s.reason || "skipped"}).`;
+          } else if (s && typeof s === "object" && s.reason && !s.report_id) {
+            msg = String(s.reason);
+          }
+          if (st) st.textContent = msg;
+        } catch (e) {
+          if (st) st.textContent = e?.message || "Sync failed.";
+        }
+      });
+    } else {
+      dgc.classList.add("hidden");
+      dgc.innerHTML = "";
+    }
+  }
+
   const items = data.items || [];
   itemsTbody.innerHTML = items
     .map((it) => {

@@ -40,8 +40,12 @@ export async function attachUser(req, _res, next) {
   if (s.revoked_at) return next();
   if (new Date(s.expires_at).getTime() < Date.now()) return next();
 
+  const uidNum = Number(s.user_id);
+  if (!Number.isFinite(uidNum) || uidNum < 1) return next();
+
   req.user = {
-    id: s.user_id,
+    id: uidNum,
+    role: "user",
     phone_e164: s.phone_e164,
     email: s.email,
     full_name: s.full_name,

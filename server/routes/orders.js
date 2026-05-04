@@ -11,6 +11,7 @@ import {
   assertCapturedDiagnosticsPayment,
   isRazorpayConfigured,
 } from "../payments/razorpayClient.js";
+import { syncDiagnosticsReportForOrder } from "../diagnostics/partnerReportSync.js";
 
 const router = Router();
 router.use(requireUser);
@@ -711,13 +712,30 @@ router.post("/diagnostics", async (req, res) => {
       return res.status(502).json({ error: e?.message || "Diagnostics partner booking failed" });
     }
   } else {
+    const localRef = `LOCAL-${Date.now()}`;
     providerBooking = {
-      booking_ref: `LOCAL-${Date.now()}`,
+      booking_ref: localRef,
+      vendor_booking_id: localRef,
+      vendor_billing_user_id: `medlens-${userId}`,
+      vendor_customer_id: null,
       slot: null,
       freeze_ref: null,
       provider_response: { mode: "local_fallback", note: "Partner integration is disabled" },
     };
   }
+
+  const diagnosticsPayloadEnvelope = {
+    medlens: {
+      partner_booking_id: providerBooking.booking_ref ?? null,
+      vendor_booking_id: providerBooking.vendor_booking_id ?? null,
+      vendor_billing_user_id: providerBooking.vendor_billing_user_id ?? null,
+      vendor_customer_id: providerBooking.vendor_customer_id ?? null,
+    },
+    partner_response:
+      providerBooking.provider_response && typeof providerBooking.provider_response === "object"
+        ? providerBooking.provider_response
+        : {},
+  };
 
   const client = await pool.connect();
   try {
@@ -739,7 +757,7 @@ router.post("/diagnostics", async (req, res) => {
           address.id,
           partnerEnabled ? "healthians" : "medlens-local",
           providerBooking.booking_ref || null,
-          JSON.stringify(providerBooking.provider_response || {}),
+          JSON.stringify(diagnosticsPayloadEnvelope),
           `Diagnostics package booking in ${city} (${paymentType.toUpperCase()}) · ${packages.length} test(s)`,
           diagPrescriptionId,
           rzOrderId,
@@ -867,7 +885,47 @@ router.get("/:id", async (req, res) => {
     }
   }
 
+  const diagRow = orderRes.rows[0];
+  if (
+    String(process.env.DIAGNOSTIC_REPORT_SYNC_ON_ORDER_VIEW || "").trim() === "1" &&
+    diagRow?.order_kind === "diagnostics" &&
+    diagRow?.provider_order_ref &&
+    !String(diagRow.provider_order_ref).startsWith("LOCAL-") &&
+    isDiagnosticsPartnerEnabled()
+  ) {
+    const oid = diagRow.id;
+    const uid = diagRow.user_id;
+    setImmediate(() => {
+      syncDiagnosticsReportForOrder(pool, oid, uid).catch((e) =>
+        console.error("[diagnostic report sync on order view]", e?.message || e)
+      );
+    });
+  }
+
   res.json({ order: orderRes.rows[0], items: itemsRes.rows, events: eventsRes.rows, partner_status: partnerStatus });
+});
+
+router.post("/:id/sync-diagnostic-report", async (req, res) => {
+  await ensureOrdersSchema();
+  const userId = req.user.id;
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid id" });
+
+  const own = await pool.query(
+    `SELECT id, user_id, order_kind FROM orders WHERE id = $1 AND user_id = $2 LIMIT 1`,
+    [id, userId]
+  );
+  if (!own.rows.length) return res.status(404).json({ error: "Not found" });
+  if (String(own.rows[0].order_kind) !== "diagnostics") {
+    return res.status(400).json({ error: "Only diagnostics orders can sync lab reports" });
+  }
+
+  try {
+    const out = await syncDiagnosticsReportForOrder(pool, id, userId);
+    return res.json({ ok: true, sync: out });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || "Sync failed" });
+  }
 });
 
 // MVP: user can cancel only if not yet out_for_delivery/delivered

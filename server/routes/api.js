@@ -182,6 +182,43 @@ router.get(
   })
 );
 
+/**
+ * GET /api/labs/tests/suggest?q=cbc (&category=)
+ * Catalog name autocomplete only (no city) — mirrors /api/medicines/search UX.
+ */
+router.get(
+  "/labs/tests/suggest",
+  asyncHandler(async (req, res) => {
+    const q = (req.query.q || "").toString().trim().slice(0, 120);
+    if (!q || q.length < 2) {
+      return res.json({ items: [] });
+    }
+    const category = (req.query.category || "").toString().trim().toUpperCase();
+    const like = `%${q.toLowerCase()}%`;
+    const params = [like];
+    let catSql = "";
+    if (category === "PATHOLOGY" || category === "RADIOLOGY") {
+      params.push(category);
+      catSql = " AND t.category = $2";
+    }
+    const { rows } = await pool.query(
+      `SELECT
+        t.id,
+        t.heading,
+        t.sub_heading,
+        t.category,
+        t.slug,
+        t.icon_url
+       FROM lab_tests t
+       WHERE t.search_vector LIKE $1${catSql}
+       ORDER BY t.heading ASC
+       LIMIT 30`,
+      params
+    );
+    res.json({ items: rows });
+  })
+);
+
 // Lightweight intent helper for diagnostics search box
 router.get(
   "/labs/intent",

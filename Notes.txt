@@ -144,3 +144,106 @@ Pick one wedge for the next quarter—for example “PIN-accurate indie pharmacy
 
 If you tell me your target primary user (price-sensitive retail buyer, chronic patient, pharmacy chain, or diagnostics buyer), I can narrow this to a tighter backlog with 5–7 epics and acceptance criteria.
 
+. Drug mapping engine
+What you have today
+
+medicines as the internal master: display_name, generic_name, strength, form, pack_size, generated search_vector + GIN trigram index.
+Search / compare: text match on display_name / generic_name (including “compact” stripping spaces for typos).
+Prescription OCR → drug: matchMedicinesFromText uses pg_trgm similarity on search_vector with score threshold and dedupe by medicine_id.
+Imports: Xlsx long-format creates/links rows; SKU-style values can land in generic_name (e.g. import:sku:… in seeded data), which is a light form of retailer SKU → row but not a clean mapping model.
+Retailers (online): partner search is query-in → offer-out; no shared MedLens product id across channels in that path.
+Gaps vs a real “mapping engine”
+
+No canonical molecule + strength + form + pack layer (duplicates and near-duplicates are expected at scale).
+No external vocab (INN, RxNorm, proprietary national codes) as optional references.
+No dedicated alias / synonym / brand → generic graph.
+Online partner offers are not resolved to one internal medicine_id (yet).
+Suggested approach
+
+Phase A (data model): Introduce product_concept (or drug_master): canonical salt, strength, unit, form; migrate medicines to point at it or add master_id + keep medicine as “SKU / pack variant”.
+Phase B (mapping): Tables: external_codes (source, code, concept_id), medicine_aliases (text → concept_id, confidence). Keep trigram + rules for fuzzy match; add human review queue for low confidence.
+Phase C (pipelines): On import and on partner API response, run resolver → medicine_id / concept_id; store match confidence on pharmacy_prices or staging tables.
+Phase D (quality): Periodic dedupe jobs and “merge medicine” admin flow.
+2. Price normalization
+What you have today
+
+price_inr, mrp_inr, discount_pct on pharmacy_prices (and labs); import can derive selling price from MRP + discount; warnings on discount vs MRP mismatch.
+Compare surfaces min/max and spread %; geo sort is separate from “unit price”.
+Online: parseOfferJson-style extraction; amounts are whatever the partner sends (no universal per-unit normalization in the compare API).
+Gaps
+
+Heterogeneous packs (10s vs 15s) are not normalized to price per unit of therapy (per tablet, per ml, per day) for fair ranking.
+No explicit channel normalization (retail vs online vs “offer” types) beyond price_type.
+Suggested approach
+
+Define normalized_unit_price_inr (or compute at read time): e.g. price_inr / (pack_size * countable_units) with rules per form.
+Enforce pack_size and UOM on import; reject or flag ambiguous rows.
+For online partners, map SKUs to medicine_id first, then normalize with the same function as DB prices.
+Optionally store price history (pharmacy_price_events) for trending, not just updated_at.
+3. Availability intelligence
+What you have today
+
+pharmacy_prices.in_stock (boolean) + updated_at.
+Diagnostics: partner serviceability paths; city/pin scoped catalog.
+Consumer UX: geo distance, sort; no stock confidence in ranking.
+Gaps
+
+No quantity, restock ETA, or source of stock (POS vs manual).
+No staleness signal (e.g. “price 30 days old”).
+No aggregation like “in stock in X% of pharmacies in PIN”.
+Suggested approach
+
+Extend model: stock_qty optional, stock_status enum (in_stock / limited / on_request / unknown), stock_observed_at.
+Ingest from POS/feeds where possible; default UI to confidence labels (“Verified today” vs “Listed, not verified”).
+Rankers: boost in-stock + fresh; penalize unknown when user needs delivery today.
+Analytics (see below): track out-of-stock after click to improve partner data.
+4. B2B analytics
+What you have today
+
+Partner API (requirePartner): /partner/sales/summary, /partner/sales/recent — KPIs, top SKUs, daily series from sales / sale_items (-margin style with unit_cost_inr).
+Import + partner dashboard (partner.html).
+Operational: Razorpay/webhook and order flows; not the same as marketplace analytics.
+Gaps
+
+Little platform-side B2B intelligence: search volume, compare impressions, conversion (search → cart → order), benchmarking vs peers (anonymized), category heatmaps.
+Partner analytics depend on sales being fed; ordering via MedLens may not fully mirror that table unless integrated.
+Suggested approach
+
+Event log (append-only): search_query, medicine_id, pharmacy_id, event (impression, click, add_to_cart, checkout_start, order), timestamps, optional anonymized session.
+Partner console v2: “Demand for your SKUs”, “Win rate vs cheapest in city”, “Stale prices”.
+Chain / admin: rollup across pharmacies (with privacy thresholds).
+Align order / sale pipeline so confirmed orders flow into sales (or a new order_analytics mart) for consistency.
+5. Premium listing
+What you have today
+
+No first-class paid placement or sponsored rank in schema or compare logic.
+pharmacies.chain exists; ranking is price and distance (fair, not monetized).
+Gaps
+
+Entire monetization surface: billing, caps, disclosure (“Ad”), A/B on rank.
+Suggested approach
+
+Product: listing_tier or sponsored_until on pharmacies / pharmacy_prices; auction or fixed fee per city+SKU or per pharmacy+zone.
+Ranker: score = organic_score + bid_weight * sponsored_score with hard caps so paid never fully buries cheaper options (regulatory/trust).
+Transparency: label in UI; per-request audit of rank components for partners.
+Start MVP: fixed “featured pharmacy” slots in a PIN/micro-market before full auction.
+Recommended sequencing (dependencies)
+Order	Pillar	Why this order
+1
+Drug mapping (core model + resolver)
+Unlocks consistent compare, analytics, and premium SKUs.
+2
+Price normalization
+Depends on stable product identity; feeds fair compare and B2B benchmarking.
+3
+Availability intelligence
+Uses same catalog; improves trust and delivery promises.
+4
+B2B analytics
+Needs events + normalized IDs to be meaningful beyond today’s sales rollup.
+5
+Premium listing
+Only after rank and trust baseline are clear (and disclosure/compliance).
+Pragmatic wedge: keep current medicines + trigram search for speed, add drug_master_id (nullable) and backfill incrementally from imports and top queries; resolver improves every time you ingest or click “confirm match” in an admin tool.
+
+If you want to go deeper next, the highest-leverage design choice is canonical product graph vs. flat medicines — I can sketch a minimal schema (3–4 tables) tailored to your India + B2B partner use case without bloating the MVP.

@@ -1,12 +1,14 @@
 import { cacheUser, clearCachedUser, fetchAndCacheUser, loadCachedUser } from "./authProfile.js";
+import { loadDiagnosticReportsInto } from "./profile-page-reports.js";
 import { $, request, setStatus } from "./profileSectionCore.js";
 
 let profileData = null;
 /** When false, profile form body is collapsed (e.g. after opening another sidebar section). */
 let profileDetailsCardExpanded = true;
 
-const PROFILE_VIEWS = ["details", "abha", "rx", "addresses", "payments"];
-const EMBED_VIEWS = ["abha", "rx", "addresses", "payments"];
+const PROFILE_VIEWS = ["details", "abha", "rx", "reports", "addresses", "payments"];
+/** Profile sections rendered in an iframe (Diagnostic reports stays in top-level DOM so session cookies attach to API calls). */
+const IFRAME_EMBED_VIEWS = ["abha", "rx", "addresses", "payments"];
 const EMBED_PAGE_SRC = {
   abha: "/profile-page-abha.html",
   rx: "/profile-page-rx.html",
@@ -18,6 +20,7 @@ const VIEW_LABELS = {
   details: "Profile details",
   abha: "ABHA (Health ID)",
   rx: "Prescriptions",
+  reports: "Diagnostic reports",
   addresses: "Saved addresses",
   payments: "Saved payment methods",
 };
@@ -26,6 +29,7 @@ const LEGACY_HASH_TO_VIEW = {
   "#profileCard": "details",
   "#abhaCard": "abha",
   "#rxCard": "rx",
+  "#diagReportsCard": "reports",
   "#addressCard": "addresses",
   "#paymentCard": "payments",
 };
@@ -51,15 +55,35 @@ function syncCanonicalProfileUrl() {
   history.replaceState({}, "", profileViewHref(v));
 }
 
+async function loadReportsPanelNow() {
+  const mount = $("profileViewReports");
+  if (!mount) return;
+  const ok = await loadProfile();
+  if (!ok) return;
+  const hint =
+    profileData?.profile != null
+      ? { id: profileData.profile.id, phone_e164: profileData.profile.phone_e164 ?? null }
+      : null;
+  await loadDiagnosticReportsInto({
+    wrap: mount.querySelector("[data-diagnostic-reports-wrap]"),
+    status: mount.querySelector("[data-diagnostic-reports-status]"),
+    seedReports: profileData?.diagnostic_reports,
+    profileReportsLoadError: profileData?.diagnostic_reports_load_error ?? null,
+    profileHint: hint,
+  });
+}
+
 function applyProfileView(view) {
   const v = PROFILE_VIEWS.includes(view) ? view : "details";
-  const isEmbed = EMBED_VIEWS.includes(v);
+  const isIframeEmbed = IFRAME_EMBED_VIEWS.includes(v);
+  const isReportsInline = v === "reports";
 
   document.querySelectorAll("[data-profile-view-panel]").forEach((el) => {
     const panel = el.getAttribute("data-profile-view-panel");
     let on = false;
-    if (panel === "details") on = v === "details";
-    else if (panel === "embed") on = isEmbed;
+    if (panel === "details") on = v === "details" || v === "reports";
+    else if (panel === "embed") on = isIframeEmbed;
+    else if (panel === "reports") on = isReportsInline;
     el.hidden = !on;
     el.setAttribute("aria-hidden", on ? "false" : "true");
   });
@@ -73,12 +97,16 @@ function applyProfileView(view) {
   document.title = `MedLens — ${VIEW_LABELS[v]}`;
 
   const frame = $("profileSectionFrame");
-  if (frame && isEmbed) {
+  if (frame && isIframeEmbed) {
     const nextSrc = EMBED_PAGE_SRC[v];
     if (frame.dataset.embedSrc !== nextSrc) {
       frame.src = nextSrc;
       frame.dataset.embedSrc = nextSrc;
     }
+  }
+
+  if (isReportsInline) {
+    void loadReportsPanelNow();
   }
 
   if (v !== "details") {
@@ -97,7 +125,8 @@ function scrollActiveProfileSectionIntoView(view) {
   const v = PROFILE_VIEWS.includes(view) ? view : "details";
   let target = null;
   if (v === "details") target = $("profileCard");
-  else if (EMBED_VIEWS.includes(v)) target = $("profileViewEmbed");
+  else if (IFRAME_EMBED_VIEWS.includes(v)) target = $("profileViewEmbed");
+  else if (v === "reports") target = $("profileCard");
   if (!target) return;
   const instant = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   target.scrollIntoView({ behavior: instant ? "auto" : "smooth", block: "start" });
@@ -173,11 +202,11 @@ async function loadProfile() {
   if (r.status === 401) {
     clearCachedUser();
     window.location.assign("/login.html");
-    return;
+    return false;
   }
   if (!r.ok) {
     setStatus("profileStatus", r.data?.error || "Failed to load profile");
-    return;
+    return false;
   }
   profileData = r.data;
   fillBasicForm(r.data.profile);
@@ -190,6 +219,7 @@ async function loadProfile() {
     });
     renderNav(loadCachedUser());
   }
+  return true;
 }
 
 async function saveBasicProfile(e) {
@@ -206,6 +236,16 @@ async function saveBasicProfile(e) {
     return;
   }
   setStatus("profileStatus", "Profile updated.");
+  const saved = r.data?.profile;
+  if (saved) {
+    fillBasicForm(saved);
+    cacheUser({
+      ...(loadCachedUser() || {}),
+      ...saved,
+      role: "user",
+    });
+    renderNav(loadCachedUser());
+  }
   await loadProfile();
 }
 
@@ -226,7 +266,8 @@ async function init() {
   const fresh = await fetchAndCacheUser();
   renderNav(fresh);
 
-  await loadProfile();
+  const loaded = await loadProfile();
+  if (!loaded) return;
 
   wireProfileViewNav();
 

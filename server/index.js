@@ -15,8 +15,10 @@ import ordersRoutes from "./routes/orders.js";
 import profileRoutes from "./routes/profile.js";
 import abhaRoutes from "./routes/abha.js";
 import prescriptionsRoutes from "./routes/prescriptions.js";
+import diagnosticReportsRoutes from "./routes/diagnosticReports.js";
 import paymentsRazorpayRoutes from "./routes/paymentsRazorpay.js";
 import razorpayWebhook from "./routes/razorpayWebhook.js";
+import diagnosticsWebhook from "./routes/diagnosticsWebhook.js";
 import loadTestRoutes from "./routes/loadTest.js";
 import cookieParser from "cookie-parser";
 import { attachUser } from "./auth/middleware.js";
@@ -37,6 +39,7 @@ app.use(
   express.raw({ type: "application/json", limit: "2mb" }),
   razorpayWebhook
 );
+app.use("/webhook/diagnostics", diagnosticsWebhook);
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 app.use(attachUser);
@@ -64,6 +67,7 @@ app.use("/api/orders", ordersRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/abha", abhaRoutes);
 app.use("/api/prescriptions", prescriptionsRoutes);
+app.use("/api/diagnostic-reports", diagnosticReportsRoutes);
 app.use("/api/payments/razorpay", paymentsRazorpayRoutes);
 app.use("/webhook/whatsapp", whatsapp);
 

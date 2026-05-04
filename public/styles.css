@@ -788,6 +788,18 @@ body {
   align-items: flex-end;
 }
 
+.labs-toolbar > label.field-hero:first-of-type {
+  min-width: 0;
+}
+
+.labs-toolbar .input-wrap {
+  z-index: 4;
+}
+
+.labs-toolbar .suggestions {
+  z-index: 50;
+}
+
 /* Diagnostics search: slightly larger primary input */
 .labs-toolbar #labQ {
   padding: 0.85rem 0.9rem;
@@ -1018,6 +1030,18 @@ body {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--accent);
+}
+
+.price-table td a:not(.btn) {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.price-table td a:not(.btn):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .best {
@@ -1257,6 +1281,8 @@ body {
 
 /* Keep section cards clear of the sticky topbar when scrolling into view (sidebar + SPA panels). */
 .profile-dashboard #profileCard,
+.profile-dashboard #profileViewReports,
+.profile-dashboard #diagReportsCard,
 .profile-dashboard #profileViewEmbed {
   scroll-margin-top: 5.75rem;
 }

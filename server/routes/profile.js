@@ -3,6 +3,7 @@ import { pool } from "../db/pool.js";
 import { requireUser } from "../auth/middleware.js";
 import { ensureAbhaSchema } from "../abha/schema.js";
 import { loadAbhaLink, mergeAndPushAbhaForUser } from "../abha/syncProfile.js";
+import { listDiagnosticReportsForUser } from "../diagnostics/userDiagnosticReportsList.js";
 
 const router = Router();
 router.use(requireUser);
@@ -72,6 +73,16 @@ function requireConsumer(req, res) {
   return true;
 }
 
+/** Resolves Postgres `users.id` for consumer OTP / Google sessions (`req.user.id` must be numeric). */
+function consumerDbUserId(req, res) {
+  const uid = Number(req.user?.id);
+  if (!Number.isFinite(uid) || uid < 1) {
+    res.status(400).json({ error: "Invalid session (consumer id missing)" });
+    return null;
+  }
+  return uid;
+}
+
 function cleanText(v, max = 200) {
   const s = String(v || "").trim();
   return s ? s.slice(0, max) : null;
@@ -80,7 +91,8 @@ function cleanText(v, max = 200) {
 router.get("/", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
 
   const { rows: regRows } = await pool.query(
     `SELECT
@@ -156,19 +168,37 @@ router.get("/", async (req, res) => {
     abha = { linked: false };
   }
 
-  return res.json({
+  let diagnostic_reports = [];
+  let diagnostic_reports_load_error = null;
+  try {
+    diagnostic_reports = await listDiagnosticReportsForUser(pool, userId);
+  } catch (e) {
+    console.error("MedLens: listDiagnosticReportsForUser:", e?.message || e);
+    diagnostic_reports_load_error =
+      process.env.NODE_ENV === "production"
+        ? "Could not load diagnostic reports (database issue). Confirm migrations ran against this DATABASE_URL."
+        : String(e?.message || "Failed to load diagnostic reports").slice(0, 500);
+  }
+
+  const payload = {
     profile: uRes.rows[0],
     addresses: aRes.rows,
     payment_methods: pRes.rows,
     orders: oRes.rows,
     abha,
-  });
+    diagnostic_reports,
+  };
+  if (diagnostic_reports_load_error) {
+    payload.diagnostic_reports_load_error = diagnostic_reports_load_error;
+  }
+  return res.json(payload);
 });
 
 router.put("/basic", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
 
   const full_name = cleanText(req.body?.full_name, 120);
   const email = cleanText(req.body?.email, 160)?.toLowerCase() || null;
@@ -212,7 +242,8 @@ router.put("/basic", async (req, res) => {
 router.post("/addresses", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
   const b = req.body || {};
   const address_line1 = cleanText(b.address_line1, 220);
   if (!address_line1) return res.status(400).json({ error: "address_line1 is required" });
@@ -264,7 +295,8 @@ router.post("/addresses", async (req, res) => {
 router.post("/addresses/:id/default", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid address id" });
   const client = await pool.connect();
@@ -297,7 +329,8 @@ router.post("/addresses/:id/default", async (req, res) => {
 router.delete("/addresses/:id", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid address id" });
   const { rowCount } = await pool.query(`DELETE FROM user_addresses WHERE id = $1 AND user_id = $2`, [id, userId]);
@@ -308,7 +341,8 @@ router.delete("/addresses/:id", async (req, res) => {
 router.post("/payment-methods", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
   const b = req.body || {};
   const method_type = String(b.method_type || "").trim().toLowerCase();
   if (!["upi", "card"].includes(method_type)) {
@@ -366,7 +400,8 @@ router.post("/payment-methods", async (req, res) => {
 router.post("/payment-methods/:id/default", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid payment method id" });
   const client = await pool.connect();
@@ -394,7 +429,8 @@ router.post("/payment-methods/:id/default", async (req, res) => {
 router.delete("/payment-methods/:id", async (req, res) => {
   if (!requireConsumer(req, res)) return;
   await ensureProfileSchema();
-  const userId = req.user.id;
+  const userId = consumerDbUserId(req, res);
+  if (userId == null) return;
   const id = Number(req.params.id);
   if (!Number.isFinite(id) || id < 1) return res.status(400).json({ error: "Invalid payment method id" });
   const { rowCount } = await pool.query(`DELETE FROM user_payment_methods WHERE id = $1 AND user_id = $2`, [id, userId]);

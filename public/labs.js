@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 
 const MIN_QUERY_LEN = 2;
 const DEBOUNCE_MS = 380;
-const SUGGEST_MIN_QUERY_LEN = 3;
+const SUGGEST_MIN_QUERY_LEN = 2;
 const SUGGEST_DEBOUNCE_MS = 180;
 const RECENT_KEY = "medlens_recent_lab_searches_v1";
 const RECENT_MAX = 6;
@@ -33,6 +33,19 @@ function escapeHtml(s) {
 
 function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
+}
+
+/** Heading / partner package label for autocomplete rows. */
+function diagSuggestionLabel(it) {
+  return String(
+    it?.heading ??
+      it?.name ??
+      it?.package_name ??
+      it?.product_name ??
+      it?.title ??
+      it?.test_name ??
+      ""
+  ).trim();
 }
 
 function appendStoredGeoCoords(params) {
@@ -542,6 +555,8 @@ async function loadCategories() {
       selectedCategory = selectedCategory === c ? "" : c;
       loadCategories();
       runSearch();
+      clearTimeout(suggestTimer);
+      suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
     });
   });
 }
@@ -813,7 +828,7 @@ async function refreshIntentHints() {
   }
 }
 
-// --- Autocomplete suggestions (3+ chars) ---
+// --- Autocomplete suggestions (same min length as live search / medicines) ---
 let suggestTimer;
 /** @type {AbortController | null} */
 let suggestAbort = null;
@@ -848,12 +863,13 @@ function renderSuggestions(items, q) {
   const { input, box } = getSuggestEls();
   if (!input || !box) return;
 
-  if (!Array.isArray(items) || items.length === 0) {
+  const filtered = (Array.isArray(items) ? items : []).filter((it) => diagSuggestionLabel(it));
+  if (!filtered.length) {
     closeSuggestions();
     return;
   }
 
-  suggestItems = items.slice(0, 10);
+  suggestItems = filtered.slice(0, 10);
   suggestActive = -1;
   openSuggestions();
 
@@ -861,7 +877,7 @@ function renderSuggestions(items, q) {
   box.innerHTML = suggestItems
     .map((it, idx) => {
       const id = `labQ-sug-${idx}`;
-      const heading = String(it.heading || "").trim();
+      const heading = diagSuggestionLabel(it);
       const sub = String(it.sub_heading || "").trim();
       const headingLower = heading.toLowerCase();
       const hitAt = qLower && headingLower.includes(qLower) ? headingLower.indexOf(qLower) : -1;
@@ -904,7 +920,7 @@ function pickSuggestion(idx) {
   const { input } = getSuggestEls();
   if (!input) return;
   const it = suggestItems[idx];
-  const heading = String(it?.heading || "").trim();
+  const heading = diagSuggestionLabel(it);
   if (!heading) return;
   input.value = heading;
   closeSuggestions();
@@ -926,22 +942,29 @@ async function runSuggestSearch() {
   suggestAbort = new AbortController();
   const signal = suggestAbort.signal;
 
-  const city = $("labCity")?.value || "";
-  const pincode = cleanPincode($("labPincode")?.value || "");
-  const params = new URLSearchParams({ q, city, pincode });
-  if (selectedCategory) params.set("category", selectedCategory);
-  appendStoredGeoCoords(params);
-
   try {
-    // Reuse labs search endpoint for suggestions (we only display top results).
-    const res = await fetch(`/api/labs/search?${params.toString()}`, { signal });
+    const suggestParams = new URLSearchParams({ q });
+    if (selectedCategory) suggestParams.set("category", selectedCategory);
+    const res = await fetch(`/api/labs/tests/suggest?${suggestParams.toString()}`, { signal });
     const data = await res.json().catch(() => ({}));
     if (signal.aborted) return;
-    if (!res.ok) {
-      closeSuggestions();
-      return;
+    let items = Array.isArray(data.items) ? data.items : [];
+
+    // Local catalog empty (e.g. partner-only DB): fall back to priced search when city is set.
+    if (!items.length) {
+      const city = $("labCity")?.value || "";
+      if (city) {
+        const p2 = new URLSearchParams({ q, city, pincode: cleanPincode($("labPincode")?.value || "") });
+        if (selectedCategory) p2.set("category", selectedCategory);
+        appendStoredGeoCoords(p2);
+        const res2 = await fetch(`/api/labs/search?${p2.toString()}`, { signal });
+        const data2 = await res2.json().catch(() => ({}));
+        if (signal.aborted) return;
+        if (res2.ok && Array.isArray(data2.items)) items = data2.items;
+      }
     }
-    renderSuggestions(data.items || [], q);
+
+    renderSuggestions(items, q);
   } catch (e) {
     if (e?.name === "AbortError") return;
     closeSuggestions();
@@ -985,14 +1008,24 @@ $("labQ").addEventListener("input", () => {
   suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
 });
 
-$("labQ").addEventListener("blur", () => setTimeout(() => closeSuggestions(), 120));
+$("labQ").addEventListener("blur", () => setTimeout(() => closeSuggestions(), 180));
 
-$("labCity").addEventListener("change", runSearch);
+$("labCity").addEventListener("change", () => {
+  runSearch();
+  if (($("labQ")?.value || "").trim().length >= SUGGEST_MIN_QUERY_LEN) {
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
+  }
+});
 $("labPincode")?.addEventListener("input", (e) => {
   const el = e.currentTarget;
   if (!el) return;
   el.value = cleanPincode(el.value);
   scheduleSearch();
+  if (($("labQ")?.value || "").trim().length >= SUGGEST_MIN_QUERY_LEN) {
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
+  }
 });
 
 async function initLabsPage() {
@@ -1042,6 +1075,8 @@ async function initLabsPage() {
   if (q0) {
     $("labQ").value = q0;
     runSearch();
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
   } else {
     setStatus("Type a test name to search (e.g. CBC).");
   }

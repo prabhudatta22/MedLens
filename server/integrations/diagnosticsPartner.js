@@ -135,6 +135,10 @@ function bookingStatusPath() {
   return getEnv("DIAG_B2B_BOOKING_STATUS_PATH", "getBookingStatus");
 }
 
+function customerReportPath() {
+  return getEnv("DIAG_B2B_CUSTOMER_REPORT_PATH", "getCustomerReport_v2");
+}
+
 async function getAccessToken() {
   const now = Date.now();
   if (tokenCache.token && tokenCache.expiresAt > now + 30_000) return tokenCache.token;
@@ -509,8 +513,22 @@ export async function createPartnerDiagnosticsBooking({
     "data.order_id",
     "result.booking_id",
   ]);
+  const custArr = ensureArray(pickFirst(data, ["data.customer", "customer"]));
+  const c0 = custArr[0] || {};
+  const vendorCustomerResp =
+    c0.vendor_customer_id != null && String(c0.vendor_customer_id).trim()
+      ? String(c0.vendor_customer_id).trim()
+      : c0.customer_id != null && String(c0.customer_id).trim()
+        ? String(c0.customer_id).trim()
+        : pickFirst(data, ["data.vendor_customer_id", "vendor_customer_id"]) != null
+          ? String(pickFirst(data, ["data.vendor_customer_id", "vendor_customer_id"]))
+          : null;
+
   return {
     booking_ref: bookingRef ? String(bookingRef) : "",
+    vendor_booking_id: vendorBookingId,
+    vendor_billing_user_id: vendorBillingUserId,
+    vendor_customer_id: vendorCustomerResp,
     slot: selectedSlot,
     freeze_ref: freezeRef?.freeze_id || null,
     zone_id: zoneId ? String(zoneId) : null,
@@ -535,6 +553,51 @@ export async function getPartnerBookingStatus({ bookingId }) {
     customer: ensureArray(pickFirst(data, ["data.customer", "customer"])),
     raw: data,
   };
+}
+
+export function extractReportUrlsFromCustomerReportData(data) {
+  const cand = [];
+  const paths = ["data.report_url", "report_url", "data.cgm_report_url", "cgm_report_url", "data.full_report_url"];
+  for (const p of paths) {
+    const u = pickFirst(data, [p]);
+    const s = u != null ? String(u).trim() : "";
+    if (s.startsWith("https://")) cand.push(s);
+  }
+  return cand;
+}
+
+/**
+ * Healthians-style customer report lookup (requires booking + vendor identifiers from createBooking payload).
+ */
+export async function getPartnerCustomerReport({
+  bookingId,
+  vendorBillingUserId,
+  vendorCustomerId,
+  allowPartial = 1,
+} = {}) {
+  if (!isEnabled()) throw new Error("Diagnostics partner integration is disabled");
+  const bid = String(bookingId || "").trim();
+  const vb = String(vendorBillingUserId || "").trim();
+  const vc = String(vendorCustomerId || "").trim();
+  if (!bid || !vb || !vc) {
+    throw new Error("getCustomerReport requires booking_id, vendor_billing_user_id, vendor_customer_id");
+  }
+  const token = await getAccessToken();
+  const method = getEnv("DIAG_B2B_CUSTOMER_REPORT_METHOD", "POST").toUpperCase();
+  const payload = {
+    booking_id: bid,
+    vendor_billing_user_id: vb,
+    vendor_customer_id: vc,
+    allow_partial_report: Number(allowPartial) ? 1 : 0,
+  };
+  const data = await httpRequest(customerReportPath(), {
+    method,
+    body: method === "GET" ? null : payload,
+    query: method === "GET" ? payload : null,
+    token,
+  });
+  assertPartnerSuccess(data, "Unable to fetch partner customer report");
+  return { raw: data, urls: extractReportUrlsFromCustomerReportData(data) };
 }
 
 export function isDiagnosticsPartnerEnabled() {
