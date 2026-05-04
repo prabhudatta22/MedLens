@@ -14,8 +14,16 @@ const GEO_STORAGE_KEY = "medlens_geo_location_v1";
 
 let cities = [];
 let selectedCategory = "";
-let t = null;
 let selectedDiagPackages = new Map();
+
+/** Queued diagnostics test names for multi-compare (`runCompareAll`). */
+let compareQueue = [];
+/** Tracks how the results panel was loaded (for city/pin/category refresh behavior). */
+let lastCompareMode = "none";
+
+let geoCompareTimer = null;
+
+const selectedOfferPickKeys = new Set();
 
 const DEFAULT_METRO_CITIES = [
   { slug: "mumbai", name: "Mumbai", state: "Maharashtra" },
@@ -33,6 +41,12 @@ function escapeHtml(s) {
 
 function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
+}
+
+function cleanPincode(raw) {
+  return String(raw || "")
+    .replace(/\D/g, "")
+    .slice(0, 6);
 }
 
 /** Heading / partner package label for autocomplete rows. */
@@ -121,12 +135,13 @@ function bookModalEls() {
 }
 
 function pkgKey(pkg) {
-  return String(pkg?.dealId || pkg?.packageId || "").trim();
+  const v = String(pkg?.vendorKey ?? "").trim();
+  return `${String(pkg?.dealId || pkg?.packageId || "").trim()}|${v}`;
 }
 
 function addSelectedPackage(pkg) {
   const key = pkgKey(pkg);
-  if (!key) return;
+  if (!key || key === "|") return;
   selectedDiagPackages.set(key, {
     city: pkg.city,
     packageId: String(pkg.packageId || ""),
@@ -134,6 +149,9 @@ function addSelectedPackage(pkg) {
     packageName: String(pkg.packageName || ""),
     priceInr: Number(pkg.priceInr) || 0,
     mrpInr: pkg.mrpInr == null ? null : Number(pkg.mrpInr),
+    vendorKey: String(pkg.vendorKey || ""),
+    vendorLabel: String(pkg.vendorLabel || pkg.vendorKey || ""),
+    bookingSupported: pkg.bookingSupported !== false,
   });
 }
 
@@ -154,7 +172,9 @@ function renderBookSelection() {
     .map(
       (p) => `
       <div class="dx-book-selected-item">
-        <span>${escapeHtml(p.packageName)} <span class="muted">(${escapeHtml(fmtINR(p.priceInr))})</span></span>
+        <span>${escapeHtml(p.vendorLabel ? `${p.vendorLabel} · ` : "")}${escapeHtml(p.packageName)} <span class="muted">(${escapeHtml(
+          fmtINR(p.priceInr),
+        )})</span></span>
         <button type="button" class="btn btn-sm btn-ghost" data-remove-pkg="${escapeAttr(pkgKey(p))}">Remove</button>
       </div>`
     )
@@ -202,6 +222,10 @@ function openPackageModal(item) {
 
 let pendingBookCtx = null;
 function openBookModal(ctx) {
+  if (ctx.bookingSupported === false) {
+    setStatus("That vendor listing is estimate-only and cannot be booked here yet.");
+    return;
+  }
   const m = bookModalEls();
   if (!m.wrap) return;
   addSelectedPackage(ctx);
@@ -258,6 +282,17 @@ function initBookModalHandlers() {
     const selected = selectedPackagesList();
     if (!selected.length) {
       if (m.hint) m.hint.textContent = "Select at least one test before booking.";
+      return;
+    }
+    const vendorKeys = [...new Set(selected.map((p) => String(p.vendorKey || "").trim()).filter(Boolean))];
+    if (vendorKeys.length > 1) {
+      if (m.hint) m.hint.textContent = "Book one diagnostics vendor at a time. Remove other vendors from the list.";
+      return;
+    }
+    const hasH = selected.some((p) => p.vendorKey === "healthians");
+    const hasCat = selected.some((p) => p.vendorKey === "medlens_catalog");
+    if (hasH && hasCat) {
+      if (m.hint) m.hint.textContent = "Do not mix Healthians and catalog packages in one booking. Remove one vendor.";
       return;
     }
     const scheduledForIso = toStartOfLocalDayIso(m.dateInput?.value);
@@ -365,8 +400,10 @@ function renderRecent() {
       const input = $("labQ");
       if (!input) return;
       input.value = q;
-      input.dispatchEvent(new Event("input", { bubbles: true }));
       input.focus();
+      void runSearch();
+      clearTimeout(suggestTimer);
+      suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
     });
     wrap.appendChild(btn);
   });
@@ -565,112 +602,336 @@ function setStatus(msg) {
   $("labStatus").textContent = msg || "";
 }
 
-function render(items) {
+/** Stable key per vendor row for multi-select bulk add-to-cart */
+function offerPickKeyFromOffer(off) {
+  const pk = String(off.package_id || "");
+  const vk = String(off.vendor_key || "");
+  const dk = String(off.deal_id || pk);
+  return `${pk}|${vk}|${dk}`;
+}
+
+function statsFromGroups(groups) {
+  const prices = (Array.isArray(groups) ? groups : [])
+    .flatMap((g) => (Array.isArray(g?.offers) ? g.offers : []).map((o) => Number(o.price_inr)))
+    .filter((n) => Number.isFinite(n));
+  if (!prices.length) return { min_inr: NaN, max_inr: NaN, spread_percent: null };
+  const min_inr = Math.min(...prices);
+  const max_inr = Math.max(...prices);
+  const spread_percent =
+    max_inr > min_inr ? Math.round(((max_inr - min_inr) / max_inr) * 1000) / 10 : null;
+  return { min_inr, max_inr, spread_percent };
+}
+
+function renderCompareQueue() {
+  const wrap = $("labCompareQueue");
+  const btnAll = $("labCompareAllBtn");
+  const btnClr = $("labClearQueueBtn");
+  if (!wrap) return;
+  if (!compareQueue.length) {
+    wrap.classList.add("hidden");
+    wrap.innerHTML = "";
+    if (btnAll) btnAll.disabled = true;
+    if (btnClr) btnClr.disabled = true;
+    return;
+  }
+  wrap.classList.remove("hidden");
+  if (btnAll) btnAll.disabled = false;
+  if (btnClr) btnClr.disabled = false;
+  wrap.innerHTML = compareQueue
+    .map(
+      (q, idx) =>
+        `<button type="button" class="chip chip-queue-item" data-rm-queue-idx="${idx}" aria-label="Remove ${escapeAttr(
+          q,
+        )} from comparison list">${escapeHtml(q)} <span aria-hidden="true">×</span></button>`,
+    )
+    .join("");
+  wrap.querySelectorAll("[data-rm-queue-idx]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.getAttribute("data-rm-queue-idx"));
+      if (!Number.isFinite(i) || i < 0 || i >= compareQueue.length) return;
+      compareQueue.splice(i, 1);
+      renderCompareQueue();
+      setStatus(compareQueue.length ? `${compareQueue.length} diagnostic test(s) in your list.` : "Comparison list cleared.");
+    });
+  });
+}
+
+function addCurrentTestToCompareQueue() {
+  const q = $("labQ").value.trim();
+  if (!q || q.length < MIN_QUERY_LEN) {
+    setStatus(`Enter at least ${MIN_QUERY_LEN} characters before adding a diagnostic to the list.`);
+    return;
+  }
+  const exists = compareQueue.some((x) => x.toLowerCase() === q.toLowerCase());
+  if (!exists) compareQueue.push(q);
+  renderCompareQueue();
+  setStatus(
+    exists
+      ? `"${q}" is already in the list. Use Compare all listed tests to refresh prices for every entry.`
+      : `Added "${q}" (${compareQueue.length} in list). Use Compare all listed tests to compare every diagnostic at once.`,
+  );
+}
+
+function scheduleGeoCompareRefresh() {
+  clearTimeout(geoCompareTimer);
+  geoCompareTimer = setTimeout(() => rerunLastCompare(), DEBOUNCE_MS);
+}
+
+function rerunLastCompare() {
+  if (lastCompareMode === "multi" && compareQueue.length) {
+    void runCompareAll(false);
+    return;
+  }
+  const q = ($("labQ")?.value || "").trim();
+  if (lastCompareMode === "single" && q.length >= MIN_QUERY_LEN) runSearch();
+}
+
+function refreshBulkBar() {
+  const bar = $("labBulkActions");
+  const label = $("labBulkPickCount");
+  if (!bar || !label) return;
+  const n = selectedOfferPickKeys.size;
+  bar.classList.toggle("hidden", n === 0);
+  label.textContent = n === 0 ? "" : n === 1 ? "1 offer selected — add each row you want." : `${n} offers selected.`;
+}
+
+function readBulkPickFromCheckbox(cb) {
+  return {
+    city: $("labCity")?.value || "",
+    packageId: cb.getAttribute("data-package-id") || "",
+    dealId: cb.getAttribute("data-deal-id") || "",
+    packageName: cb.getAttribute("data-heading") || "",
+    priceInr: Number(cb.getAttribute("data-price")),
+    mrpRaw: cb.getAttribute("data-mrp"),
+    vendorKey: cb.getAttribute("data-vendor-key") || "",
+    vendorLabel: cb.getAttribute("data-vendor-label") || "",
+    bookingSupported: cb.getAttribute("data-booking") === "1",
+  };
+}
+
+async function runCompareAll(persistRecent = true) {
+  const city = $("labCity").value;
+  const pincode = cleanPincode($("labPincode")?.value || "");
+  const tests = [...compareQueue];
+  if (!tests.length) {
+    setStatus("Use Add test to list to queue diagnostics, then Compare all listed tests — or Compare prices for a single search.");
+    return;
+  }
+  if (!city) {
+    setStatus("Choose a city before comparing diagnostics.");
+    return;
+  }
+
+  lastCompareMode = "multi";
+  setStatus("Comparing diagnostics…");
+
+  try {
+    const results = await Promise.all(
+      tests.map(async (q) => {
+        const params = new URLSearchParams({ q, city, pincode });
+        if (selectedCategory) params.set("category", selectedCategory);
+        appendStoredGeoCoords(params);
+        const res = await fetch(`/api/labs/compare?${params.toString()}`);
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, status: res.status, q, data };
+      }),
+    );
+
+    const failedAll = results.length > 0 && results.every((r) => !r.ok);
+    if (failedAll) {
+      const e0 = results[0];
+      setStatus(e0?.data?.error || `Diagnostics compare failed (${e0?.status || "?"})`);
+      render([], null);
+      return;
+    }
+
+    const allGroups = [];
+    /** @type {string[]} */
+    const failedParts = [];
+    for (const r of results) {
+      if (!r.ok) {
+        failedParts.push(`${r.q} (${r.data?.error || r.status})`);
+        continue;
+      }
+      const gs = r.data?.groups;
+      if (Array.isArray(gs)) allGroups.push(...gs);
+      if (persistRecent) saveRecent(r.q);
+    }
+
+    const stats = statsFromGroups(allGroups);
+    let msg = `Compared ${tests.length} diagnostic search(es) · ${city}${selectedCategory ? ` · ${selectedCategory}` : ""}`;
+    const mn = Number(stats.min_inr);
+    const mx = Number(stats.max_inr);
+    if (Number.isFinite(mn) && Number.isFinite(mx) && mx > mn) {
+      msg += ` · ₹${Math.round(mn).toLocaleString("en-IN")}–₹${Math.round(mx).toLocaleString("en-IN")}`;
+      if (stats.spread_percent != null) msg += ` (~${stats.spread_percent}% spread)`;
+    }
+    if (failedParts.length) msg += ` · Missing: ${failedParts.join("; ")}`;
+    setStatus(msg);
+
+    render(allGroups, stats);
+  } catch (e) {
+    setStatus(String(e?.message || e));
+    render([], null);
+  }
+}
+
+function canOpenDiagDetail(off) {
+  if (String(off?.package_id || "").startsWith("stub:")) return false;
+  const vk = String(off?.vendor_key || "");
+  return vk === "healthians" || vk === "medlens_catalog";
+}
+
+/** @param {unknown} groups @param {{ min_inr?: unknown; max_inr?: unknown; spread_percent?: unknown } | null | undefined} stats */
+function render(groups, stats) {
   const grid = $("labGrid");
   const empty = $("labEmpty");
-  if (!items.length) {
+  selectedOfferPickKeys.clear();
+
+  if (!Array.isArray(groups) || !groups.length) {
     grid.innerHTML = "";
     empty.classList.remove("hidden");
+    refreshBulkBar();
     return;
   }
   empty.classList.add("hidden");
 
-  const finitePrices = items.map((it) => Number(it.price_inr)).filter((n) => Number.isFinite(n));
-  const minAmongResults = finitePrices.length >= 2 ? Math.min(...finitePrices) : null;
+  const minAmongAll = groups.flatMap((g) => (g.offers || []).map((o) => Number(o.price_inr))).filter((n) => Number.isFinite(n));
+  const globalFloor = minAmongAll.length >= 2 ? Math.min(...minAmongAll) : null;
 
-  grid.innerHTML = items
-    .map((it) => {
-      const price = Number(it.price_inr);
-      const mrp = it.mrp_inr != null ? Number(it.mrp_inr) : null;
-      const discFromApi = it.discount_pct != null && Number.isFinite(Number(it.discount_pct)) ? Number(it.discount_pct) : null;
-      const hasDiscountByMrp = mrp != null && mrp > price && price > 0;
-      const hasDiscount = (discFromApi != null && discFromApi > 0.05) || hasDiscountByMrp;
-      const pct =
-        discFromApi != null && discFromApi > 0
-          ? Math.round(discFromApi * 10) / 10
-          : hasDiscountByMrp && mrp != null
-            ? Math.round(((mrp - price) / mrp) * 1000) / 10
-            : null;
-      const tat = it.report_tat_hours != null ? `${escapeHtml(it.report_tat_hours)} hrs` : "—";
-      const home = it.home_collection ? "Home collection" : "Lab visit";
-      const provider = String(it.provider || "").toLowerCase();
-      const packageId = String(it.package_id || it.id || "");
-      const dealId = String(it.deal_id || packageId || "");
-      const hasExternalOpen = provider !== "healthians" && !!it.slug;
-      const openUrl = hasExternalOpen ? `https://www.1mg.com${it.slug}` : "#";
+  grid.innerHTML = groups
+    .map((g) => {
+      const offers = Array.isArray(g.offers) ? g.offers : [];
+      const finite = offers.map((o) => Number(o.price_inr)).filter((n) => Number.isFinite(n));
+      const gMin = finite.length >= 2 ? Math.min(...finite) : finite.length === 1 ? finite[0] : null;
 
-      const saveVsMrp =
-        mrp != null && Number.isFinite(price) && Number.isFinite(mrp) && mrp > price ? Math.round((mrp - price) * 100) / 100 : null;
-      const showBestPrice =
-        minAmongResults != null &&
-        Number.isFinite(price) &&
-        price === minAmongResults &&
-        finitePrices.filter((x) => x === minAmongResults).length >= 1;
+      const rows = offers
+        .map((off) => {
+          const price = Number(off.price_inr);
+          const mrp = off.mrp_inr != null ? Number(off.mrp_inr) : null;
+          const discFromApi =
+            off.discount_pct != null && Number.isFinite(Number(off.discount_pct)) ? Number(off.discount_pct) : null;
+          const hasDiscountByMrp = mrp != null && mrp > price && price > 0;
+          const hasDiscount = (discFromApi != null && discFromApi > 0.05) || hasDiscountByMrp;
+          const pct =
+            discFromApi != null && discFromApi > 0
+              ? Math.round(discFromApi * 10) / 10
+              : hasDiscountByMrp && mrp != null
+                ? Math.round(((mrp - price) / mrp) * 1000) / 10
+                : null;
+          const pk = String(off.package_id || "");
+          const dk = String(off.deal_id || pk);
+          const book = off.booking_supported !== false;
+          const vk = String(off.vendor_key || "");
+          const vlab = String(off.vendor_label || off.lab_name || vk || "Vendor");
+          const mode = String(off.data_mode || "");
+          const badge =
+            Number.isFinite(price) && globalFloor != null && price === globalFloor
+              ? `<span class="pill pill-deal">Lowest</span>`
+              : Number.isFinite(price) && gMin != null && price === gMin && offers.length >= 2
+                ? `<span class="pill pill-muted">Best in test</span>`
+                : "";
+          const bookPill = book
+            ? `<span class="pill">Bookable</span>`
+            : `<span class="pill pill-muted">Estimate</span>`;
+
+          const detailBtn = canOpenDiagDetail(off)
+            ? `<button type="button" class="btn btn-sm btn-ghost" data-cmp-view="${escapeAttr(pk)}">View</button>`
+            : "";
+          const pickKey = offerPickKeyFromOffer(off);
+
+          return `<tr>
+            <td class="lab-pick-cell">
+              <input
+                type="checkbox"
+                class="lab-offer-pick"
+                data-cmp-pick="1"
+                data-pick-key="${escapeAttr(pickKey)}"
+                title="Include in bulk add"
+                aria-label="${escapeAttr(`Select ${vlab} for cart`)}"
+                data-package-id="${escapeAttr(pk)}"
+                data-deal-id="${escapeAttr(dk)}"
+                data-heading="${escapeAttr(off.heading || g.heading || "")}"
+                data-price="${escapeAttr(price)}"
+                data-mrp="${escapeAttr(off.mrp_inr ?? "")}"
+                data-vendor-key="${escapeAttr(vk)}"
+                data-vendor-label="${escapeAttr(vlab)}"
+                data-booking="${book ? "1" : "0"}"
+              />
+            </td>
+            <td>
+              <strong>${escapeHtml(vlab)}</strong>
+              ${off.vendor_note ? `<div class="muted" style="font-size:0.8rem;margin-top:0.25rem">${escapeHtml(off.vendor_note)}</div>` : ""}
+              <div style="margin-top:0.35rem">${badge} ${bookPill}${
+                mode && mode !== "partner_api" && mode !== "local_catalog"
+                  ? ` <span class="pill pill-muted">${escapeHtml(mode.replace(/_/g, " "))}</span>`
+                  : ""
+              }</div>
+            </td>
+            <td class="price-cell">${escapeHtml(fmtINR(price))}</td>
+            <td>${hasDiscount && mrp != null ? `<s class="muted">${escapeHtml(fmtINR(mrp))}</s>` : mrp != null ? escapeHtml(fmtINR(mrp)) : "—"}</td>
+            <td>${pct != null && pct > 0 ? escapeHtml(String(pct)) + "%" : "—"}</td>
+            <td style="white-space:nowrap">
+              ${detailBtn}
+              <button
+                type="button"
+                class="btn btn-sm btn-ghost"
+                data-cmp-add="1"
+                data-package-id="${escapeAttr(pk)}"
+                data-deal-id="${escapeAttr(dk)}"
+                data-heading="${escapeAttr(off.heading || g.heading || "")}"
+                data-price="${escapeAttr(price)}"
+                data-mrp="${escapeAttr(off.mrp_inr ?? "")}"
+                data-vendor-key="${escapeAttr(vk)}"
+                data-vendor-label="${escapeAttr(vlab)}"
+                data-booking="${book ? "1" : "0"}"
+              >Add</button>
+              <button
+                type="button"
+                class="btn btn-sm btn-primary"
+                data-cmp-book="1"
+                data-package-id="${escapeAttr(pk)}"
+                data-deal-id="${escapeAttr(dk)}"
+                data-heading="${escapeAttr(off.heading || g.heading || "")}"
+                data-price="${escapeAttr(price)}"
+                data-mrp="${escapeAttr(off.mrp_inr ?? "")}"
+                data-vendor-key="${escapeAttr(vk)}"
+                data-vendor-label="${escapeAttr(vlab)}"
+                data-booking="${book ? "1" : "0"}"
+              >Book</button>
+            </td>
+          </tr>`;
+        })
+        .join("");
+
+      const iconBit = g.icon_url
+        ? `<div class="lab-icowrap" style="width:44px;height:44px;margin-right:0.65rem"><img src="${escapeHtml(g.icon_url)}" alt="" loading="lazy"/></div>`
+        : `<div class="lab-icowrap" style="width:44px;height:44px;margin-right:0.65rem"><span>🧪</span></div>`;
 
       return `
-      <article class="lab-card">
-        <div class="lab-card-top">
-          <div class="lab-icowrap">
-            ${it.icon_url ? `<img src="${escapeHtml(it.icon_url)}" alt="" loading="lazy" />` : `<span>🧪</span>`}
-          </div>
-          <div class="lab-meta">
-            <div class="lab-title">${escapeHtml(it.heading)}</div>
-            <div class="lab-sub muted">${escapeHtml(it.sub_heading || "")}</div>
-            <div class="lab-badges">
-              <span class="pill">${escapeHtml(it.lab_name || "Lab")}</span>
-              <span class="pill pill-muted">${escapeHtml(home)}</span>
-              <span class="pill pill-muted">Report: ${tat}</span>
-              ${pct != null && pct > 0 ? `<span class="pill pill-deal">${escapeHtml(String(pct))}% off MRP</span>` : ""}
-              ${showBestPrice ? `<span class="pill pill-muted">Best price</span>` : ""}
-            </div>
+      <article class="lab-compare-bundle">
+        <div class="lab-compare-bundle-head" style="display:flex;gap:0.75rem;align-items:flex-start;margin-bottom:0.65rem">
+          ${iconBit}
+          <div>
+            <h3 style="margin:0;font-size:1.05rem">${escapeHtml(g.heading)}</h3>
+            ${g.sub_heading ? `<p class="muted" style="margin:0.25rem 0 0">${escapeHtml(g.sub_heading)}</p>` : ""}
           </div>
         </div>
-        <div class="lab-card-bottom">
-          <div class="lab-price">
-            <div class="lab-price-now">${escapeHtml(fmtINR(price))}</div>
-            <div class="lab-price-was muted">${hasDiscount ? `<s>${escapeHtml(fmtINR(mrp))}</s>` : ""}</div>
-          </div>
-          ${
-            saveVsMrp != null
-              ? `<div class="muted" style="font-size: 0.82rem; margin-top: 0.35rem">
-                  Save <strong>₹${escapeHtml(fmtINR(saveVsMrp))}</strong> vs MRP
-                  ${pct != null && pct > 0 ? ` <span class="muted">(${escapeHtml(String(pct))}% discount)</span>` : ""}
-                </div>`
-              : ""
-          }
-          <div class="lab-actions">
-            ${
-              hasExternalOpen
-                ? `<a class="btn btn-sm btn-ghost" href="${escapeHtml(openUrl)}" target="_blank" rel="noopener noreferrer">Open</a>`
-                : `<button type="button" class="btn btn-sm btn-ghost" data-view="${escapeAttr(packageId)}">View</button>`
-            }
-            <button
-              type="button"
-              class="btn btn-sm btn-ghost"
-              data-add="${escapeAttr(packageId)}"
-              data-deal-id="${escapeAttr(dealId)}"
-              data-heading="${escapeAttr(it.heading || "")}"
-              data-price="${escapeAttr(it.price_inr)}"
-              data-mrp="${escapeAttr(it.mrp_inr ?? "")}"
-            >Add</button>
-            <button
-              type="button"
-              class="btn btn-sm btn-primary"
-              data-book="${escapeAttr(packageId)}"
-              data-deal-id="${escapeAttr(dealId)}"
-              data-heading="${escapeAttr(it.heading || "")}"
-              data-price="${escapeAttr(it.price_inr)}"
-              data-mrp="${escapeAttr(it.mrp_inr ?? "")}"
-            >Book</button>
-          </div>
+        <div class="table-wrap">
+          <table class="price-table lab-vendor-table" aria-label="Diagnostics vendor prices">
+            <thead><tr><th class="lab-pick-cell"><span class="sr-only">Select for bulk add to cart</span></th><th>Vendor</th><th>Price</th><th>MRP</th><th>% off</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
         </div>
       </article>`;
     })
     .join("");
 
-  grid.querySelectorAll("button[data-view]").forEach((btn) => {
+  refreshBulkBar();
+
+  grid.querySelectorAll("button[data-cmp-view]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const packageId = btn.getAttribute("data-view") || "";
+      const packageId = btn.getAttribute("data-cmp-view") || "";
       const city = $("labCity")?.value || "";
       const pincode = cleanPincode($("labPincode")?.value || "");
       if (!packageId || !city) return;
@@ -686,42 +947,65 @@ function render(items) {
     });
   });
 
-  grid.querySelectorAll("button[data-book]").forEach((btn) => {
+  grid.querySelectorAll("button[data-cmp-book]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const city = $("labCity")?.value || "";
-      const packageId = btn.getAttribute("data-book") || "";
+      const packageId = btn.getAttribute("data-package-id") || "";
       const dealId = btn.getAttribute("data-deal-id") || packageId;
       const packageName = btn.getAttribute("data-heading") || "";
       const priceInr = Number(btn.getAttribute("data-price"));
       const mrpRaw = btn.getAttribute("data-mrp");
       const mrpInr = mrpRaw === "" || mrpRaw == null ? null : Number(mrpRaw);
+      const vendorKey = btn.getAttribute("data-vendor-key") || "";
+      const vendorLabel = btn.getAttribute("data-vendor-label") || vendorKey;
+      const bookingSupported = btn.getAttribute("data-booking") === "1";
       if (!city || !packageId || !packageName || !Number.isFinite(priceInr)) return;
+      if (!bookingSupported) {
+        setStatus("That vendor row is estimate-only — add Healthians catalog (or catalog when partner is off).");
+        return;
+      }
       if (!currentUser) {
         setStatus("Please log in to book diagnostics. Redirecting to sign-in…");
         window.location.assign(`/login.html?returnTo=${encodeURIComponent("/labs.html")}`);
         return;
       }
-      openBookModal({ city, packageId, dealId, packageName, priceInr, mrpInr });
+      openBookModal({ city, packageId, dealId, packageName, priceInr, mrpInr, vendorKey, vendorLabel, bookingSupported });
     });
   });
 
-  grid.querySelectorAll("button[data-add]").forEach((btn) => {
+  grid.querySelectorAll("button[data-cmp-add]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const city = $("labCity")?.value || "";
-      const packageId = btn.getAttribute("data-add") || "";
+      const packageId = btn.getAttribute("data-package-id") || "";
       const dealId = btn.getAttribute("data-deal-id") || packageId;
       const packageName = btn.getAttribute("data-heading") || "";
       const priceInr = Number(btn.getAttribute("data-price"));
       const mrpRaw = btn.getAttribute("data-mrp");
       const mrpInr = mrpRaw === "" || mrpRaw == null ? null : Number(mrpRaw);
+      const vendorKey = btn.getAttribute("data-vendor-key") || "";
+      const vendorLabel = btn.getAttribute("data-vendor-label") || vendorKey;
+      const bookingSupported = btn.getAttribute("data-booking") === "1";
       if (!city || !packageId || !packageName || !Number.isFinite(priceInr)) return;
-      addSelectedPackage({ city, packageId, dealId, packageName, priceInr, mrpInr });
+      addSelectedPackage({
+        city,
+        packageId,
+        dealId,
+        packageName,
+        priceInr,
+        mrpInr,
+        vendorKey,
+        vendorLabel,
+        bookingSupported,
+      });
       addCartLine({
         source: "diagnostics",
         packageId,
         dealId,
         city,
-        providerName: "Healthians",
+        vendorKey,
+        vendorLabel,
+        bookingSupported,
+        providerName: vendorLabel,
         medicineLabel: packageName,
         unitPriceInr: priceInr,
         mrpInr: Number.isFinite(mrpInr) ? mrpInr : null,
@@ -729,7 +1013,7 @@ function render(items) {
       });
       refreshCartBadge();
       setStatus(
-        `Added to cart. ${cartLineCount()} total cart item(s) · ${selectedPackagesList().length} test(s) selected for scheduler.`
+        `Added ${vendorLabel}: ${packageName}. ${cartLineCount()} cart item(s) · Compare-only rows can be removed before checkout.`,
       );
     });
   });
@@ -741,17 +1025,26 @@ async function runSearch() {
   const pincode = cleanPincode($("labPincode")?.value || "");
 
   if (!q) {
-    setStatus("Type a test name to search (e.g. CBC).");
-    render([]);
+    lastCompareMode = "none";
+    selectedOfferPickKeys.clear();
+    $("labGrid").innerHTML = "";
+    $("labEmpty")?.classList.add("hidden");
+    refreshBulkBar();
+    setStatus("Enter a diagnostic test (e.g. CBC), then click Compare prices.");
     return;
   }
   if (q.length < MIN_QUERY_LEN) {
-    setStatus(`Enter at least ${MIN_QUERY_LEN} characters to search.`);
-    render([]);
+    lastCompareMode = "none";
+    selectedOfferPickKeys.clear();
+    $("labGrid").innerHTML = "";
+    $("labEmpty")?.classList.add("hidden");
+    refreshBulkBar();
+    setStatus(`Enter at least ${MIN_QUERY_LEN} characters, then Compare prices.`);
     return;
   }
 
-  setStatus("Searching…");
+  lastCompareMode = "single";
+  setStatus("Comparing diagnostics…");
   saveRecent(q);
 
   const params = new URLSearchParams({ q, city, pincode });
@@ -759,24 +1052,32 @@ async function runSearch() {
   appendStoredGeoCoords(params);
 
   try {
-    const res = await fetch(`/api/labs/search?${params.toString()}`);
+    const res = await fetch(`/api/labs/compare?${params.toString()}`);
     const data = await res.json();
     if (!res.ok) {
-      setStatus(data.error || `Search failed (${res.status})`);
-      render([]);
+      lastCompareMode = "none";
+      setStatus(data.error || `Compare failed (${res.status})`);
+      render([], null);
       return;
     }
-    setStatus(`Showing results for “${q}” in ${city}${selectedCategory ? ` · ${selectedCategory}` : ""}.`);
-    render(data.items || []);
+    const stats = data.stats || {};
+    const groups = data.groups || [];
+    let msg = `Price compare for "${q}" in ${city}${selectedCategory ? ` · ${selectedCategory}` : ""}`;
+    const mn = Number(stats.min_inr);
+    const mx = Number(stats.max_inr);
+    const sp = stats.spread_percent;
+    if (Number.isFinite(mn) && Number.isFinite(mx) && mx > mn) {
+      msg += ` · ₹${Math.round(mn).toLocaleString("en-IN")}–₹${Math.round(mx).toLocaleString("en-IN")}`;
+      if (sp != null && Number.isFinite(Number(sp))) msg += ` (~${Number(sp)}% spread)`;
+    }
+    msg += ". Book Healthians listings when configured, or catalog where shown as bookable.";
+    setStatus(msg);
+    render(groups, stats);
   } catch (e) {
+    lastCompareMode = "none";
     setStatus(String(e?.message || e));
-    render([]);
+    render([], null);
   }
-}
-
-function scheduleSearch() {
-  clearTimeout(t);
-  t = setTimeout(runSearch, DEBOUNCE_MS);
 }
 
 function renderIntents(intents) {
@@ -798,8 +1099,8 @@ function renderIntents(intents) {
       const input = $("labQ");
       if (!input) return;
       input.value = label;
-      input.dispatchEvent(new Event("input", { bubbles: true }));
       input.focus();
+      void runSearch();
     });
   });
 }
@@ -924,8 +1225,7 @@ function pickSuggestion(idx) {
   if (!heading) return;
   input.value = heading;
   closeSuggestions();
-  clearTimeout(t);
-  runSearch();
+  void runSearch();
 }
 
 async function runSuggestSearch() {
@@ -998,10 +1298,11 @@ $("labQ").addEventListener("keydown", (e) => {
       return;
     }
   }
+  e.preventDefault();
+  void runSearch();
 });
 
 $("labQ").addEventListener("input", () => {
-  scheduleSearch();
   clearTimeout(intentTimer);
   intentTimer = setTimeout(refreshIntentHints, 220);
   clearTimeout(suggestTimer);
@@ -1011,22 +1312,121 @@ $("labQ").addEventListener("input", () => {
 $("labQ").addEventListener("blur", () => setTimeout(() => closeSuggestions(), 180));
 
 $("labCity").addEventListener("change", () => {
-  runSearch();
   if (($("labQ")?.value || "").trim().length >= SUGGEST_MIN_QUERY_LEN) {
     clearTimeout(suggestTimer);
     suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
   }
+  rerunLastCompare();
 });
 $("labPincode")?.addEventListener("input", (e) => {
   const el = e.currentTarget;
   if (!el) return;
   el.value = cleanPincode(el.value);
-  scheduleSearch();
+  scheduleGeoCompareRefresh();
   if (($("labQ")?.value || "").trim().length >= SUGGEST_MIN_QUERY_LEN) {
     clearTimeout(suggestTimer);
     suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
   }
 });
+
+function initLabsDiagnosticsCompareBulk() {
+  $("labCompareBtn")?.addEventListener("click", () => runSearch());
+
+  $("labQueueAddBtn")?.addEventListener("click", () => addCurrentTestToCompareQueue());
+
+  $("labCompareAllBtn")?.addEventListener("click", () => runCompareAll(true));
+
+  $("labClearQueueBtn")?.addEventListener("click", () => {
+    compareQueue.length = 0;
+    renderCompareQueue();
+    setStatus("Diagnostics comparison list cleared.");
+  });
+
+  const grid = $("labGrid");
+  grid?.addEventListener("change", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement) || !t.matches("input.lab-offer-pick")) return;
+    const key = t.getAttribute("data-pick-key") || "";
+    if (!key) return;
+    if (t.checked) selectedOfferPickKeys.add(key);
+    else selectedOfferPickKeys.delete(key);
+    refreshBulkBar();
+  });
+
+  $("labBulkClearSelBtn")?.addEventListener("click", () => {
+    selectedOfferPickKeys.clear();
+    $("labGrid")?.querySelectorAll("input.lab-offer-pick:checked").forEach((cb) => {
+      cb.checked = false;
+    });
+    refreshBulkBar();
+  });
+
+  $("labBulkAddCartBtn")?.addEventListener("click", () => {
+    const rows = $("labGrid")?.querySelectorAll("input.lab-offer-pick:checked");
+    if (!rows?.length) return;
+    let added = 0;
+    rows.forEach((cb) => {
+      const a = readBulkPickFromCheckbox(cb);
+      if (!a.city || !a.packageId || !a.packageName || !Number.isFinite(a.priceInr)) return;
+      const mrpInr = a.mrpRaw === "" || a.mrpRaw == null ? null : Number(a.mrpRaw);
+      addSelectedPackage({
+        city: a.city,
+        packageId: a.packageId,
+        dealId: a.dealId || a.packageId,
+        packageName: a.packageName,
+        priceInr: a.priceInr,
+        mrpInr: Number.isFinite(mrpInr) ? mrpInr : null,
+        vendorKey: a.vendorKey,
+        vendorLabel: a.vendorLabel,
+        bookingSupported: a.bookingSupported,
+      });
+      addCartLine({
+        source: "diagnostics",
+        packageId: a.packageId,
+        dealId: a.dealId || a.packageId,
+        city: a.city,
+        vendorKey: a.vendorKey,
+        vendorLabel: a.vendorLabel,
+        bookingSupported: a.bookingSupported,
+        providerName: a.vendorLabel,
+        medicineLabel: a.packageName,
+        unitPriceInr: a.priceInr,
+        mrpInr: Number.isFinite(mrpInr) ? mrpInr : null,
+        quantity: 1,
+      });
+      added += 1;
+    });
+    refreshCartBadge();
+    setStatus(
+      `Added ${added} diagnostics offer row(s). Cart quantity total: ${cartLineCount()} — remove estimate-only vendors before checkout if needed.`,
+    );
+    selectedOfferPickKeys.clear();
+    rows.forEach((cb) => {
+      cb.checked = false;
+    });
+    refreshBulkBar();
+  });
+
+  renderCompareQueue();
+}
+
+/** Popular starter chips (“CBC”, “Thyroid”, …) in the side panel — module script replaces the old inline handler. */
+function initPopularStarterChips() {
+  const host = document.querySelector(".quick-chips[aria-label='Popular']");
+  if (!host) return;
+  host.querySelectorAll(".chip[data-q]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const q = btn.getAttribute("data-q") || "";
+      const input = $("labQ");
+      if (!input) return;
+      input.value = q;
+      input.focus();
+      void runSearch();
+      clearTimeout(suggestTimer);
+      suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
+    });
+  });
+}
 
 async function initLabsPage() {
   await loadCities();
@@ -1055,6 +1455,8 @@ async function initLabsPage() {
   $("labRxUploadBtn")?.addEventListener("click", () => uploadDiagnosticsPrescriptionAndExtract());
   initPackageModalHandlers();
   initBookModalHandlers();
+  initLabsDiagnosticsCompareBulk();
+  initPopularStarterChips();
 
   // Support deep-link from home page: /labs.html?q=...&city=...&category=...
   const params = new URLSearchParams(window.location.search);
@@ -1078,7 +1480,9 @@ async function initLabsPage() {
     clearTimeout(suggestTimer);
     suggestTimer = setTimeout(runSuggestSearch, SUGGEST_DEBOUNCE_MS);
   } else {
-    setStatus("Type a test name to search (e.g. CBC).");
+    setStatus(
+      'Enter a diagnostic, pick a starter chip below, then click Compare prices — or queue several tests with "Add test to list" and Compare all listed tests.',
+    );
   }
 }
 

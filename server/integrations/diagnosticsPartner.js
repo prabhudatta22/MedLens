@@ -204,6 +204,32 @@ function normalizePackage(item) {
   };
 }
 
+/** Map normalized partner package to the public lab row shape shared by `/api/labs/search` and compare APIs. */
+export function mapPartnerPackageToLabRow(pkg) {
+  return {
+    id: pkg.package_id,
+    heading: pkg.heading,
+    sub_heading: pkg.sub_heading,
+    category: pkg.category || "PATHOLOGY",
+    icon_url: null,
+    slug: pkg.slug || "",
+    report_tat_hours: pkg.report_tat_hours,
+    home_collection: pkg.home_collection !== false,
+    lab_name: pkg.lab_name || getEnv("DIAG_B2B_PROVIDER_NAME", "Healthians"),
+    price_inr: pkg.price_inr,
+    mrp_inr: pkg.mrp_inr,
+    discount_pct: pkg.discount_pct ?? null,
+    provider: "healthians",
+    package_id: pkg.package_id,
+    deal_id: pkg.deal_id || pkg.package_id,
+    product_type: pkg.product_type || "",
+    product_type_id: pkg.product_type_id || "",
+    city_id: pkg.city_id || null,
+    city_name: pkg.city_name || "",
+    tests_included: pkg.tests_included || [],
+  };
+}
+
 function normalizeProductType(category = "") {
   const c = String(category || "").trim().toUpperCase();
   if (c === "RADIOLOGY") return "radiology";

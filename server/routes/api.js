@@ -9,8 +9,10 @@ import { matchLabTestsFromText } from "../labs/parse.js";
 import {
   getPartnerPackageDetails,
   isDiagnosticsPartnerEnabled,
+  mapPartnerPackageToLabRow,
   searchPartnerPackages,
 } from "../integrations/diagnosticsPartner.js";
+import { labsGeoAttachmentForReq, labsCompareBundles } from "../integrations/labVendorCompare.js";
 import {
   applyGeoToPharmacyOffers,
   enrichRowsWithListingTransparency,
@@ -61,41 +63,7 @@ function normalizeCitySlug(slug) {
 }
 
 function labsGeoAttachment(req) {
-  const u = parseUserLatLngFromQuery(req.query);
-  if (!u) return {};
-  return {
-    geo: {
-      user_lat: u.lat,
-      user_lng: u.lng,
-      note:
-        "Diagnostics catalog is city-scoped; coordinates are echoed for clients and passed to the partner API when supported.",
-    },
-  };
-}
-
-function mapPartnerPackageToLabRow(pkg) {
-  return {
-    id: pkg.package_id,
-    heading: pkg.heading,
-    sub_heading: pkg.sub_heading,
-    category: pkg.category || "PATHOLOGY",
-    icon_url: null,
-    slug: pkg.slug || "",
-    report_tat_hours: pkg.report_tat_hours,
-    home_collection: pkg.home_collection !== false,
-    lab_name: pkg.lab_name || "Healthians",
-    price_inr: pkg.price_inr,
-    mrp_inr: pkg.mrp_inr,
-    discount_pct: pkg.discount_pct ?? null,
-    provider: "healthians",
-    package_id: pkg.package_id,
-    deal_id: pkg.deal_id || pkg.package_id,
-    product_type: pkg.product_type || "",
-    product_type_id: pkg.product_type_id || "",
-    city_id: pkg.city_id || null,
-    city_name: pkg.city_name || "",
-    tests_included: pkg.tests_included || [],
-  };
+  return labsGeoAttachmentForReq(req);
 }
 
 router.get("/health", async (_req, res) => {
@@ -344,6 +312,44 @@ router.get(
   );
 
   res.json({ query: q, city: citySlug, items: rows, ...labsGeoAttachment(req) });
+  })
+);
+
+router.get(
+  "/labs/compare",
+  asyncHandler(async (req, res) => {
+    const q = (req.query.q || "").toString().trim().slice(0, 120);
+    const citySlug = normalizeCitySlug(req.query.city);
+    const pincode = (req.query.pincode || "").toString().trim().slice(0, 10);
+    const category = (req.query.category || "").toString().trim().toUpperCase();
+    const userLatLng = parseUserLatLngFromQuery(req.query);
+    if (!citySlug) {
+      return res.status(400).json({ error: "city slug is required (e.g. mumbai)" });
+    }
+    if (!q || q.length < 2) {
+      return res.json({
+        query: q,
+        city: citySlug,
+        groups: [],
+        stats: { min_inr: null, max_inr: null, spread_percent: null },
+        meta: { partner_enabled: isDiagnosticsPartnerEnabled(), stub_vendors_enabled: true },
+        ...labsGeoAttachment(req),
+      });
+    }
+    const bundle = await labsCompareBundles(pool, {
+      q,
+      citySlug,
+      pincode,
+      category,
+      lat: userLatLng?.lat ?? null,
+      lng: userLatLng?.lng ?? null,
+    });
+    res.json({
+      query: q,
+      city: citySlug,
+      ...bundle,
+      ...labsGeoAttachment(req),
+    });
   })
 );
 

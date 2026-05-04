@@ -95,6 +95,21 @@
           </label>
         </div>
 
+        <div class="labs-compare-bar" aria-label="Compare diagnostics prices">
+          <div class="labs-compare-actions">
+            <button type="button" class="btn btn-primary" id="labCompareBtn">Compare prices</button>
+            <button type="button" class="btn btn-ghost" id="labQueueAddBtn" title="Add the current search term to your list">
+              Add test to list
+            </button>
+            <button type="button" class="btn btn-ghost" id="labCompareAllBtn" disabled>Compare all listed tests</button>
+            <button type="button" class="btn btn-ghost" id="labClearQueueBtn" disabled>Clear list</button>
+          </div>
+          <p id="labCompareHint" class="muted" style="margin: 0.35rem 0 0">
+            Search or pick a suggestion, choose city and pincode, then use Compare prices for that diagnostic — or add several tests to the list and run Compare all listed tests.
+          </p>
+          <div id="labCompareQueue" class="labs-compare-queue hidden" aria-label="Diagnostic tests queued for comparison"></div>
+        </div>
+
         <div class="field field-hero" style="margin-top: 0.35rem">
           <span class="muted" style="display: block; margin-bottom: 0.35rem">Or upload a prescription / note (printed)</span>
           <div class="input-wrap">
@@ -132,8 +147,16 @@
           <div class="section-head" style="margin-bottom: 0.5rem">
             <div>
               <h2 style="margin-bottom: 0.25rem">Results</h2>
-              <p class="muted section-sub">Search partner packages by city, compare prices, then view or book instantly.</p>
+              <p class="muted section-sub">
+              Compare Diagnostics prices across Healthians (when configured), MedLens catalog, and connector slots for Thyrocare
+              / Lucid — add a bookable row to checkout; estimate-only rows are for benchmarking.
+            </p>
             </div>
+          </div>
+          <div id="labBulkActions" class="labs-bulk-actions hidden" aria-live="polite">
+            <span id="labBulkPickCount" class="labs-bulk-actions-label">0 selected</span>
+            <button type="button" class="btn btn-primary btn-sm" id="labBulkAddCartBtn">Add selected to cart</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="labBulkClearSelBtn">Clear selection</button>
           </div>
           <div id="labGrid" class="labs-grid"></div>
           <p id="labEmpty" class="muted hidden" style="margin-top: 0.85rem">No tests found. Try a different search.</p>
@@ -233,18 +256,6 @@
     </div>
 
     <script type="module" src="/labs.js"></script>
-    <script>
-      document.querySelectorAll(".chip[data-q]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const q = btn.getAttribute("data-q") || "";
-          const input = document.getElementById("labQ");
-          if (!input) return;
-          input.value = q;
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-          input.focus();
-        });
-      });
-    </script>
   </body>
 </html>
 

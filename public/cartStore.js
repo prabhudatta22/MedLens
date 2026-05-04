@@ -52,9 +52,12 @@ export function cartLineCount() {
 function sameCartLine(i, line) {
   if (i.source !== line.source) return false;
   if (line.source === "diagnostics") {
+    const vA = String(i.vendorKey ?? "").trim();
+    const vB = String(line.vendorKey ?? "").trim();
     return (
       String(i.dealId || i.packageId || "") === String(line.dealId || line.packageId || "") &&
-      String(i.city || "").toLowerCase() === String(line.city || "").toLowerCase()
+      String(i.city || "").toLowerCase() === String(line.city || "").toLowerCase() &&
+      vA === vB
     );
   }
   if (line.source === "local") {

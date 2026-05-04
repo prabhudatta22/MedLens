@@ -283,6 +283,13 @@ async function placeDiagnosticsOrder() {
     return;
   }
 
+  const blocked = lines.filter((L) => L.bookingSupported === false || L.booking_supported === false);
+  if (blocked.length) {
+    const names = [...new Set(blocked.map((b) => b.vendorLabel || b.vendorKey || "vendor"))].join(", ");
+    statusEl.textContent = `Cannot checkout estimate-only diagnostics (${names}). Remove those lines or replace them using a Bookable vendor on Diagnostics.`;
+    return;
+  }
+
   const citySet = new Set(lines.map((L) => String(L.city || "").trim().toLowerCase()).filter(Boolean));
   if (citySet.size !== 1) {
     statusEl.textContent = "Diagnostics booking supports one city per order. Remove mixed-city tests and retry.";
