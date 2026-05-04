@@ -39,7 +39,7 @@ app.use(
   express.raw({ type: "application/json", limit: "2mb" }),
   razorpayWebhook
 );
-app.use("/webhook/diagnostics", diagnosticsWebhook);
+app.use("/webhook/diagnostics", express.json({ limit: "2mb" }), diagnosticsWebhook);
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 app.use(attachUser);
